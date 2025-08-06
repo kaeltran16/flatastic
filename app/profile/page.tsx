@@ -29,35 +29,23 @@ interface Profile {
   updated_at: string;
 }
 
-interface ProfileEditPageProps {
-  initialProfile?: Profile;
-}
-
-function ProfileEditPage({ initialProfile }: ProfileEditPageProps) {
-  const [profile, setProfile] = useState<Profile | null>(
-    initialProfile || null
-  );
-  const [loading, setLoading] = useState(!initialProfile);
+function ProfileEditPage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: initialProfile?.full_name || '',
-    email: initialProfile?.email || '',
-  });
-  const [errors, setErrors] = useState<{
-    full_name?: string;
-    email?: string;
-  }>({});
+  const [formData, setFormData] = useState({ full_name: '', email: '' });
+  const [errors, setErrors] = useState<{ full_name?: string; email?: string }>(
+    {}
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
-  // Load profile if not provided as prop
+  // Fetch profile on mount
   useEffect(() => {
-    if (!initialProfile) {
-      loadProfile();
-    }
-  }, [initialProfile]);
+    loadProfile();
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -121,7 +109,6 @@ function ProfileEditPage({ initialProfile }: ProfileEditPageProps) {
     try {
       setSaving(true);
 
-      // Update profile in database
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -136,7 +123,6 @@ function ProfileEditPage({ initialProfile }: ProfileEditPageProps) {
         return;
       }
 
-      // Update email in auth if changed
       if (formData.email !== profile.email) {
         const { error: emailError } = await supabase.auth.updateUser({
           email: formData.email.trim(),
@@ -153,7 +139,6 @@ function ProfileEditPage({ initialProfile }: ProfileEditPageProps) {
         }
       }
 
-      // Update local state
       setProfile({
         ...profile,
         full_name: formData.full_name.trim(),
