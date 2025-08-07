@@ -1,5 +1,6 @@
 import { Navbar } from '@/components/navbar';
 import { Toaster } from '@/components/ui/sonner';
+import { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -12,6 +13,28 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 });
+
+const APP_NAME = 'Flatastic';
+const APP_DEFAULT_TITLE = 'Flatastic';
+const APP_DESCRIPTION = 'Flatastic';
+
+export const metadata: Metadata = {
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: '%s - Flatastic',
+  },
+  description: APP_DESCRIPTION,
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
 
 export default function RootLayout({
   children,
