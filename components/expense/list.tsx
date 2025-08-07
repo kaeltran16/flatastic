@@ -1,14 +1,14 @@
-import { ExpenseWithDetails } from '@/app/expenses/page';
 import AddExpenseButton from '@/components/expense/add-expense-button';
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import { ExpenseWithDetails } from '@/hooks/use-expense';
 import type { Profile } from '@/lib/supabase/types';
 import { Receipt } from 'lucide-react';
 import ExpenseCard from './card';
 
 interface ExpenseListProps {
   expenses?: ExpenseWithDetails[];
-  currentUser: Profile | null;
+  currentUser: Profile;
   onExpenseAdded: () => void;
   onAddExpense: (data: ExpenseFormData) => Promise<void>;
   onViewDetails: (expense: ExpenseWithDetails) => void;
@@ -23,6 +23,7 @@ export default function ExpenseList({
   onViewDetails,
   onSettle,
 }: ExpenseListProps) {
+  console.log(expenses);
   if (expenses?.length === 0) {
     return (
       <Card>
@@ -32,7 +33,7 @@ export default function ExpenseList({
           <p className="text-muted-foreground mb-4 px-4 sm:px-0 max-w-xs mx-auto">
             Start by adding your first shared expense
           </p>
-          {currentUser?.household_id && (
+          {currentUser.household_id && (
             <div className="flex justify-center">
               <AddExpenseButton
                 onExpenseAdded={onExpenseAdded}
@@ -50,6 +51,7 @@ export default function ExpenseList({
     <div className="space-y-4 px-4 sm:px-0">
       {expenses?.map((expense) => (
         <ExpenseCard
+          currentUser={currentUser}
           key={expense.id}
           expense={expense}
           onViewDetails={onViewDetails}

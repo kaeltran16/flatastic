@@ -44,10 +44,10 @@ const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
           {...props}
         >
           {children || (
-            <>
+            <div className="flex items-center">
               <Plus className="h-4 w-4 mr-2" />
               Add Expense
-            </>
+            </div>
           )}
         </Button>
       </motion.div>

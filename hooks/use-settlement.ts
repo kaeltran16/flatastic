@@ -70,19 +70,37 @@ export function useSettlements() {
   };
 
   const loadBalances = async (householdId: string, members: Profile[]) => {
-    // Get all unsettled expense splits
+    // Get all unsettled expense splits with proper join
     const { data: splits, error } = await supabase
       .from('expense_splits')
       .select(
         `
         *,
-        expenses!inner(household_id, paid_by, description, amount, date)
+        expenses!inner(
+          id,
+          household_id,
+          paid_by,
+          description,
+          amount,
+          date,
+          category,
+          split_type,
+          created_at,
+          updated_at
+        )
       `
       )
       .eq('expenses.household_id', householdId)
-      .eq('is_settled', false);
+      .eq('is_settled', false)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
+
+    // Validate data structure
+    if (!splits || splits.length === 0) {
+      setBalances([]);
+      return;
+    }
 
     // Calculate net balances between users
     const userBalances = new Map<
@@ -90,11 +108,18 @@ export function useSettlements() {
       Map<string, { amount: number; splits: ExpenseSplit[] }>
     >();
 
-    splits?.forEach((split) => {
+    splits.forEach((split) => {
+      // Ensure we have the expense data
+      if (!split.expenses) {
+        console.warn('Split missing expense data:', split);
+        return;
+      }
+
       const expense = split.expenses;
       const debtor = split.user_id;
       const creditor = expense.paid_by;
 
+      // Skip if debtor and creditor are the same (shouldn't happen but safety check)
       if (debtor !== creditor) {
         if (!userBalances.has(debtor)) {
           userBalances.set(debtor, new Map());
@@ -138,10 +163,13 @@ export function useSettlements() {
             netSplits = reverseBalance.splits;
           } else {
             netAmount = data.amount - reverseBalance.amount;
+            // Keep original splits if current balance is higher
           }
         }
 
-        if (netAmount > 0) {
+        // Only create balance if there's actually money owed
+        if (netAmount > 0.01) {
+          // Use small threshold to avoid floating point issues
           const fromUser = members.find((m) => m.id === netFromUser);
           const toUser = members.find((m) => m.id === netToUser);
 
@@ -151,7 +179,7 @@ export function useSettlements() {
               from_user_name: fromUser.full_name,
               to_user_id: netToUser,
               to_user_name: toUser.full_name,
-              amount: netAmount,
+              amount: Math.round(netAmount * 100) / 100, // Round to 2 decimal places
               related_splits: netSplits,
             });
           }
@@ -162,6 +190,8 @@ export function useSettlements() {
       }
     }
 
+    // Sort balances by amount (highest first)
+    balanceArray.sort((a, b) => b.amount - a.amount);
     setBalances(balanceArray);
   };
 
@@ -174,64 +204,95 @@ export function useSettlements() {
       throw new Error('Invalid payment amount');
     }
 
-    // Sort splits by amount owed (descending) to settle larger amounts first
-    const sortedSplits = [...balance.related_splits].sort(
-      (a, b) => b.amount_owed - a.amount_owed
-    );
-
-    let remainingAmount = amount;
-    const splitsToUpdate: {
+    // Use a transaction-like approach with error handling
+    const updates: {
       id: string;
-      newAmount: number;
-      shouldSettle: boolean;
+      operation: 'settle' | 'update';
+      newAmount?: number;
     }[] = [];
 
-    // Determine which splits to update or settle
-    for (const split of sortedSplits) {
-      if (remainingAmount <= 0) break;
+    try {
+      // Sort splits by amount owed (descending) to settle larger amounts first
+      const sortedSplits = [...balance.related_splits].sort(
+        (a, b) => b.amount_owed - a.amount_owed
+      );
 
-      if (remainingAmount >= split.amount_owed) {
-        // Fully settle this split
-        remainingAmount -= split.amount_owed;
-        splitsToUpdate.push({
-          id: split.id,
-          newAmount: 0,
-          shouldSettle: true,
-        });
-      } else {
-        // Partially settle this split
-        splitsToUpdate.push({
-          id: split.id,
-          newAmount: split.amount_owed - remainingAmount,
-          shouldSettle: false,
-        });
-        remainingAmount = 0;
+      let remainingAmount = amount;
+
+      // Determine which splits to update or settle
+      for (const split of sortedSplits) {
+        if (remainingAmount <= 0) break;
+
+        if (remainingAmount >= split.amount_owed) {
+          // Fully settle this split
+          remainingAmount -= split.amount_owed;
+          updates.push({
+            id: split.id,
+            operation: 'settle',
+          });
+        } else {
+          // Partially settle this split
+          updates.push({
+            id: split.id,
+            operation: 'update',
+            newAmount: split.amount_owed - remainingAmount,
+          });
+          remainingAmount = 0;
+        }
       }
-    }
 
-    // Update the database
-    for (const update of splitsToUpdate) {
-      if (update.shouldSettle) {
-        // Mark as settled
-        const { error } = await supabase
-          .from('expense_splits')
-          .update({ is_settled: true })
-          .eq('id', update.id);
+      // Execute all updates
+      for (const update of updates) {
+        if (update.operation === 'settle') {
+          const { error } = await supabase
+            .from('expense_splits')
+            .update({ is_settled: true })
+            .eq('id', update.id);
 
-        if (error) throw error;
-      } else {
-        // Update the amount owed
-        const { error } = await supabase
-          .from('expense_splits')
-          .update({ amount_owed: update.newAmount })
-          .eq('id', update.id);
+          if (error) throw error;
+        } else if (
+          update.operation === 'update' &&
+          update.newAmount !== undefined
+        ) {
+          const { error } = await supabase
+            .from('expense_splits')
+            .update({ amount_owed: update.newAmount })
+            .eq('id', update.id);
 
-        if (error) throw error;
+          if (error) throw error;
+        }
       }
-    }
 
-    // Refresh data after settlement
-    await loadData();
+      // Optional: Create a payment record for history tracking
+      if (note) {
+        const { error: noteError } = await supabase
+          .from('payment_notes') // You might want to create this table
+          .insert({
+            from_user_id: balance.from_user_id,
+            to_user_id: balance.to_user_id,
+            amount: amount,
+            note: note,
+            created_at: new Date().toISOString(),
+          });
+
+        // Don't throw on note errors, just log them
+        if (noteError) {
+          console.warn('Failed to save payment note:', noteError);
+        }
+      }
+
+      // Wait a bit to ensure database consistency, then refresh
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await loadData();
+    } catch (error) {
+      // If any update fails, we should ideally rollback, but Supabase doesn't have transactions
+      // In a real app, you'd want to implement a rollback mechanism or use a backend with transactions
+      console.error('Settlement failed:', error);
+
+      // Refresh data to get current state
+      await loadData();
+      throw error;
+    }
   };
 
   useEffect(() => {

@@ -22,55 +22,51 @@ export default function ExpenseStatsCards({
   yourBalance,
 }: ExpenseStatsCardsProps) {
   const cardAnimation = {
-    whileHover: { scale: 1.05, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' },
-    whileTap: { scale: 0.95 },
+    whileHover: { scale: 1.02, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' },
+    whileTap: { scale: 0.98 },
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8 px-4 sm:px-0">
-      <motion.div {...cardAnimation}>
-        <Card className="transition-shadow cursor-pointer">
-          <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium leading-none">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <motion.div {...cardAnimation} className="h-full">
+        <Card className="h-full transition-shadow cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
               Total This Month
             </CardTitle>
-            <DollarSign className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold truncate">
+            <div className="text-2xl font-bold">
               ${totalExpenses.toFixed(2)}
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div {...cardAnimation}>
-        <Card className="transition-shadow cursor-pointer">
-          <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium leading-none">
-              Your Share
-            </CardTitle>
-            <TrendingUp className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
+      <motion.div {...cardAnimation} className="h-full">
+        <Card className="h-full transition-shadow cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Your Share</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold truncate">
+            <div className="text-2xl font-bold">
               ${yourTotalShare.toFixed(2)}
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div {...cardAnimation}>
-        <Card className="transition-shadow cursor-pointer">
-          <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium leading-none">
-              Your Balance
-            </CardTitle>
-            <Users className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
+      <motion.div {...cardAnimation} className="h-full">
+        <Card className="h-full transition-shadow cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Your Balance</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div
-              className={`text-2xl sm:text-3xl font-bold truncate ${
+              className={`text-2xl font-bold ${
                 yourBalance?.type === 'owed' ? 'text-green-600' : 'text-red-600'
               }`}
             >
@@ -80,7 +76,7 @@ export default function ExpenseStatsCards({
                   }$${yourBalance.amount.toFixed(2)}`
                 : '$0.00'}
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {yourBalance?.type === 'owed'
                 ? "You're owed money"
                 : yourBalance?.type === 'owes'
@@ -91,16 +87,14 @@ export default function ExpenseStatsCards({
         </Card>
       </motion.div>
 
-      <motion.div {...cardAnimation}>
-        <Card className="transition-shadow cursor-pointer">
-          <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium leading-none">
-              Pending
-            </CardTitle>
-            <Receipt className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground" />
+      <motion.div {...cardAnimation} className="h-full">
+        <Card className="h-full transition-shadow cursor-pointer">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-orange-600 truncate">
+            <div className="text-2xl font-bold text-orange-600">
               {pendingCount}
             </div>
           </CardContent>

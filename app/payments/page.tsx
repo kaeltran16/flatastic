@@ -1,107 +1,90 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import Link from "next/link"
+  BalanceCard,
+  PaymentsSidebar,
+  SettlementCard,
+  SettlementDialog,
+  StatsCards,
+} from '@/components/payment';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSettlements } from '@/hooks/use-settlement';
+import type { Balance, Settlement } from '@/types/payment';
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Receipt,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function PaymentsPage() {
-  const [settlements] = useState([
-    {
-      id: 1,
-      from: { name: "Sarah", initials: "SM" },
-      to: { name: "You", initials: "JD" },
-      amount: 15.5,
-      reason: "Groceries & Cleaning supplies",
-      status: "pending",
-      dueDate: "2024-01-20",
-      method: "venmo",
-    },
-    {
-      id: 2,
-      from: { name: "Mike", initials: "MJ" },
-      to: { name: "You", initials: "JD" },
-      amount: 8.56,
-      reason: "Cleaning supplies",
-      status: "pending",
-      dueDate: "2024-01-18",
-      method: "paypal",
-    },
-    {
-      id: 3,
-      from: { name: "Emma", initials: "EW" },
-      to: { name: "You", initials: "JD" },
-      amount: 18.19,
-      reason: "Internet bill share",
-      status: "completed",
-      dueDate: "2024-01-15",
-      method: "cash",
-      completedDate: "2024-01-14",
-    },
-    {
-      id: 4,
-      from: { name: "You", initials: "JD" },
-      to: { name: "Sarah", initials: "SM" },
-      amount: 31.88,
-      reason: "Weekly groceries",
-      status: "completed",
-      dueDate: "2024-01-12",
-      method: "venmo",
-      completedDate: "2024-01-11",
-    },
-  ])
+  const {
+    balances,
+    householdMembers,
+    currentUser,
+    loading,
+    error,
+    settlePayment,
+  } = useSettlements();
 
-  const [paymentMethods] = useState([
-    { id: "venmo", name: "Venmo", username: "@johndoe123" },
-    { id: "paypal", name: "PayPal", username: "john@example.com" },
-    { id: "zelle", name: "Zelle", username: "+1 (555) 123-4567" },
-    { id: "cash", name: "Cash", username: "In person" },
-  ])
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedBalance, setSelectedBalance] = useState<Balance | null>(null);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+  // Mock completed settlements for demo - replace with real data from your hook
+  const [completedSettlements] = useState<Settlement[]>([]);
 
-    if (date.toDateString() === today.toDateString()) return "Today"
-    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow"
-    return date.toLocaleDateString()
+  const handleSettlePayment = async (
+    balance: Balance,
+    amount: number,
+    note: string
+  ) => {
+    await settlePayment(balance, amount, note);
+    setSelectedBalance(null);
+  };
+
+  const openSettleDialog = (balance: Balance) => {
+    setSelectedBalance(balance);
+    setDialogOpen(true);
+  };
+
+  // Filter balances to only show those involving current user
+  const userBalances = balances.filter(
+    (balance) =>
+      balance.from_user_id === currentUser?.id ||
+      balance.to_user_id === currentUser?.id
+  );
+
+  const pendingCount = userBalances.length;
+  const completedCount = completedSettlements.length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading payment data...</p>
+        </div>
+      </div>
+    );
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />
-      case "pending":
-        return <Clock className="h-4 w-4 text-orange-600" />
-      case "overdue":
-        return <AlertCircle className="h-4 w-4 text-red-600" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-600" />
-    }
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
   }
-
-  const pendingSettlements = settlements.filter((s) => s.status === "pending")
-  const completedSettlements = settlements.filter((s) => s.status === "completed")
-  const totalOwed = pendingSettlements.filter((s) => s.to.name === "You").reduce((sum, s) => sum + s.amount, 0)
-  const totalYouOwe = pendingSettlements.filter((s) => s.from.name === "You").reduce((sum, s) => sum + s.amount, 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,60 +100,15 @@ export default function PaymentsPage() {
               <span className="ml-4 font-medium">Payments</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Record Payment
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Record Payment</DialogTitle>
-                    <DialogDescription>Mark a payment as completed</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="settlement">Select Settlement</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a pending settlement" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {pendingSettlements.map((settlement) => (
-                            <SelectItem key={settlement.id} value={settlement.id.toString()}>
-                              {settlement.from.name} owes {settlement.to.name} ${settlement.amount.toFixed(2)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="method">Payment Method</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="How was it paid?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {paymentMethods.map((method) => (
-                            <SelectItem key={method.id} value={method.id}>
-                              {method.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="notes">Notes (Optional)</Label>
-                      <Textarea id="notes" placeholder="Add any additional notes..." />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Record Payment</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button
+                onClick={() =>
+                  userBalances.length > 0 && openSettleDialog(userBalances[0])
+                }
+                disabled={userBalances.length === 0}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Record Payment
+              </Button>
             </div>
           </div>
         </div>
@@ -179,284 +117,191 @@ export default function PaymentsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Payments & Settlements</h1>
-          <p className="text-muted-foreground">Track and manage payment settlements</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Payments & Settlements
+          </h1>
+          <p className="text-muted-foreground">
+            Track and manage payment settlements from shared expenses
+          </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">You're Owed</CardTitle>
-              <ArrowDownLeft className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">${totalOwed.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">
-                From {pendingSettlements.filter((s) => s.to.name === "You").length} people
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">You Owe</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">${totalYouOwe.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">
-                To {pendingSettlements.filter((s) => s.from.name === "You").length} people
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{pendingSettlements.length}</div>
-              <p className="text-xs text-muted-foreground">Settlements waiting</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{completedSettlements.length}</div>
-              <p className="text-xs text-muted-foreground">Completed payments</p>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsCards
+          balances={userBalances}
+          currentUserId={currentUser?.id}
+          completedCount={completedCount}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Settlements Tabs */}
             <Tabs defaultValue="pending" className="space-y-6">
               <TabsList>
-                <TabsTrigger value="pending">Pending ({pendingSettlements.length})</TabsTrigger>
-                <TabsTrigger value="completed">Completed ({completedSettlements.length})</TabsTrigger>
+                <TabsTrigger value="pending">
+                  Pending ({pendingCount})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Completed ({completedCount})
+                </TabsTrigger>
                 <TabsTrigger value="all">All Settlements</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="pending" className="space-y-4">
-                {pendingSettlements.map((settlement) => (
-                  <Card key={settlement.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.from.initials}</AvatarFallback>
-                            </Avatar>
-                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.to.initials}</AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">
-                                {settlement.from.name} owes {settlement.to.name}
-                              </span>
-                              {getStatusIcon(settlement.status)}
-                            </div>
-                            <p className="text-sm text-muted-foreground">{settlement.reason}</p>
-                            <p className="text-xs text-muted-foreground">Due {formatDate(settlement.dueDate)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">${settlement.amount.toFixed(2)}</div>
-                          <Badge variant="outline" className="mt-1">
-                            {paymentMethods.find((m) => m.id === settlement.method)?.name}
-                          </Badge>
-                          <div className="flex gap-2 mt-2">
-                            <Button variant="outline" size="sm">
-                              Remind
-                            </Button>
-                            <Button size="sm">Mark Paid</Button>
-                          </div>
-                        </div>
-                      </div>
+              <TabsContent value="pending" className="space-y-6">
+                {userBalances.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        All settled up!
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        No outstanding balances between household members
+                      </p>
+                      <Link href="/expenses">
+                        <Button>Back to Expenses</Button>
+                      </Link>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  <div className="space-y-6">
+                    {/* Net Balances Summary */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Users className="h-5 w-5 text-muted-foreground" />
+                        <h2 className="text-xl font-semibold">Net Balances</h2>
+                        <Badge variant="secondary">
+                          {balances.length} pending
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-3">
+                        {userBalances.map((balance, index) => (
+                          <BalanceCard
+                            key={`balance-${index}`}
+                            balance={balance}
+                            currentUserId={currentUser?.id}
+                            onSettle={openSettleDialog}
+                            variant="net"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Individual Expense Splits */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Receipt className="h-5 w-5 text-muted-foreground" />
+                        <h2 className="text-xl font-semibold">
+                          Individual Expense Splits
+                        </h2>
+                        <Badge variant="outline">
+                          {userBalances.reduce(
+                            (sum, b) => sum + b.related_splits.length,
+                            0
+                          )}{' '}
+                          splits
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-4">
+                        {userBalances.map((balance, balanceIndex) => (
+                          <BalanceCard
+                            key={`individual-${balanceIndex}`}
+                            balance={balance}
+                            currentUserId={currentUser?.id}
+                            onSettle={openSettleDialog}
+                            variant="individual"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="completed" className="space-y-4">
-                {completedSettlements.map((settlement) => (
-                  <Card key={settlement.id} className="hover:shadow-md transition-shadow opacity-75">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.from.initials}</AvatarFallback>
-                            </Avatar>
-                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.to.initials}</AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">
-                                {settlement.from.name} paid {settlement.to.name}
-                              </span>
-                              {getStatusIcon(settlement.status)}
-                            </div>
-                            <p className="text-sm text-muted-foreground">{settlement.reason}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Completed on {formatDate(settlement.completedDate!)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">${settlement.amount.toFixed(2)}</div>
-                          <Badge variant="outline" className="mt-1">
-                            {paymentMethods.find((m) => m.id === settlement.method)?.name}
-                          </Badge>
-                        </div>
-                      </div>
+                {completedSettlements.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        No completed payments
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Completed settlements will appear here.
+                      </p>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  completedSettlements.map((settlement) => (
+                    <SettlementCard
+                      key={settlement.id}
+                      settlement={settlement}
+                    />
+                  ))
+                )}
               </TabsContent>
 
               <TabsContent value="all" className="space-y-4">
-                {settlements.map((settlement) => (
-                  <Card
-                    key={settlement.id}
-                    className={`hover:shadow-md transition-shadow ${settlement.status === "completed" ? "opacity-75" : ""}`}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.from.initials}</AvatarFallback>
-                            </Avatar>
-                            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback>{settlement.to.initials}</AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">
-                                {settlement.from.name} {settlement.status === "completed" ? "paid" : "owes"}{" "}
-                                {settlement.to.name}
-                              </span>
-                              {getStatusIcon(settlement.status)}
-                              <Badge variant={settlement.status === "completed" ? "default" : "secondary"}>
-                                {settlement.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{settlement.reason}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {settlement.status === "completed"
-                                ? `Completed on ${formatDate(settlement.completedDate!)}`
-                                : `Due ${formatDate(settlement.dueDate)}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">${settlement.amount.toFixed(2)}</div>
-                          <Badge variant="outline" className="mt-1">
-                            {paymentMethods.find((m) => m.id === settlement.method)?.name}
-                          </Badge>
-                          {settlement.status === "pending" && (
-                            <div className="flex gap-2 mt-2">
-                              <Button variant="outline" size="sm">
-                                Remind
-                              </Button>
-                              <Button size="sm">Mark Paid</Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                {userBalances.length === 0 &&
+                completedSettlements.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        No settlements yet
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Add some expenses to start tracking settlements.
+                      </p>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show pending balances */}
+                    {balances.map((balance, index) => (
+                      <BalanceCard
+                        key={`pending-${index}`}
+                        balance={balance}
+                        currentUserId={currentUser?.id}
+                        onSettle={openSettleDialog}
+                        variant="all"
+                      />
+                    ))}
+
+                    {/* Show completed settlements */}
+                    {completedSettlements.map((settlement) => (
+                      <SettlementCard
+                        key={settlement.id}
+                        settlement={settlement}
+                      />
+                    ))}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Payment Methods */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>Your connected payment accounts</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">{method.name}</div>
-                      <div className="text-sm text-muted-foreground">{method.username}</div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" className="w-full bg-transparent">
-                  Add Payment Method
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button className="w-full justify-start bg-transparent" variant="outline">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Send Reminder
-                </Button>
-                <Button className="w-full justify-start bg-transparent" variant="outline">
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Settle All Debts
-                </Button>
-                <Button className="w-full justify-start bg-transparent" variant="outline">
-                  <ArrowUpRight className="h-4 w-4 mr-2" />
-                  Request Payment
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Settlement Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Settlement Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Net Balance</span>
-                  <span className={`font-bold ${totalOwed - totalYouOwe >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {totalOwed - totalYouOwe >= 0 ? "+" : ""}${(totalOwed - totalYouOwe).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pending In</span>
-                  <span className="font-semibold text-green-600">${totalOwed.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pending Out</span>
-                  <span className="font-semibold text-red-600">${totalYouOwe.toFixed(2)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <PaymentsSidebar
+            userBalances={userBalances}
+            householdMembers={householdMembers}
+            currentUserId={currentUser?.id}
+            onRecordPayment={() =>
+              userBalances.length > 0 && openSettleDialog(userBalances[0])
+            }
+          />
         </div>
+
+        {/* Settlement Dialog */}
+        <SettlementDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          selectedBalance={selectedBalance}
+          currentUserId={currentUser?.id}
+          onSettle={handleSettlePayment}
+        />
       </div>
     </div>
-  )
+  );
 }

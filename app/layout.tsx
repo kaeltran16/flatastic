@@ -22,15 +22,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="apple-mobile-web-app-title" content="Flatastic" />
-        <head>
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-title" content="Flatastic" />
-          <meta
-            name="apple-mobile-web-app-status-bar-style"
-            content="default"
-          />
-          <link rel="apple-touch-icon" href="/web-app-manifest-192x192.png" />
-        </head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Flatastic" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/web-app-manifest-192x192.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

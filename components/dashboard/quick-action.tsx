@@ -77,16 +77,14 @@ const QuickActions = ({ user }: QuickActionsProps) => {
       const splitAmount =
         parseFloat(expenseData.amount) / householdMembers.length;
 
-      const splits: Omit<ExpenseSplit, 'id'>[] = householdMembers.map(
-        (member) => ({
+      const splits: Omit<ExpenseSplit, 'id' | 'expenses'>[] =
+        householdMembers.map((member) => ({
           expense_id: expense.id,
           user_id: member.id,
           amount_owed: splitAmount,
           is_settled: member.id === user.id,
-          expenses: expense,
           created_at: new Date().toISOString(),
-        })
-      );
+        }));
 
       const { error: splitsError } = await supabase
         .from('expense_splits')
