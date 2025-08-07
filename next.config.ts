@@ -1,28 +1,61 @@
-import type { NextConfig } from 'next';
+// import type { NextConfig } from 'next';
 
-const withPWA = require('next-pwa')({
+// const withPWA = require('@ducanh2912/next-pwa')({
+//   dest: 'public',
+//   register: true,
+//   skipWaiting: true,
+//   sw: 'sw.js',
+//   customWorkerDir: 'worker',
+
+//   runtimeCaching: [
+//     {
+//       urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+//       handler: 'CacheFirst',
+//       options: {
+//         cacheName: 'google-fonts',
+//         expiration: {
+//           maxEntries: 4,
+//           maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
+//         },
+//       },
+//     },
+//   ],
+// });
+
+// const nextConfig: NextConfig = {
+//   /* config options here */
+// };
+
+// export default withPWA(nextConfig);
+
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  swcMinify: true,
   disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-  // Add custom service worker for push notifications
-  sw: 'sw.js',
+  workboxOptions: {
+    disableDevLogs: true,
+  },
   runtimeCaching: [
     {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
+      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+      handler: 'CacheFirst',
       options: {
-        cacheName: 'offlineCache',
+        cacheName: 'google-fonts',
         expiration: {
-          maxEntries: 200,
+          maxEntries: 4,
+          maxAgeSeconds: 365 * 24 * 60 * 60, // 365 days
         },
       },
     },
   ],
 });
 
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Your Next.js config
 };
 
-export default withPWA(nextConfig);
+module.exports = withPWA(nextConfig);
