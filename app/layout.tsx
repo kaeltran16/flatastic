@@ -1,4 +1,3 @@
-import LoadingScreenHTML from '@/components/loading-screen';
 import { Navbar } from '@/components/navbar';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
@@ -54,7 +53,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LoadingScreenHTML />
+        {/* <LoadingScreenHTML /> */}
 
         <div id="app-content" style={{ opacity: 0 }}>
           <Navbar />
