@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Balance } from '@/types/payment';
+import { Balance } from '@/lib/supabase/types';
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 interface StatsCardsProps {
+  totalOwed: number;
+  totalOwing: number;
   balances: Balance[];
   currentUserId: string | undefined;
   completedCount: number;
@@ -39,23 +41,25 @@ const useCountUp = (end: number, duration: number = 1000) => {
 };
 
 const StatsCards = ({
+  totalOwed,
+  totalOwing,
   balances,
   currentUserId,
   completedCount,
 }: StatsCardsProps) => {
-  const totalOwed = balances
-    .filter((b) => b.to_user_id === currentUserId)
-    .reduce((sum, b) => sum + b.amount, 0);
-
-  const totalYouOwe = balances
-    .filter((b) => b.from_user_id === currentUserId)
-    .reduce((sum, b) => sum + b.amount, 0);
-
   const pendingCount = balances.length;
+
+  // Count of unique people involved
+  const peopleOwingYou = balances.filter(
+    (b) => b.to_user_id === currentUserId
+  ).length;
+  const peopleYouOwe = balances.filter(
+    (b) => b.from_user_id === currentUserId
+  ).length;
 
   // Count-up animations for numbers
   const animatedTotalOwed = useCountUp(totalOwed * 100) / 100; // For decimal precision
-  const animatedTotalYouOwe = useCountUp(totalYouOwe * 100) / 100;
+  const animatedTotalOwing = useCountUp(totalOwing * 100) / 100;
   const animatedPendingCount = useCountUp(pendingCount);
   const animatedCompletedCount = useCountUp(completedCount);
 
@@ -128,9 +132,12 @@ const StatsCards = ({
     {
       title: "You're Owed",
       value: `$${animatedTotalOwed.toFixed(2)}`,
-      subtitle: `From ${
-        balances.filter((b) => b.to_user_id === currentUserId).length
-      } people`,
+      subtitle:
+        peopleOwingYou > 0
+          ? `From ${peopleOwingYou} ${
+              peopleOwingYou === 1 ? 'person' : 'people'
+            }`
+          : 'No money owed to you',
       icon: ArrowDownLeft,
       iconColor: 'text-green-600',
       valueColor: 'text-green-600',
@@ -139,10 +146,11 @@ const StatsCards = ({
     },
     {
       title: 'You Owe',
-      value: `$${animatedTotalYouOwe.toFixed(2)}`,
-      subtitle: `To ${
-        balances.filter((b) => b.from_user_id === currentUserId).length
-      } people`,
+      value: `$${animatedTotalOwing.toFixed(2)}`,
+      subtitle:
+        peopleYouOwe > 0
+          ? `To ${peopleYouOwe} ${peopleYouOwe === 1 ? 'person' : 'people'}`
+          : 'No outstanding debts',
       icon: ArrowUpRight,
       iconColor: 'text-red-600',
       valueColor: 'text-red-600',
@@ -152,7 +160,8 @@ const StatsCards = ({
     {
       title: 'Pending',
       value: animatedPendingCount.toString(),
-      subtitle: 'Settlements waiting',
+      subtitle:
+        pendingCount === 1 ? 'Settlement waiting' : 'Settlements waiting',
       icon: Clock,
       iconColor: 'text-orange-600',
       valueColor: 'text-orange-600',
@@ -162,7 +171,8 @@ const StatsCards = ({
     {
       title: 'This Month',
       value: animatedCompletedCount.toString(),
-      subtitle: 'Completed payments',
+      subtitle:
+        completedCount === 1 ? 'Completed payment' : 'Completed payments',
       icon: CheckCircle2,
       iconColor: 'text-blue-600',
       valueColor: 'text-blue-600',

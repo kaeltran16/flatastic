@@ -1,5 +1,5 @@
 import AddChoreButton from '@/components/chore/add-chore-button';
-import { Chore, Household, Profile } from '@/lib/supabase/types';
+import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 

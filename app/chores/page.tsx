@@ -14,7 +14,7 @@ import ChoreStatsCards from '@/components/chore/stats-card';
 import ChoreTabs from '@/components/chore/tabs';
 
 // Types
-import { Chore, Household, Profile } from '@/lib/supabase/types';
+import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 
 // Data structure for chore updates
 export interface ChoreUpdateData {
@@ -329,7 +329,6 @@ export default function ChoresPage() {
           onRecurringFilterChange={setRecurringFilter}
         />
 
-        {/* Chores Tabs */}
         <ChoreTabs
           filteredChores={filteredChores}
           pendingChores={pendingChores}

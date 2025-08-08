@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettlements } from '@/hooks/use-settlement';
-import type { Balance, Settlement } from '@/types/payment';
+import type { Balance, Settlement } from '@/lib/supabase/types';
 import {
   AlertCircle,
   CheckCircle,
@@ -63,6 +63,15 @@ export default function PaymentsPage() {
 
   const pendingCount = userBalances.length;
   const completedCount = completedSettlements.length;
+
+  // Calculate total amounts
+  const totalOwed = userBalances
+    .filter((balance) => balance.to_user_id === currentUser?.id)
+    .reduce((sum, balance) => sum + balance.amount, 0);
+
+  const totalOwing = userBalances
+    .filter((balance) => balance.from_user_id === currentUser?.id)
+    .reduce((sum, balance) => sum + balance.amount, 0);
 
   if (loading) {
     return (
@@ -127,6 +136,8 @@ export default function PaymentsPage() {
 
         {/* Stats Cards */}
         <StatsCards
+          totalOwed={totalOwed}
+          totalOwing={totalOwing}
           balances={userBalances}
           currentUserId={currentUser?.id}
           completedCount={completedCount}
@@ -170,14 +181,14 @@ export default function PaymentsPage() {
                         <Users className="h-5 w-5 text-muted-foreground" />
                         <h2 className="text-xl font-semibold">Net Balances</h2>
                         <Badge variant="secondary">
-                          {balances.length} pending
+                          {userBalances.length} pending
                         </Badge>
                       </div>
 
                       <div className="space-y-3">
                         {userBalances.map((balance, index) => (
                           <BalanceCard
-                            key={`balance-${index}`}
+                            key={`balance-${balance.from_user_id}-${balance.to_user_id}-${index}`}
                             balance={balance}
                             currentUserId={currentUser?.id}
                             onSettle={openSettleDialog}
@@ -206,7 +217,7 @@ export default function PaymentsPage() {
                       <div className="space-y-4">
                         {userBalances.map((balance, balanceIndex) => (
                           <BalanceCard
-                            key={`individual-${balanceIndex}`}
+                            key={`individual-${balance.from_user_id}-${balance.to_user_id}-${balanceIndex}`}
                             balance={balance}
                             currentUserId={currentUser?.id}
                             onSettle={openSettleDialog}
@@ -259,9 +270,9 @@ export default function PaymentsPage() {
                 ) : (
                   <div className="space-y-4">
                     {/* Show pending balances */}
-                    {balances.map((balance, index) => (
+                    {userBalances.map((balance, index) => (
                       <BalanceCard
-                        key={`pending-${index}`}
+                        key={`pending-${balance.from_user_id}-${balance.to_user_id}-${index}`}
                         balance={balance}
                         currentUserId={currentUser?.id}
                         onSettle={openSettleDialog}

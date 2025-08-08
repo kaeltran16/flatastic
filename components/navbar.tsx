@@ -192,7 +192,7 @@ export function Navbar() {
                                 <Clock className="h-3 w-3 text-muted-foreground" />
                                 <span className="text-xs text-muted-foreground">
                                   {formatNotificationTime(
-                                    notification.created_at
+                                    notification.created_at || ''
                                   )}
                                 </span>
                                 {notification.is_urgent && (

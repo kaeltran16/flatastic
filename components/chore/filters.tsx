@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Profile } from '@/lib/supabase/types';
+import { Profile } from '@/lib/supabase/schema.alias';
 import { motion } from 'motion/react';
 
 interface ChoreFiltersProps {

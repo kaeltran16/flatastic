@@ -2,8 +2,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExpenseWithDetails } from '@/hooks/use-expense';
-import { Profile } from '@/lib/supabase/types';
+import { Profile } from '@/lib/supabase/schema.alias';
+import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { motion } from 'motion/react';
 
 interface ExpenseCardProps {
@@ -57,7 +57,7 @@ export default function ExpenseCard({
   };
 
   const isPayer = expense.paid_by === currentUser.id;
-
+  console.log('expense', expense);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

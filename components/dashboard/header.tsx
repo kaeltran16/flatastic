@@ -1,6 +1,7 @@
 'use client';
 
-import type { Profile } from '@/lib/supabase/types';
+import { useLoadingScreen } from '@/hooks/use-loading-screen';
+import type { Profile } from '@/lib/supabase/schema.alias';
 import { motion } from 'motion/react';
 
 interface DashboardHeaderProps {
@@ -8,6 +9,8 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = ({ profile }: DashboardHeaderProps) => {
+  useLoadingScreen();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

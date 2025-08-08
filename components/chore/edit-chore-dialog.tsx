@@ -23,7 +23,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Chore, Profile, RecurringType } from '@/lib/supabase/types';
+import {
+  Chore,
+  ChoreStatus,
+  Profile,
+  RecurringType,
+} from '@/lib/supabase/schema.alias';
 import { CalendarDays, Edit, Repeat, Trash2, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
@@ -121,8 +126,8 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
         description: chore.description || '',
         assigned_to: chore.assigned_to || 'unassigned',
         due_date: chore.due_date ? new Date(chore.due_date) : null,
-        status: chore.status,
-        recurring_type: chore.recurring_type || 'none',
+        status: chore.status as ChoreStatus,
+        recurring_type: chore.recurring_type as RecurringType,
         recurring_interval: chore.recurring_interval || 1,
       });
       setError(null);
@@ -148,8 +153,8 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
         description: chore.description || '',
         assigned_to: chore.assigned_to || 'unassigned',
         due_date: chore.due_date ? new Date(chore.due_date) : null,
-        status: chore.status,
-        recurring_type: chore.recurring_type || 'none',
+        status: chore.status as ChoreStatus,
+        recurring_type: chore.recurring_type as RecurringType,
         recurring_interval: chore.recurring_interval || 1,
       });
     }
@@ -371,12 +376,14 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                               {member.avatar_url ? (
                                 <img
                                   src={member.avatar_url}
-                                  alt={member.full_name}
+                                  alt={member.full_name || member.email}
                                   className="w-6 h-6 rounded-full object-cover"
                                 />
                               ) : (
                                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
-                                  {getInitials(member.full_name)}
+                                  {getInitials(
+                                    member.full_name || member.email
+                                  )}
                                 </div>
                               )}
                               <span>

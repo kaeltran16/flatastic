@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Chore, Profile } from '@/lib/supabase/types';
+import { Chore, Profile } from '@/lib/supabase/schema.alias';
+import { getInitials } from '@/utils';
 import { Calendar, CheckCircle2, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChoreUpdateData } from '../../app/chores/page';
@@ -62,15 +63,6 @@ export default function ChoreCard({
   const assignedMember = chore.assigned_to
     ? householdMembers.find((member) => member.id === chore.assigned_to)
     : null;
-
-  const getInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -147,7 +139,7 @@ export default function ChoreCard({
 
                   {/* Status badges - same row layout */}
                   <div className="flex gap-2 flex-shrink-0">
-                    <Badge variant={getStatusColor(chore.status)}>
+                    <Badge variant={getStatusColor(chore.status || 'pending')}>
                       {chore.status}
                     </Badge>
                     {chore.recurring_type &&
@@ -176,7 +168,9 @@ export default function ChoreCard({
                       src={assignedMember.avatar_url || '/placeholder.svg'}
                     />
                     <AvatarFallback className="text-xs">
-                      {getInitials(assignedMember.full_name)}
+                      {getInitials(
+                        assignedMember.full_name || assignedMember.email
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <span className="truncate">
@@ -201,7 +195,7 @@ export default function ChoreCard({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
                   <span className="text-green-700">
-                    Completed {formatDate(chore.updated_at)}
+                    Completed {formatDate(chore.updated_at || '')}
                   </span>
                 </div>
               )}

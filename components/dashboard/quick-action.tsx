@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
-import { ExpenseSplit, Profile } from '@/lib/supabase/types';
+import { ExpenseSplit, Profile } from '@/lib/supabase/schema.alias';
 import { Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';

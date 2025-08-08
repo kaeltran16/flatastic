@@ -1,7 +1,7 @@
 'use server';
 
+import { Profile } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
-import type { Profile } from '@/lib/supabase/types';
 
 export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();

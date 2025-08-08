@@ -34,7 +34,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
-import { Household, Profile } from '@/lib/supabase/types';
+import { Household, Profile } from '@/lib/supabase/schema.alias';
+import { getInitials } from '@/utils';
 import {
   Calendar,
   Edit,
@@ -233,14 +234,6 @@ export default function HouseholdPage() {
       month: 'long',
       day: 'numeric',
     });
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
   };
 
   const handleInviteMember = async () => {
@@ -650,7 +643,7 @@ export default function HouseholdPage() {
                                 src={member.avatar_url || '/placeholder.svg'}
                               />
                               <AvatarFallback>
-                                {getInitials(member.full_name)}
+                                {getInitials(member.full_name || member.email)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
@@ -677,7 +670,7 @@ export default function HouseholdPage() {
                                 <div className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3 flex-shrink-0" />
                                   <span className="whitespace-nowrap">
-                                    Joined {formatDate(member.created_at)}
+                                    Joined {formatDate(member.created_at || '')}
                                   </span>
                                 </div>
                               </div>

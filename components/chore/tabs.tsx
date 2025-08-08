@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Chore, Household, Profile } from '@/lib/supabase/types';
+import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChoreUpdateData } from '../../app/chores/page';
 import ChoreCard from './card';

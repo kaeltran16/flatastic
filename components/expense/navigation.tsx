@@ -1,6 +1,6 @@
 import AddExpenseButton from '@/components/expense/add-expense-button';
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
-import type { Profile } from '@/lib/supabase/types';
+import { Profile } from '@/lib/supabase/schema.alias';
 import Link from 'next/link';
 
 interface ExpensesNavigationProps {

@@ -1,14 +1,8 @@
 // hooks/useExpenses.ts
 import { createClient } from '@/lib/supabase/client';
-import type { Expense, ExpenseSplit, Profile } from '@/lib/supabase/types';
+import type { ExpenseSplit, Profile } from '@/lib/supabase/schema.alias';
+import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
-
-export interface ExpenseWithDetails extends Expense {
-  payer_name: string;
-  splits: ExpenseSplit[];
-  your_share: number;
-  status: 'pending' | 'settled';
-}
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);

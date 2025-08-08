@@ -1,6 +1,6 @@
 'use client';
 
-import { Chore, Profile } from '@/lib/supabase/types';
+import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import { Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';

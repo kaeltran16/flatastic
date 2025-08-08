@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Chore } from '@/lib/supabase/types';
+import { Chore } from '@/lib/supabase/schema.alias';
 import { AlertCircle, Calendar, CheckCircle2, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 

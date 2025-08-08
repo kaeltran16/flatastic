@@ -1,6 +1,6 @@
 import AddChoreButton from '@/components/chore/add-chore-button';
 import { Card } from '@/components/ui/card';
-import { Chore, Profile } from '@/lib/supabase/types';
+import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import { Calendar, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 

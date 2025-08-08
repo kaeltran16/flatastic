@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Settlement } from '@/types/payment';
+import { Settlement } from '@/lib/supabase/types';
 import { getInitials } from '@/utils';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';

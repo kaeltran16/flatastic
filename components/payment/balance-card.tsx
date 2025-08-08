@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Balance } from '@/types/payment';
+import { Balance } from '@/lib/supabase/types';
 import { getInitials } from '@/utils';
 import {
   ArrowUpRight,
@@ -515,32 +515,32 @@ const BalanceCard = ({
                           </motion.div>
                         </motion.div>
 
-                        {split?.expenses && (
+                        {split.expense && (
                           <motion.div
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: splitIndex * 0.05 + 0.2 }}
                           >
                             <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                              {split.expenses.description}
+                              {split.expense.description}
                             </p>
 
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              {split.expenses.category && (
+                              {split.expense.category && (
                                 <motion.div variants={badgeVariants}>
                                   <Badge variant="outline" className="text-xs">
-                                    {split.expenses.category}
+                                    {split.expense.category}
                                   </Badge>
                                 </motion.div>
                               )}
                               <span>
                                 {new Date(
-                                  split.expenses.date
+                                  split.expense.date
                                 ).toLocaleDateString()}
                               </span>
                               <span>•</span>
                               <span className="font-medium">
-                                Total: ${split.expenses.amount.toFixed(2)}
+                                Total: ${split.expense.amount.toFixed(2)}
                               </span>
                             </div>
                           </motion.div>

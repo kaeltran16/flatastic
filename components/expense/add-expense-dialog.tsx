@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DollarSign, Plus } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react'; // keep this or change to framer-motion if you prefer
+import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
 export interface ExpenseFormData {

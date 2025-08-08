@@ -1,21 +1,13 @@
 // hooks/useSettlements.ts
 import { createClient } from '@/lib/supabase/client';
-import type { ExpenseSplit, Profile } from '@/lib/supabase/types';
+import { Profile } from '@/lib/supabase/schema.alias';
+import { Balance, ExpenseSplitWithExpense } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
-
-interface Balance {
-  from_user_id: string;
-  from_user_name: string;
-  to_user_id: string;
-  to_user_name: string;
-  amount: number;
-  related_splits: ExpenseSplit[];
-}
 
 export function useSettlements() {
   const [balances, setBalances] = useState<Balance[]>([]);
   const [householdMembers, setHouseholdMembers] = useState<Profile[]>([]);
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [currentUser, setCurrentUser] = useState<Profile>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,20 +67,20 @@ export function useSettlements() {
       .from('expense_splits')
       .select(
         `
-        *,
-        expenses!inner(
-          id,
-          household_id,
-          paid_by,
-          description,
-          amount,
-          date,
-          category,
-          split_type,
-          created_at,
-          updated_at
-        )
-      `
+      *,
+      expenses!inner(
+        id,
+        household_id,
+        paid_by,
+        description,
+        amount,
+        date,
+        category,
+        split_type,
+        created_at,
+        updated_at
+      )
+    `
       )
       .eq('expenses.household_id', householdId)
       .eq('is_settled', false)
@@ -105,7 +97,7 @@ export function useSettlements() {
     // Calculate net balances between users
     const userBalances = new Map<
       string,
-      Map<string, { amount: number; splits: ExpenseSplit[] }>
+      Map<string, { amount: number; splits: ExpenseSplitWithExpense[] }>
     >();
 
     splits.forEach((split) => {
@@ -118,6 +110,12 @@ export function useSettlements() {
       const expense = split.expenses;
       const debtor = split.user_id;
       const creditor = expense.paid_by;
+
+      // Transform the split to match ExpenseSplitWithExpense interface
+      const splitWithExpense: ExpenseSplitWithExpense = {
+        ...split,
+        expense: expense, // Transform 'expenses' to 'expense' to match interface
+      };
 
       // Skip if debtor and creditor are the same (shouldn't happen but safety check)
       if (debtor !== creditor) {
@@ -133,7 +131,7 @@ export function useSettlements() {
 
         debtorBalances.set(creditor, {
           amount: existingBalance.amount + split.amount_owed,
-          splits: [...existingBalance.splits, split],
+          splits: [...existingBalance.splits, splitWithExpense], // Use transformed split
         });
       }
     });
@@ -176,11 +174,11 @@ export function useSettlements() {
           if (fromUser && toUser) {
             balanceArray.push({
               from_user_id: netFromUser,
-              from_user_name: fromUser.full_name,
+              from_user_name: fromUser.full_name || fromUser.email,
               to_user_id: netToUser,
-              to_user_name: toUser.full_name,
+              to_user_name: toUser.full_name || toUser.email,
               amount: Math.round(netAmount * 100) / 100, // Round to 2 decimal places
-              related_splits: netSplits,
+              related_splits: netSplits, // This now correctly has ExpenseSplitWithExpense[]
             });
           }
         }

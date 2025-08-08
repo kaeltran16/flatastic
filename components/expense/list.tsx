@@ -1,8 +1,8 @@
 import AddExpenseButton from '@/components/expense/add-expense-button';
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExpenseWithDetails } from '@/hooks/use-expense';
-import type { Profile } from '@/lib/supabase/types';
+import { Profile } from '@/lib/supabase/schema.alias';
+import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { Receipt } from 'lucide-react';
 import ExpenseCard from './card';
 

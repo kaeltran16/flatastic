@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ExpenseWithProfile } from '@/lib/supabase/types';
+import { ExpenseWithProfile } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 

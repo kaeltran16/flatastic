@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Chore, Profile, RecurringType } from '@/lib/supabase/types';
+import { Chore, Profile, RecurringType } from '@/lib/supabase/schema.alias';
 import { CalendarDays, Plus, Repeat, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
@@ -161,7 +161,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
         assigned_to: choreCreateData.assigned_to || '',
         due_date: choreCreateData.due_date || '',
         recurring_type: choreCreateData.recurring_type || 'none',
-        recurring_interval: choreCreateData.recurring_interval || undefined,
+        recurring_interval: choreCreateData.recurring_interval || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -294,12 +294,12 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                             {member.avatar_url ? (
                               <img
                                 src={member.avatar_url}
-                                alt={member.full_name}
+                                alt={member.full_name || member.email}
                                 className="w-6 h-6 rounded-full object-cover"
                               />
                             ) : (
                               <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
-                                {getInitials(member.full_name)}
+                                {getInitials(member.full_name || member.email)}
                               </div>
                             )}
                             <span>

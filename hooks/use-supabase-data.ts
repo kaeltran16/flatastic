@@ -1,11 +1,7 @@
 // hooks/useSupabaseData.ts
 import { createClient } from '@/lib/supabase/client';
-import {
-  ChoreWithProfiles,
-  ExpenseWithProfile,
-  type Notification,
-  type Profile,
-} from '@/lib/supabase/types';
+import { Notification, Profile } from '@/lib/supabase/schema.alias';
+import { ChoreWithProfiles, ExpenseWithProfile } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
 export function useProfile() {

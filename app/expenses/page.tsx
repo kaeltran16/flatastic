@@ -8,7 +8,8 @@ import ExpenseList from '@/components/expense/list';
 import ExpensesNavigation from '@/components/expense/navigation';
 import ExpenseStatsCards from '@/components/expense/stats-card';
 import { useBalances } from '@/hooks/use-balance';
-import { useExpenses, type ExpenseWithDetails } from '@/hooks/use-expense';
+import { useExpenses } from '@/hooks/use-expense';
+import { ExpenseWithDetails } from '@/lib/supabase/types';
 
 export default function ExpensesPage() {
   const {
@@ -24,7 +25,8 @@ export default function ExpensesPage() {
 
   const {
     balances,
-    yourBalance,
+    yourBalances,
+    yourNetBalance,
     loading: balancesLoading,
     error: balancesError,
     refreshData: refreshBalances,
@@ -98,7 +100,8 @@ export default function ExpensesPage() {
           totalExpenses={stats.totalExpenses}
           yourTotalShare={stats.yourTotalShare}
           pendingCount={stats.pendingExpenses.length}
-          yourBalance={yourBalance}
+          yourNetBalance={yourNetBalance}
+          yourBalances={yourBalances}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -121,6 +124,8 @@ export default function ExpensesPage() {
           {/* Sidebar */}
           <BalancesSidebar
             balances={balances}
+            yourBalances={yourBalances}
+            yourNetBalance={yourNetBalance}
             currentUser={currentUser}
             onExpenseAdded={refreshData}
             onAddExpense={handleAddExpense}

@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { Balance } from '@/types/payment';
+import { Balance } from '@/lib/supabase/types';
 import { getInitials } from '@/utils';
 import {
   ArrowUpRight,
@@ -22,14 +22,14 @@ import { useEffect, useState } from 'react';
 
 interface HouseholdMember {
   id: string;
-  full_name: string;
+  full_name: string | null;
   email: string;
 }
 
 interface PaymentSidebarProps {
   userBalances: Balance[];
-  householdMembers: HouseholdMember[] | undefined;
-  currentUserId: string | undefined;
+  householdMembers?: HouseholdMember[];
+  currentUserId?: string;
   onRecordPayment: () => void;
 }
 
@@ -388,7 +388,7 @@ const PaymentSidebar = ({
                   <motion.div variants={avatarVariants}>
                     <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
                       <AvatarFallback className="text-xs sm:text-sm font-medium">
-                        {getInitials(member.full_name)}
+                        {getInitials(member.full_name || member.email)}
                       </AvatarFallback>
                     </Avatar>
                   </motion.div>
