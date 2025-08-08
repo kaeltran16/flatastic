@@ -55,7 +55,7 @@ export default function RootLayout({
       >
         {/* <LoadingScreenHTML /> */}
 
-        <div id="app-content" style={{ opacity: 0 }}>
+        <div>
           <Navbar />
           <main>{children}</main>
           <Toaster />
