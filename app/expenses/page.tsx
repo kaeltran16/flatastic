@@ -1,11 +1,11 @@
 'use client';
 
+import AddExpenseButton from '@/components/expense/add-expense-button';
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import BalancesSidebar from '@/components/expense/balance-sidebar';
 import { ErrorState, LoadingState } from '@/components/expense/error';
 import ExpenseFilters from '@/components/expense/filter';
 import ExpenseList from '@/components/expense/list';
-import ExpensesNavigation from '@/components/expense/navigation';
 import ExpenseStatsCards from '@/components/expense/stats-card';
 import { useBalances } from '@/hooks/use-balance';
 import { useExpenses } from '@/hooks/use-expense';
@@ -78,13 +78,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ExpensesNavigation
-        currentUser={currentUser}
-        onExpenseAdded={refreshData}
-        onAddExpense={handleAddExpense}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
@@ -93,6 +87,12 @@ export default function ExpensesPage() {
           <p className="text-muted-foreground">
             Track shared expenses and manage payments
           </p>
+        </div>
+        <div className="flex justify-end mb-4">
+          <AddExpenseButton
+            onExpenseAdded={refreshData}
+            onAddExpense={handleAddExpense}
+          />
         </div>
 
         {/* Stats Cards */}

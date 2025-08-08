@@ -79,89 +79,84 @@ export function useBalances() {
 
     if (error) throw error;
 
-    const userBalances = new Map<string, number>();
-    const splitsByUsers = new Map<string, any[]>();
+    // Create a map to track amounts between user pairs
+    // Key format: "payerId-debtorId", Value: amount owed
+    const pairBalances = new Map<string, number>();
+    const splitsByPair = new Map<string, any[]>();
 
-    // Initialize balances for all members
-    members.forEach((member) => {
-      userBalances.set(member.id, 0);
-      splitsByUsers.set(member.id, []);
-    });
-
-    // Calculate net balances and group splits
+    // Process each unsettled split
     splits?.forEach((split) => {
       const expense = split.expenses;
       if (!split.is_settled) {
-        // User owes money for this split
-        const currentBalance = userBalances.get(split.user_id) || 0;
-        userBalances.set(split.user_id, currentBalance - split.amount_owed);
+        const payerId = expense.paid_by;
+        const debtorId = split.user_id;
 
-        // Payer is owed money for this split
-        const payerBalance = userBalances.get(expense.paid_by) || 0;
-        userBalances.set(expense.paid_by, payerBalance + split.amount_owed);
+        // Skip if someone paid for themselves (no debt created)
+        if (payerId === debtorId) return;
 
-        // Group splits by user pairs
-        const userSplits = splitsByUsers.get(split.user_id) || [];
-        userSplits.push({
+        const pairKey = `${payerId}-${debtorId}`;
+
+        // Add to the amount this debtor owes this payer
+        const currentAmount = pairBalances.get(pairKey) || 0;
+        pairBalances.set(pairKey, currentAmount + split.amount_owed);
+
+        // Track related splits for this pair
+        if (!splitsByPair.has(pairKey)) {
+          splitsByPair.set(pairKey, []);
+        }
+        splitsByPair.get(pairKey)?.push({
           ...split,
           expense: expense,
         });
-        splitsByUsers.set(split.user_id, userSplits);
       }
     });
 
-    // Convert to balance array with relationships
+    // Convert to balance array with net amounts between users
     const balanceArray: Balance[] = [];
     const processedPairs = new Set<string>();
 
-    members.forEach((fromUser) => {
-      members.forEach((toUser) => {
-        if (fromUser.id === toUser.id) return;
+    // Calculate net balances between each pair of users
+    members.forEach((userA) => {
+      members.forEach((userB) => {
+        if (userA.id === userB.id) return;
 
-        const pairKey = [fromUser.id, toUser.id].sort().join('-');
+        const pairKey = [userA.id, userB.id].sort().join('-');
         if (processedPairs.has(pairKey)) return;
         processedPairs.add(pairKey);
 
-        const fromBalance = userBalances.get(fromUser.id) || 0;
-        const toBalance = userBalances.get(toUser.id) || 0;
+        // Get amounts in both directions
+        const aOwesB = pairBalances.get(`${userB.id}-${userA.id}`) || 0; // B paid, A owes
+        const bOwesA = pairBalances.get(`${userA.id}-${userB.id}`) || 0; // A paid, B owes
 
-        // Calculate net amount between the two users
-        const netAmount = fromBalance - toBalance;
+        // Calculate net amount
+        const netAmount = bOwesA - aOwesB;
 
         if (Math.abs(netAmount) > 0.01) {
-          // Only include non-zero balances
+          // Combine related splits from both directions
           const relatedSplits = [
-            ...(splitsByUsers.get(fromUser.id) || []),
-            ...(splitsByUsers.get(toUser.id) || []),
-          ].filter(
-            (split) =>
-              (split.user_id === fromUser.id &&
-                split.expense.paid_by === toUser.id) ||
-              (split.user_id === toUser.id &&
-                split.expense.paid_by === fromUser.id)
-          );
+            ...(splitsByPair.get(`${userA.id}-${userB.id}`) || []),
+            ...(splitsByPair.get(`${userB.id}-${userA.id}`) || []),
+          ];
 
           if (netAmount > 0) {
-            // fromUser owes toUser
+            // B owes A (net)
             balanceArray.push({
-              from_user_id: fromUser.id,
+              from_user_id: userB.id,
               from_user_name:
-                fromUser.id === userId ? 'You' : fromUser.full_name || '',
-              to_user_id: toUser.id,
-              to_user_name:
-                toUser.id === userId ? 'You' : toUser.full_name || '',
+                userB.id === userId ? 'You' : userB.full_name || '',
+              to_user_id: userA.id,
+              to_user_name: userA.id === userId ? 'You' : userA.full_name || '',
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
             });
           } else {
-            // toUser owes fromUser
+            // A owes B (net)
             balanceArray.push({
-              from_user_id: toUser.id,
+              from_user_id: userA.id,
               from_user_name:
-                toUser.id === userId ? 'You' : toUser.full_name || '',
-              to_user_id: fromUser.id,
-              to_user_name:
-                fromUser.id === userId ? 'You' : fromUser.full_name || '',
+                userA.id === userId ? 'You' : userA.full_name || '',
+              to_user_id: userB.id,
+              to_user_name: userB.id === userId ? 'You' : userB.full_name || '',
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
             });
@@ -183,9 +178,11 @@ export function useBalances() {
   // Calculate your net balance (positive if you're owed money, negative if you owe)
   const yourNetBalance = yourBalances.reduce((net, balance) => {
     if (balance.from_user_id === currentUser?.id) {
-      return net - balance.amount; // You owe this amount
+      // You owe this amount (negative contribution to net)
+      return net - balance.amount;
     } else {
-      return net + balance.amount; // You're owed this amount
+      // You're owed this amount (positive contribution to net)
+      return net + balance.amount;
     }
   }, 0);
 

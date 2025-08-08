@@ -1,3 +1,4 @@
+import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { Navbar } from '@/components/navbar';
 import { Toaster } from '@/components/ui/sonner';
 import { Metadata } from 'next';
@@ -57,6 +58,7 @@ export default function RootLayout({
 
         <div>
           <Navbar />
+          <AppBreadcrumb />
           <main>{children}</main>
           <Toaster />
         </div>

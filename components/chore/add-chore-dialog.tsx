@@ -208,21 +208,21 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <AnimatePresence>
         {isOpen && (
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+              <DialogHeader className="pb-4 sm:pb-6">
+                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <Plus className="w-5 h-5" />
                   Add New Chore
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -237,7 +237,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     placeholder="e.g., Kitchen Deep Clean"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full"
+                    className="w-full h-11 sm:h-10 text-base sm:text-sm"
                     disabled={isSubmitting}
                   />
                 </motion.div>
@@ -262,7 +262,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                       handleInputChange('description', e.target.value)
                     }
                     rows={3}
-                    className="resize-none"
+                    className="resize-none text-base sm:text-sm min-h-[80px]"
                     disabled={isSubmitting}
                   />
                 </motion.div>
@@ -284,25 +284,29 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     }
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
                       <SelectValue placeholder="Select member (optional)" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px]">
                       {householdMembers.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          <div className="flex items-center gap-2">
+                        <SelectItem
+                          key={member.id}
+                          value={member.id}
+                          className="py-3 sm:py-2"
+                        >
+                          <div className="flex items-center gap-2 sm:gap-2">
                             {member.avatar_url ? (
                               <img
                                 src={member.avatar_url}
                                 alt={member.full_name || member.email}
-                                className="w-6 h-6 rounded-full object-cover"
+                                className="w-7 h-7 sm:w-6 sm:h-6 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+                              <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
                                 {getInitials(member.full_name || member.email)}
                               </div>
                             )}
-                            <span>
+                            <span className="text-base sm:text-sm">
                               {member.id === currentUserId
                                 ? 'You'
                                 : member.full_name}
@@ -328,14 +332,20 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full justify-start text-left font-normal"
+                        className="w-full h-11 sm:h-10 justify-start text-left font-normal text-base sm:text-sm"
                         disabled={isSubmitting}
                       >
-                        <CalendarDays className="mr-2 h-4 w-4" />
-                        {formatDate(formData.due_date)}
+                        <CalendarDays className="mr-2 h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {formatDate(formData.due_date)}
+                        </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent
+                      className="w-auto p-0"
+                      align="start"
+                      sideOffset={4}
+                    >
                       <Calendar
                         mode="single"
                         selected={formData.due_date || undefined}
@@ -343,6 +353,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                           handleInputChange('due_date', date || null)
                         }
                         initialFocus
+                        className="scale-95 sm:scale-100"
                       />
                     </PopoverContent>
                   </Popover>
@@ -352,7 +363,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                 >
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Repeat className="w-4 h-4" />
@@ -365,12 +376,16 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     }
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {recurringTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
+                        <SelectItem
+                          key={type.value}
+                          value={type.value}
+                          className="py-3 sm:py-2 text-base sm:text-sm"
+                        >
                           {type.label}
                         </SelectItem>
                       ))}
@@ -382,16 +397,16 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 flex-wrap sm:flex-nowrap"
                     >
-                      <Label className="text-sm">Every</Label>
+                      <Label className="text-sm whitespace-nowrap">Every</Label>
                       <Input
                         type="number"
                         min="1"
                         max="365"
                         value={formData.recurring_interval}
                         onChange={handleNumberInputChange}
-                        className="w-20"
+                        className="w-20 h-10 sm:h-9 text-base sm:text-sm"
                         disabled={isSubmitting}
                       />
                       <Label className="text-sm">
@@ -406,30 +421,32 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     </motion.div>
                   )}
                 </motion.div>
-
-                <DialogFooter className="flex gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <motion.div
-                    whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                    whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                  >
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="bg-gray-900 hover:bg-gray-800 text-white"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {isSubmitting ? 'Adding...' : 'Add Chore'}
-                    </Button>
-                  </motion.div>
-                </DialogFooter>
               </div>
+
+              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 pt-6 sm:pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm"
+                >
+                  Cancel
+                </Button>
+                <motion.div
+                  whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                  whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                  className="w-full sm:w-auto"
+                >
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto h-11 sm:h-10 bg-gray-900 hover:bg-gray-800 text-white text-base sm:text-sm"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {isSubmitting ? 'Adding...' : 'Add Chore'}
+                  </Button>
+                </motion.div>
+              </DialogFooter>
             </motion.div>
           </DialogContent>
         )}

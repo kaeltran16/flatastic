@@ -125,3 +125,8 @@ export interface ExpenseWithProfile extends Expense {
 //   is_read: boolean;
 //   created_at: string;
 // }
+
+export interface HouseholdInviteData {
+  email: string;
+  message: string;
+}

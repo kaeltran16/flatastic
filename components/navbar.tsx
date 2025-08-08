@@ -11,21 +11,49 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications, useProfile } from '@/hooks/use-supabase-data';
 import { createClient } from '@/lib/supabase/client';
-import { AlertCircle, Bell, Clock, Home, LogOut, User } from 'lucide-react';
+import {
+  AlertCircle,
+  Bell,
+  Calendar,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Home,
+  LogOut,
+  Menu,
+  User,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
 
+const navigationItems = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Chores', href: '/chores', icon: Calendar },
+  { name: 'Expenses', href: '/expenses', icon: DollarSign },
+  { name: 'Payments', href: '/payments', icon: CreditCard },
+  { name: 'Household', href: '/household', icon: Users },
+];
+
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
   const [refreshNotifications, setRefreshNotifications] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
   const { notifications, loading: notificationsLoading } = useNotifications();
@@ -89,15 +117,82 @@ export function Navbar() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
+  const isActiveRoute = (href: string) => {
+    return pathname === href || pathname.startsWith(href + '/');
+  };
+
   return (
-    <nav className="border-b bg-card">
+    <nav className="border-b bg-card ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center">
-            <Home className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold">Flatastic</span>
-          </Link>
+          {/* Left side - Logo and Burger Menu */}
+          <div className="flex items-center space-x-4">
+            {/* Burger Menu (Mobile) */}
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center">
+                    <Home className="h-6 w-6 text-primary mr-2" />
+                    Flatastic
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="mt-6 space-y-2">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = isActiveRoute(item.href);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setIsSheetOpen(false)}
+                        className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                        }`}
+                      >
+                        <Icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Logo */}
+            <Link href="/dashboard" className="flex items-center">
+              <Home className="h-8 w-8 text-primary" />
+              <span className="ml-2 text-xl font-bold">Flatastic</span>
+            </Link>
+          </div>
+
+          {/* Center - Desktop Navigation (Hidden on mobile) */}
+          <div className="hidden lg:flex items-center space-x-1">
+            {navigationItems.slice(0, -1).map((item) => {
+              const Icon = item.icon;
+              const isActive = isActiveRoute(item.href);
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  }`}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
 
           {/* Right side actions */}
           <div className="flex items-center space-x-4">

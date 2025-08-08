@@ -77,7 +77,7 @@ export default function ChoreTabs({
       transition={{ delay: 0.5 }}
     >
       <Tabs defaultValue="all" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4">
           <TabsTrigger value="all" className="text-xs sm:text-sm">
             All ({filteredChores.length})
           </TabsTrigger>

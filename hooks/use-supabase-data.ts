@@ -1,6 +1,6 @@
 // hooks/useSupabaseData.ts
 import { createClient } from '@/lib/supabase/client';
-import { Notification, Profile } from '@/lib/supabase/schema.alias';
+import { Household, Notification, Profile } from '@/lib/supabase/schema.alias';
 import { ChoreWithProfiles, ExpenseWithProfile } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
@@ -479,4 +479,87 @@ export function useHouseholdStats() {
   }, [supabase]);
 
   return { stats, loading, error };
+}
+
+export function useHousehold(householdId: string | null) {
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHousehold() {
+      if (!householdId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const supabase = createClient();
+
+        const { data, error } = await supabase
+          .from('households')
+          .select('*')
+          .eq('id', householdId)
+          .single();
+
+        if (error) {
+          setError(error.message || 'Failed to load household');
+        } else {
+          setHousehold(data);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHousehold();
+  }, [householdId]);
+
+  return { household, loading, error };
+}
+
+// File: hooks/useHouseholdMembers.ts
+
+export function useHouseholdMembers(householdId: string | null) {
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchMembers() {
+      if (!householdId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const supabase = createClient();
+
+        await supabase
+          .from('profiles')
+          .select('*')
+          .eq('household_id', householdId)
+          .order('created_at', { ascending: true })
+          .then(({ data, error }) => {
+            if (error) {
+              setError(error.message || 'Failed to load members');
+            } else {
+              setMembers(data || []);
+            }
+          });
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMembers();
+  }, [householdId]);
+
+  return { members, loading, error };
 }

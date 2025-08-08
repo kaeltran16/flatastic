@@ -8,12 +8,12 @@ import { useEffect, useState } from 'react';
 import ErrorState from '@/components/chore/error';
 import ChoreFilters from '@/components/chore/filters';
 import LoadingState from '@/components/chore/loading';
-import NavigationBar from '@/components/chore/navigation';
 import SetupRequiredState from '@/components/chore/requirements';
 import ChoreStatsCards from '@/components/chore/stats-card';
 import ChoreTabs from '@/components/chore/tabs';
 
 // Types
+import AddChoreButton from '@/components/chore/add-chore-button';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 
 // Data structure for chore updates
@@ -291,14 +291,7 @@ export default function ChoresPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NavigationBar
-        household={household}
-        currentUser={currentUser}
-        householdMembers={householdMembers}
-        onChoreAdded={handleNewChore}
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-4">
         {/* Header */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -313,6 +306,14 @@ export default function ChoresPage() {
             Manage and track all household tasks for {household.name}
           </p>
         </motion.div>
+        <div className="flex justify-end mb-4">
+          <AddChoreButton
+            onChoreAdded={handleNewChore}
+            householdId={household.id}
+            currentUserId={currentUser.id}
+            householdMembers={householdMembers}
+          />
+        </div>
 
         {/* Stats Cards */}
         <ChoreStatsCards chores={chores} />

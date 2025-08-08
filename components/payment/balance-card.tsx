@@ -163,6 +163,7 @@ const BalanceCard = ({
             bg-gradient-to-br from-white to-red-50/30
             border border-red-100 hover:border-red-200
             overflow-hidden relative
+            mx-2 sm:mx-0
           "
           >
             {/* Animated gradient overlay */}
@@ -173,12 +174,12 @@ const BalanceCard = ({
             />
 
             <CardContent className="p-3 sm:p-4 relative">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                 {/* Avatar and relationship section */}
-                <div className="flex items-center justify-between sm:justify-start flex-1">
+                <div className="flex items-center justify-between sm:justify-center flex-1">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <motion.div variants={avatarVariants}>
-                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
+                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
                         <AvatarFallback className="text-xs sm:text-sm font-medium">
                           {getInitials(balance.from_user_name)}
                         </AvatarFallback>
@@ -195,7 +196,7 @@ const BalanceCard = ({
                     </motion.span>
 
                     <motion.div variants={avatarVariants}>
-                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
+                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
                         <AvatarFallback className="text-xs sm:text-sm font-medium">
                           {getInitials(balance.to_user_name)}
                         </AvatarFallback>
@@ -203,10 +204,9 @@ const BalanceCard = ({
                     </motion.div>
                   </div>
 
-                  {/* Amount - shown on right for mobile */}
                   <div className="text-center sm:hidden">
                     <motion.div
-                      className="text-lg font-bold text-red-600"
+                      className="text-xl font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-200"
                       variants={amountVariants}
                     >
                       ${balance.amount.toFixed(2)}
@@ -214,10 +214,9 @@ const BalanceCard = ({
                   </div>
                 </div>
 
-                {/* Desktop amount and expense info */}
-                <div className="hidden sm:block text-center">
+                <div className="hidden sm:block text-start">
                   <motion.div
-                    className="text-lg sm:text-xl font-bold text-red-600"
+                    className="text-2xl font-extrabold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 shadow-sm mb-2"
                     variants={amountVariants}
                   >
                     ${balance.amount.toFixed(2)}
@@ -233,10 +232,9 @@ const BalanceCard = ({
                   </motion.div>
                 </div>
 
-                {/* Names and button section */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                   <motion.div
-                    className="text-sm sm:text-base text-center sm:text-left"
+                    className="text-sm sm:text-base text-start sm:text-left"
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 + 0.1 }}
@@ -272,9 +270,8 @@ const BalanceCard = ({
                   </motion.div>
                 </div>
 
-                {/* Mobile expense info */}
                 <motion.div
-                  className="text-center text-xs text-muted-foreground sm:hidden"
+                  className="text-start text-xs text-muted-foreground sm:hidden"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 + 0.2 }}
@@ -306,31 +303,46 @@ const BalanceCard = ({
             transition-all duration-300
             bg-gradient-to-br from-white to-orange-50/30
             border border-orange-100 hover:border-orange-200
+            mx-2 sm:mx-0
           "
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
                 {/* Avatar and info section */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-1">
-                  <div className="flex items-center gap-2 justify-center sm:justify-start">
-                    <motion.div variants={avatarVariants}>
-                      <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm">
-                        <AvatarFallback className="text-sm font-medium">
-                          {getInitials(balance.from_user_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </motion.div>
+                  {/* Mobile layout: avatars and amount on same row */}
+                  <div className="flex items-center justify-between sm:justify-start">
+                    <div className="flex items-center gap-2">
+                      <motion.div variants={avatarVariants}>
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
+                          <AvatarFallback className="text-xs sm:text-sm font-medium">
+                            {getInitials(balance.from_user_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </motion.div>
 
-                    <motion.div variants={arrowVariants}>
-                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                    </motion.div>
+                      <motion.div variants={arrowVariants}>
+                        <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                      </motion.div>
 
-                    <motion.div variants={avatarVariants}>
-                      <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm">
-                        <AvatarFallback className="text-sm font-medium">
-                          {getInitials(balance.to_user_name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <motion.div variants={avatarVariants}>
+                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
+                          <AvatarFallback className="text-xs sm:text-sm font-medium">
+                            {getInitials(balance.to_user_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </motion.div>
+                    </div>
+
+                    {/* Mobile prominent amount */}
+                    <motion.div
+                      className="lg:hidden text-2xl font-extrabold text-gray-900 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm"
+                      variants={amountVariants}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 + 0.2 }}
+                    >
+                      ${balance.amount.toFixed(2)}
                     </motion.div>
                   </div>
 
@@ -352,7 +364,7 @@ const BalanceCard = ({
                       </span>
 
                       <motion.div variants={iconVariants}>
-                        <Clock className="h-4 w-4 text-orange-600" />
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                       </motion.div>
 
                       <motion.div variants={badgeVariants}>
@@ -377,10 +389,10 @@ const BalanceCard = ({
                   </div>
                 </div>
 
-                {/* Amount and buttons section */}
-                <div className="text-center lg:text-right">
+                {/* Desktop amount and buttons section */}
+                <div className="hidden lg:block text-center lg:text-right">
                   <motion.div
-                    className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3"
+                    className="text-3xl font-extrabold text-gray-900 mb-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200 shadow-sm"
                     variants={amountVariants}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -425,6 +437,41 @@ const BalanceCard = ({
                     </motion.div>
                   </div>
                 </div>
+
+                {/* Mobile/Tablet buttons - full width */}
+                <div className="flex gap-2 lg:hidden">
+                  <motion.div
+                    className="flex-1"
+                    variants={buttonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-9 text-sm"
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Remind
+                    </Button>
+                  </motion.div>
+
+                  <motion.div
+                    className="flex-1"
+                    variants={buttonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                  >
+                    <Button
+                      size="sm"
+                      onClick={() => onSettle(balance)}
+                      className="w-full h-9 text-sm"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Record Payment
+                    </Button>
+                  </motion.div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -436,7 +483,7 @@ const BalanceCard = ({
   // Individual expense splits
   return (
     <motion.div
-      className="space-y-3 sm:space-y-4"
+      className="space-y-2 sm:space-y-3 md:space-y-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: index * 0.05 }}
@@ -459,15 +506,18 @@ const BalanceCard = ({
                 transition-all duration-300
                 bg-gradient-to-br from-white to-blue-50/30
                 border border-blue-100 hover:border-blue-200
+                mx-2 sm:mx-0
               "
               >
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                    {/* Avatar and content section */}
-                    <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
+                <CardContent className="p-3 sm:p-4 md:p-5">
+                  {/* Mobile-first stacked layout */}
+                  <div className="space-y-3 sm:space-y-0 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                    {/* Top section: Users and relationship */}
+                    <div className="flex items-center justify-between sm:justify-start sm:flex-1 sm:min-w-0">
+                      {/* Avatar section - more compact on mobile */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <motion.div variants={avatarVariants}>
-                          <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
+                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm">
                             <AvatarFallback className="text-xs font-medium">
                               {getInitials(balance.from_user_name)}
                             </AvatarFallback>
@@ -475,11 +525,11 @@ const BalanceCard = ({
                         </motion.div>
 
                         <motion.div variants={arrowVariants}>
-                          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                          <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </motion.div>
 
                         <motion.div variants={avatarVariants}>
-                          <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
+                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm">
                             <AvatarFallback className="text-xs font-medium">
                               {getInitials(balance.to_user_name)}
                             </AvatarFallback>
@@ -487,14 +537,28 @@ const BalanceCard = ({
                         </motion.div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <motion.div
-                          className="flex flex-wrap items-center gap-2 mb-1"
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: splitIndex * 0.05 + 0.1 }}
-                        >
-                          <span className="font-medium text-sm sm:text-base">
+                      {/* Amount - moved to top right on mobile */}
+                      <motion.div
+                        className="text-right sm:hidden"
+                        variants={amountVariants}
+                      >
+                        <div className="text-xl font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-200">
+                          ${split.amount_owed.toFixed(2)}
+                        </div>
+                      </motion.div>
+                    </div>
+
+                    {/* Content section */}
+                    <div className="sm:flex-1 sm:min-w-0 sm:ml-4">
+                      {/* User relationship text */}
+                      <motion.div
+                        className="mb-2 sm:mb-1"
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: splitIndex * 0.05 + 0.1 }}
+                      >
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="font-medium text-sm sm:text-base leading-tight">
                             <span className="text-red-600">
                               {balance.from_user_id === currentUserId
                                 ? 'You'
@@ -511,53 +575,64 @@ const BalanceCard = ({
                           </span>
 
                           <motion.div variants={iconVariants}>
-                            <Clock className="h-3 w-3 text-orange-600" />
+                            <Clock className="h-3 w-3 text-orange-600 flex-shrink-0" />
                           </motion.div>
-                        </motion.div>
+                        </div>
+                      </motion.div>
 
-                        {split.expense && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: splitIndex * 0.05 + 0.2 }}
-                          >
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                              {split.expense.description}
-                            </p>
+                      {/* Expense details */}
+                      {split.expense && (
+                        <motion.div
+                          className="space-y-2"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: splitIndex * 0.05 + 0.2 }}
+                        >
+                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                            {split.expense.description}
+                          </p>
 
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {/* Expense metadata - improved mobile layout */}
+                          <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-1.5 xs:gap-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
                               {split.expense.category && (
                                 <motion.div variants={badgeVariants}>
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs px-2 py-0.5"
+                                  >
                                     {split.expense.category}
                                   </Badge>
                                 </motion.div>
                               )}
-                              <span>
+                              <span className="whitespace-nowrap">
                                 {new Date(
                                   split.expense.date
                                 ).toLocaleDateString()}
                               </span>
-                              <span>•</span>
-                              <span className="font-medium">
+                            </div>
+
+                            <div className="flex items-center gap-1 xs:ml-auto">
+                              <span className="hidden xs:inline">•</span>
+                              <span className="font-medium whitespace-nowrap">
                                 Total: ${split.expense.amount.toFixed(2)}
                               </span>
                             </div>
-                          </motion.div>
-                        )}
-                      </div>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
 
-                    {/* Amount and buttons section */}
-                    <div className="text-center sm:text-right flex-shrink-0">
+                    {/* Desktop amount and buttons */}
+                    <div className="hidden sm:flex sm:flex-col sm:items-end sm:flex-shrink-0 sm:text-right">
                       <motion.div
-                        className="text-lg sm:text-xl font-bold text-red-600 mb-2"
+                        className="text-2xl font-extrabold text-red-600 mb-3 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 shadow-sm"
                         variants={amountVariants}
                       >
                         ${split.amount_owed.toFixed(2)}
                       </motion.div>
 
-                      <div className="flex gap-2 justify-center sm:justify-end">
+                      <div className="flex gap-2">
                         <motion.div
                           variants={buttonVariants}
                           whileHover="hover"
@@ -588,6 +663,41 @@ const BalanceCard = ({
                           </Button>
                         </motion.div>
                       </div>
+                    </div>
+
+                    {/* Mobile buttons - full width at bottom */}
+                    <div className="flex gap-2 sm:hidden">
+                      <motion.div
+                        className="flex-1"
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-9 text-sm"
+                        >
+                          <Bell className="h-4 w-4 mr-2" />
+                          Remind
+                        </Button>
+                      </motion.div>
+
+                      <motion.div
+                        className="flex-1"
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                      >
+                        <Button
+                          size="sm"
+                          onClick={() => onSettle(balance)}
+                          className="w-full h-9 text-sm"
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Pay
+                        </Button>
+                      </motion.div>
                     </div>
                   </div>
                 </CardContent>

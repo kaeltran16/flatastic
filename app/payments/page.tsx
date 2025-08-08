@@ -97,33 +97,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold">Flatastic</span>
-              </Link>
-              <span className="ml-4 text-muted-foreground">/</span>
-              <span className="ml-4 font-medium">Payments</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                onClick={() =>
-                  userBalances.length > 0 && openSettleDialog(userBalances[0])
-                }
-                disabled={userBalances.length === 0}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Record Payment
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
@@ -147,7 +121,7 @@ export default function PaymentsPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             <Tabs defaultValue="pending" className="space-y-6">
-              <TabsList>
+              <TabsList className="w-full">
                 <TabsTrigger value="pending">
                   Pending ({pendingCount})
                 </TabsTrigger>
