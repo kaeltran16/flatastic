@@ -41,6 +41,7 @@ const navigationItems = [
   { name: 'Expenses', href: '/expenses', icon: DollarSign },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Household', href: '/household', icon: Users },
+  { name: 'Test', href: '/test', icon: Users },
 ];
 
 export function Navbar() {
