@@ -1,4 +1,5 @@
-// app/api/subscribe/route.ts
+
+import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface SubscriptionData {
@@ -9,10 +10,9 @@ interface SubscriptionData {
   };
 }
 
-// In a real app, save subscriptions to your database
-const subscriptions: SubscriptionData[] = [];
-
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+
   try {
     const subscription: SubscriptionData = await request.json();
 
@@ -28,25 +28,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if subscription already exists
-    const existingIndex = subscriptions.findIndex(
-      (sub) => sub.endpoint === subscription.endpoint
-    );
+    // Upsert subscription to Supabase
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .upsert(
+        {
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+          user_agent: request.headers.get('user-agent') || null,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'endpoint'
+        }
+      );
 
-    if (existingIndex >= 0) {
-      // Update existing subscription
-      subscriptions[existingIndex] = subscription;
-    } else {
-      // Add new subscription
-      subscriptions.push(subscription);
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to save subscription' },
+        { status: 500 }
+      );
     }
 
-    console.log('Subscription saved:', subscription.endpoint);
+    console.log('Subscription saved to Supabase:', subscription.endpoint);
+
+    // Get total count
+    const { count } = await supabase
+      .from('push_subscriptions')
+      .select('*', { count: 'exact', head: true });
 
     return NextResponse.json({
       success: true,
       message: 'Subscription saved successfully',
-      total: subscriptions.length,
+      total: count || 0,
     });
   } catch (error) {
     console.error('Error saving subscription:', error);
@@ -58,30 +74,63 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({
-    subscriptions: subscriptions.length,
-    endpoints: subscriptions.map((sub) => sub.endpoint.slice(0, 50) + '...'),
-  });
-}
+  const supabase = await createClient();
 
-export async function DELETE(request: NextRequest) {
   try {
-    const { endpoint } = await request.json();
+    const { data: subscriptions, error } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, created_at')
+      .order('created_at', { ascending: false });
 
-    const index = subscriptions.findIndex((sub) => sub.endpoint === endpoint);
-    if (index >= 0) {
-      subscriptions.splice(index, 1);
-      return NextResponse.json({
-        success: true,
-        message: 'Subscription removed',
-      });
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch subscriptions' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
-      success: false,
-      message: 'Subscription not found',
+      subscriptions: subscriptions?.length || 0,
+      endpoints: subscriptions?.map((sub) => ({
+        endpoint: sub.endpoint.slice(0, 50) + '...',
+        created_at: sub.created_at
+      })) || [],
     });
   } catch (error) {
+    console.error('Error fetching subscriptions:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch subscriptions' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient();
+
+  try {
+    const { endpoint } = await request.json();
+
+    const { error } = await supabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('endpoint', endpoint);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Failed to remove subscription' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Subscription removed',
+    });
+  } catch (error) {
+    console.error('Error removing subscription:', error);
     return NextResponse.json(
       { error: 'Failed to remove subscription' },
       { status: 500 }
