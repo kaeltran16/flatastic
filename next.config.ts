@@ -10,12 +10,6 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   fallbacks: {
     document: '/offline', // Optional: create an offline page
   },
-  // workboxOptions: {
-  //   // Don't generate a SW, use your custom one
-  //   swSrc: 'worker/sw.js',
-  //   swDest: 'public/sw.js',
-  //   mode: 'production',
-  // },
 });
 
 /** @type {import('next').NextConfig} */
@@ -109,20 +103,6 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' https://storage.googleapis.com",
               "worker-src 'self' blob:",
             ].join('; '),
-          },
-        ],
-      },
-      {
-        // Workbox files
-        source: '/workbox-:hash.js',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
