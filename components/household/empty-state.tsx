@@ -1,10 +1,41 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { CreateJoinHouseholdDialog } from '@/components/household/create-join-dialog';
+import { createHousehold, joinHousehold } from '@/lib/actions/household';
 import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { buttonHover, fadeInUp } from './animations';
 
 export function NoHouseholdDisplay() {
+  const router = useRouter();
+
+  const handleCreateHousehold = async (data: { name: string }) => {
+    try {
+      await createHousehold(data);
+      toast.success('Household created successfully!');
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create household'
+      );
+      throw error;
+    }
+  };
+
+  const handleJoinHousehold = async (data: { inviteCode: string }) => {
+    try {
+      await joinHousehold(data);
+      toast.success('Successfully joined household!');
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to join household'
+      );
+      throw error;
+    }
+  };
+
   return (
     <motion.div
       className="min-h-screen bg-background flex items-center justify-center px-4"
@@ -32,7 +63,8 @@ export function NoHouseholdDisplay() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          You're not part of any household yet.
+          You're not part of any household yet. Create a new household or join
+          an existing one.
         </motion.p>
         <motion.div
           variants={buttonHover}
@@ -42,7 +74,10 @@ export function NoHouseholdDisplay() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Button className="w-full sm:w-auto">Create or Join Household</Button>
+          <CreateJoinHouseholdDialog
+            onCreateHousehold={handleCreateHousehold}
+            onJoinHousehold={handleJoinHousehold}
+          />
         </motion.div>
       </motion.div>
     </motion.div>

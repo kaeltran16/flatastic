@@ -70,15 +70,7 @@ export function InviteCodeCard({ household }: InviteCodeCardProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full bg-transparent text-xs sm:text-sm"
-            >
-              Generate New Code
-            </Button>
-          </motion.div>
+          ></motion.div>
         </div>
       </CardContent>
     </Card>

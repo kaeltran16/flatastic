@@ -5,7 +5,6 @@ import { motion } from 'motion/react';
 import { staggerContainer } from './animations';
 import { InviteCodeCard } from './invite-code-card';
 import { QuickStats } from './quick-stats';
-import { HouseholdSettings } from './settings';
 
 interface HouseholdSidebarProps {
   members: Profile[];
@@ -25,7 +24,7 @@ export function HouseholdSidebar({
     >
       <QuickStats members={members} household={household} />
       <InviteCodeCard household={household} />
-      <HouseholdSettings />
+      {/* <HouseholdSettings /> */}
     </motion.div>
   );
 }

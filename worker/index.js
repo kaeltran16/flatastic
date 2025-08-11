@@ -261,25 +261,320 @@
 
 // debugLog('🎉 Service worker script loaded and ready');
 
+// TODO: working stuffs
+// self.addEventListener('push', function (event) {
+//   if (event.data) {
+//     const data = event.data.json();
+//     const options = {
+//       body: data.body,
+//       icon: data.icon || '//web-app-manifest-192x192.png',
+//       badge: '/web-app-manifest-192x192.png',
+//       vibrate: [100, 50, 100],
+//       data: {
+//         dateOfArrival: Date.now(),
+//         primaryKey: '2',
+//       },
+//     };
+//     event.waitUntil(self.registration.showNotification(data.title, options));
+//   }
+// });
+
+// self.addEventListener('notificationclick', function (event) {
+//   console.log('Notification click received.');
+//   event.notification.close();
+//   event.waitUntil(clients.openWindow('<https://your-website.com>'));
+// });
+
+// worker/sw.js - Updated Service Worker with Supabase support
+
+// Import Workbox for better caching strategies
+importScripts(
+  'https://storage.googleapis.com/workbox-cdn/releases/6.6.0/workbox-sw.js'
+);
+
+// Configure Workbox
+if (workbox) {
+  console.log('Workbox loaded successfully');
+
+  // Enable navigation preload for faster navigation
+  workbox.navigationPreload.enable();
+
+  // Precache and route for app shell
+  workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
+
+  // Runtime caching strategies
+
+  // 1. Supabase API calls - Always use network first, minimal caching
+  workbox.routing.registerRoute(
+    ({ url }) => url.hostname.includes('supabase.co'),
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'supabase-api',
+      networkTimeoutSeconds: 10,
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 20,
+          maxAgeSeconds: 60, // 1 minute cache
+        }),
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+      ],
+    })
+  );
+
+  // 2. Static assets - Cache first
+  workbox.routing.registerRoute(
+    ({ request }) => request.destination === 'image',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'images',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 60,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        }),
+      ],
+    })
+  );
+
+  // 3. Google Fonts
+  workbox.routing.registerRoute(
+    ({ url }) => url.origin === 'https://fonts.googleapis.com',
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'google-fonts-stylesheets',
+    })
+  );
+
+  workbox.routing.registerRoute(
+    ({ url }) => url.origin === 'https://fonts.gstatic.com',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'google-fonts-webfonts',
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 30,
+          maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+        }),
+      ],
+    })
+  );
+
+  // 4. App pages - Network first with cache fallback
+  workbox.routing.registerRoute(
+    ({ request }) => request.mode === 'navigate',
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'pages',
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+      ],
+    })
+  );
+} else {
+  console.log('Workbox failed to load');
+}
+
+// Skip waiting and claim clients immediately
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((cacheName) => {
+              // Remove old cache versions
+              return (
+                cacheName.startsWith('workbox-') && !cacheName.includes('6.6.0')
+              );
+            })
+            .map((cacheName) => caches.delete(cacheName))
+        );
+      }),
+    ])
+  );
+});
+
+// Enhanced push notification handler
 self.addEventListener('push', function (event) {
+  console.log('Push event received:', event);
+
   if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: data.icon || '//web-app-manifest-192x192.png',
-      badge: '/web-app-manifest-192x192.png',
-      vibrate: [100, 50, 100],
-      data: {
-        dateOfArrival: Date.now(),
-        primaryKey: '2',
-      },
-    };
-    event.waitUntil(self.registration.showNotification(data.title, options));
+    try {
+      const data = event.data.json();
+      console.log('Push data:', data);
+
+      const options = {
+        body: data.body || 'New notification',
+        icon: data.icon || '/web-app-manifest-192x192.png',
+        badge: data.badge || '/web-app-manifest-192x192.png',
+        image: data.image,
+        vibrate: data.vibrate || [100, 50, 100],
+        tag: data.tag || 'general',
+        requireInteraction: data.requireInteraction || false,
+        actions: data.actions || [],
+        data: {
+          dateOfArrival: Date.now(),
+          primaryKey: data.primaryKey || '1',
+          url: data.url || '/',
+          ...data.data,
+        },
+      };
+
+      event.waitUntil(
+        self.registration.showNotification(
+          data.title || 'Notification',
+          options
+        )
+      );
+    } catch (error) {
+      console.error('Error processing push event:', error);
+
+      // Fallback notification
+      event.waitUntil(
+        self.registration.showNotification('New Notification', {
+          body: 'You have a new notification',
+          icon: '/web-app-manifest-192x192.png',
+          badge: '/web-app-manifest-192x192.png',
+        })
+      );
+    }
   }
 });
 
+// Enhanced notification click handler
 self.addEventListener('notificationclick', function (event) {
-  console.log('Notification click received.');
+  console.log('Notification click received:', event);
+
   event.notification.close();
-  event.waitUntil(clients.openWindow('<https://your-website.com>'));
+
+  // Get URL from notification data or use default
+  const urlToOpen = event.notification.data?.url || '/';
+
+  // Handle action clicks
+  if (event.action) {
+    console.log('Action clicked:', event.action);
+    // Handle different actions here
+    switch (event.action) {
+      case 'view':
+        // Handle view action
+        break;
+      case 'dismiss':
+        // Handle dismiss action
+        return; // Don't open window
+      default:
+        break;
+    }
+  }
+
+  event.waitUntil(
+    clients
+      .matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      .then(function (clientList) {
+        // Check if there's already a window/tab open with the target URL
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+
+        // If not, open new window/tab
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+
+// Background sync for offline functionality
+self.addEventListener('sync', function (event) {
+  console.log('Background sync event:', event.tag);
+
+  if (event.tag === 'background-sync') {
+    event.waitUntil(
+      // Handle background sync here
+      // e.g., sync offline data with Supabase when online
+      doBackgroundSync()
+    );
+  }
+});
+
+async function doBackgroundSync() {
+  try {
+    // Check if online
+    if (!navigator.onLine) {
+      console.log('Still offline, skipping sync');
+      return;
+    }
+
+    console.log('Performing background sync...');
+
+    // Add your background sync logic here
+    // e.g., sync pending data with Supabase
+  } catch (error) {
+    console.error('Background sync failed:', error);
+    throw error; // This will retry the sync
+  }
+}
+
+// Handle fetch events with proper error handling
+self.addEventListener('fetch', (event) => {
+  // Let Workbox handle the routing
+  // But add custom logic for specific cases if needed
+
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip chrome-extension requests
+  if (event.request.url.startsWith('chrome-extension://')) {
+    return;
+  }
+
+  // For Supabase requests, ensure they're handled properly
+  if (event.request.url.includes('supabase.co')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Clone the response before returning it
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            // Optionally cache successful responses
+            caches.open('supabase-api').then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch((error) => {
+          console.error('Supabase fetch failed:', error);
+          // Try to return cached version
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+});
+
+// Error handling
+self.addEventListener('error', (event) => {
+  console.error('Service Worker error:', event.error);
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('Service Worker unhandled promise rejection:', event.reason);
 });
