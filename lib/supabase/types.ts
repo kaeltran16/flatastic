@@ -86,6 +86,36 @@ export interface Settlement {
   note?: string;
 }
 
+export interface PendingInvitation {
+  id: string;
+  household_id: string;
+  invited_email: string;
+  invited_by: string;
+  message?: string;
+  expires_at: string;
+  created_at: string;
+}
+export type NotificationType =
+  | 'household_invite'
+  | 'welcome'
+  | 'member_joined'
+  | 'member_left'
+  | 'admin_changed'
+  | 'chore_assigned'
+  | 'chore_completed'
+  | 'expense_added'
+  | 'expense_settled';
+
+export interface NotificationData {
+  user_id: string;
+  household_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_urgent?: boolean;
+  is_read?: boolean;
+}
+
 // export interface Expense {
 //   id: string;
 //   household_id: string;
