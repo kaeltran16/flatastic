@@ -43,6 +43,7 @@ const navigationItems = [
   { name: 'Household', href: '/household', icon: Users },
   { name: 'Test', href: '/test', icon: Users },
   { name: 'PWA', href: '/pwa', icon: Users },
+  { name: 'PWA NextJS', href: '/pwa-nextjs', icon: Users },
 ];
 
 export function Navbar() {

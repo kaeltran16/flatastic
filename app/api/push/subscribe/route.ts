@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -29,20 +28,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert subscription to Supabase
-    const { data, error } = await supabase
-      .from('push_subscriptions')
-      .upsert(
-        {
-          endpoint: subscription.endpoint,
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-          user_agent: request.headers.get('user-agent') || null,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'endpoint'
-        }
-      );
+    const { data, error } = await supabase.from('push_subscriptions').upsert(
+      {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        user_agent: request.headers.get('user-agent') || null,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: 'endpoint',
+      }
+    );
 
     if (error) {
       console.error('Supabase error:', error);
@@ -92,10 +89,11 @@ export async function GET() {
 
     return NextResponse.json({
       subscriptions: subscriptions?.length || 0,
-      endpoints: subscriptions?.map((sub) => ({
-        endpoint: sub.endpoint.slice(0, 50) + '...',
-        created_at: sub.created_at
-      })) || [],
+      endpoints:
+        subscriptions?.map((sub) => ({
+          endpoint: sub.endpoint.slice(0, 50) + '...',
+          created_at: sub.created_at,
+        })) || [],
     });
   } catch (error) {
     console.error('Error fetching subscriptions:', error);
