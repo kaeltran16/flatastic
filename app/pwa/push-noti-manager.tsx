@@ -172,6 +172,7 @@ export function PushNotificationManager() {
         addLog('✓ Browser subscription cancelled');
       }
 
+      // @ts-ignore
       const result = await unsubscribeUser();
       setSubscription(null);
 
