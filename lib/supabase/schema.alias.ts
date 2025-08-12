@@ -6,6 +6,8 @@ export type Expense = Tables<'expenses'>;
 export type Household = Tables<'households'>;
 export type Notification = Tables<'notifications'>;
 export type Profile = Tables<'profiles'>;
+export type PushSubscription = Tables<'push_subscriptions'>;
+export type PaymentNote = Tables<'payment_notes'>;
 
 export type ChoreInsert = TablesInsert<'chores'>;
 export type ExpenseSplitInsert = TablesInsert<'expense_splits'>;
@@ -13,6 +15,8 @@ export type ExpenseInsert = TablesInsert<'expenses'>;
 export type HouseholdInsert = TablesInsert<'households'>;
 export type NotificationInsert = TablesInsert<'notifications'>;
 export type ProfileInsert = TablesInsert<'profiles'>;
+export type PushSubscriptionInsert = TablesInsert<'push_subscriptions'>;
+export type PaymentNoteInsert = TablesInsert<'payment_notes'>;
 
 export type ChoreUpdate = TablesUpdate<'chores'>;
 export type ExpenseSplitUpdate = TablesUpdate<'expense_splits'>;
@@ -20,6 +24,8 @@ export type ExpenseUpdate = TablesUpdate<'expenses'>;
 export type HouseholdUpdate = TablesUpdate<'households'>;
 export type NotificationUpdate = TablesUpdate<'notifications'>;
 export type ProfileUpdate = TablesUpdate<'profiles'>;
+export type PushSubscriptionUpdate = TablesUpdate<'push_subscriptions'>;
+export type PaymentNoteUpdate = TablesUpdate<'payment_notes'>;
 
 export type ChoreStatus = 'pending' | 'completed' | 'overdue';
 export type ExpenseCategory =

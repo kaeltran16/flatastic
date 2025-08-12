@@ -148,6 +148,7 @@ export function useBalances() {
               to_user_name: userA.id === userId ? 'You' : userA.full_name || '',
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
+              payment_link: userA.payment_link || undefined,
             });
           } else {
             // A owes B (net)
@@ -159,6 +160,7 @@ export function useBalances() {
               to_user_name: userB.id === userId ? 'You' : userB.full_name || '',
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
+              payment_link: userB.payment_link || undefined,
             });
           }
         }

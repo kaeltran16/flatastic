@@ -26,6 +26,7 @@ import { Chore, Profile, RecurringType } from '@/lib/supabase/schema.alias';
 import { CalendarDays, Plus, Repeat, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddChoreDialogProps {
   isOpen: boolean;
@@ -155,7 +156,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
 
       // Mock response for demo - replace with actual Supabase response
       const mockChore: Chore = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         ...choreCreateData,
         description: choreCreateData.description || '',
         assigned_to: choreCreateData.assigned_to || '',

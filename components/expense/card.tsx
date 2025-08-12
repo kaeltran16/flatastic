@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { motion } from 'motion/react';
+import ExpenseDetailsDialog from './details-dialog';
 
 interface ExpenseCardProps {
   expense: ExpenseWithDetails;
@@ -57,7 +58,11 @@ export default function ExpenseCard({
   };
 
   const isPayer = expense.paid_by === currentUser.id;
-  console.log('expense', expense);
+  const currentUserSplit = expense.splits.find(
+    (split) => split.user_id === currentUser.id
+  );
+  const isCurrentUserSettled = currentUserSplit?.is_settled || false;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -151,22 +156,41 @@ export default function ExpenseCard({
 
             {/* Action buttons */}
             <div className="flex gap-2 pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9 text-sm font-medium"
-                onClick={() => onViewDetails?.(expense)}
-              >
-                Details
-              </Button>
-              {expense.status === 'pending' && (
-                <Button
-                  size="sm"
-                  className="flex-1 h-9 text-sm font-medium"
-                  onClick={() => onSettle?.(expense)}
-                >
-                  {isPayer ? 'Mark Paid' : 'Pay Back'}
-                </Button>
+              <ExpenseDetailsDialog
+                expense={expense}
+                currentUser={currentUser}
+                onSettle={onSettle}
+                trigger={
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 text-sm font-medium"
+                  >
+                    Details
+                  </Button>
+                }
+              />
+              {expense.status === 'pending' && !isCurrentUserSettled && (
+                <>
+                  {isPayer ? (
+                    <Button
+                      className="w-full h-9 text-sm font-medium"
+                      onClick={() => onSettle?.(expense)}
+                    >
+                      Mark Paid
+                    </Button>
+                  ) : (
+                    <ExpenseDetailsDialog
+                      expense={expense}
+                      currentUser={currentUser}
+                      onSettle={onSettle}
+                      trigger={
+                        <Button className="w-full h-9 text-sm font-medium">
+                          Pay Back
+                        </Button>
+                      }
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>

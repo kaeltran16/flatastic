@@ -179,6 +179,7 @@ export function useSettlements() {
               to_user_name: toUser.full_name || toUser.email,
               amount: Math.round(netAmount * 100) / 100, // Round to 2 decimal places
               related_splits: netSplits, // This now correctly has ExpenseSplitWithExpense[]
+              payment_link: fromUser.payment_link || '',
             });
           }
         }
@@ -262,21 +263,19 @@ export function useSettlements() {
       }
 
       // Optional: Create a payment record for history tracking
-      if (note) {
-        const { error: noteError } = await supabase
-          .from('payment_notes') // You might want to create this table
-          .insert({
-            from_user_id: balance.from_user_id,
-            to_user_id: balance.to_user_id,
-            amount: amount,
-            note: note,
-            created_at: new Date().toISOString(),
-          });
+      const { error: noteError } = await supabase
+        .from('payment_notes') // You might want to create this table
+        .insert({
+          from_user_id: balance.from_user_id,
+          to_user_id: balance.to_user_id,
+          amount: amount,
+          note: note || '',
+          created_at: new Date().toISOString(),
+        });
 
-        // Don't throw on note errors, just log them
-        if (noteError) {
-          console.warn('Failed to save payment note:', noteError);
-        }
+      // Don't throw on note errors, just log them
+      if (noteError) {
+        console.warn('Failed to save payment note:', noteError);
       }
 
       // Wait a bit to ensure database consistency, then refresh

@@ -93,6 +93,7 @@ export function useExpenses() {
         return {
           ...expense,
           payer_name: payer?.full_name || 'Unknown',
+          payer_payment_link: payer?.payment_link,
           splits: expense.expense_splits,
           your_share: userSplit?.amount_owed || 0,
           status: allSettled ? 'settled' : 'pending',
@@ -223,7 +224,7 @@ export function useExpenses() {
   }, []);
 
   return {
-    expenses,
+    expenses: expenses.sort((a, b) => (a.status === 'pending' ? -1 : 1)),
     householdMembers,
     currentUser,
     loading,

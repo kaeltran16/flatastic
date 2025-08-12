@@ -3,8 +3,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  sw: 'sw.js', // Your custom service worker
-  customWorkerDir: 'worker', // Directory containing your custom SW
+  sw: 'sw.js', // Generated service worker filename
+  customWorkerDir: 'worker', // Directory containing your custom SW code (worker/index.js)
   reloadOnOnline: true,
   swcMinify: true,
   fallbacks: {

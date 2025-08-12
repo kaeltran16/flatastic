@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -11,9 +10,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Household } from '@/lib/supabase/schema.alias';
 import { formatDate } from '@/utils';
-import { Edit, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { motion } from 'motion/react';
-import { buttonHover } from './animations';
 
 interface HouseholdInfoProps {
   household: Household;
@@ -22,7 +20,7 @@ interface HouseholdInfoProps {
 export function HouseholdInfo({ household }: HouseholdInfoProps) {
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 pb-4">
+      <CardHeader className="pb-4">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
             <motion.div
@@ -38,22 +36,8 @@ export function HouseholdInfo({ household }: HouseholdInfoProps) {
             Basic information about your household
           </CardDescription>
         </div>
-        <motion.div
-          variants={buttonHover}
-          whileHover="hover"
-          whileTap="tap"
-          className="w-full sm:w-auto"
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full sm:w-auto text-sm"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        </motion.div>
       </CardHeader>
+
       <CardContent className="space-y-4 pt-0">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -67,6 +51,7 @@ export function HouseholdInfo({ household }: HouseholdInfoProps) {
             {household.name}
           </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

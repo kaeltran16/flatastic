@@ -13,32 +13,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
+import { Profile } from '@/lib/supabase/schema.alias';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
-interface Profile {
-  id: string;
-  email: string;
-  full_name: string;
-  avatar_url?: string;
-  household_id?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 function ProfileEditPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ full_name: '', email: '' });
-  const [errors, setErrors] = useState<{ full_name?: string; email?: string }>(
-    {}
-  );
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    payment_link: '',
+  });
+  const [errors, setErrors] = useState<{
+    full_name?: string;
+    email?: string;
+    payment_link?: string;
+  }>({});
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -75,6 +71,7 @@ function ProfileEditPage() {
       setFormData({
         full_name: profileData.full_name || '',
         email: profileData.email || '',
+        payment_link: profileData.payment_link || '',
       });
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -85,7 +82,11 @@ function ProfileEditPage() {
   };
 
   const validateForm = () => {
-    const newErrors: { full_name?: string; email?: string } = {};
+    const newErrors: {
+      full_name?: string;
+      email?: string;
+      payment_link?: string;
+    } = {};
 
     if (!formData.full_name.trim()) {
       newErrors.full_name = 'Full name is required';
@@ -97,6 +98,11 @@ function ProfileEditPage() {
       newErrors.email = 'Please enter a valid email address';
     }
 
+    if (!formData.payment_link.trim()) {
+      newErrors.payment_link = 'Payment link is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.payment_link = 'Please enter a valid payment link';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -114,6 +120,7 @@ function ProfileEditPage() {
         .update({
           full_name: formData.full_name.trim(),
           email: formData.email.trim(),
+          payment_link: formData.payment_link.trim(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', profile.id);
@@ -143,6 +150,7 @@ function ProfileEditPage() {
         ...profile,
         full_name: formData.full_name.trim(),
         email: formData.email.trim(),
+        payment_link: formData.payment_link.trim(),
         updated_at: new Date().toISOString(),
       });
 
@@ -288,6 +296,22 @@ function ProfileEditPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Payment Link</Label>
+              <Input
+                id="payment_link"
+                value={profile.payment_link || 'No payment link'}
+                onChange={(e) =>
+                  setFormData({ ...formData, payment_link: e.target.value })
+                }
+                placeholder="Enter your payment link"
+                className={errors.payment_link ? 'border-red-500' : ''}
+              />
+              {errors.full_name && (
+                <p className="text-sm text-red-500">{errors.payment_link}</p>
+              )}
+            </div>
+
             {/* Account Info */}
             <div className="pt-4 border-t">
               <h3 className="text-sm font-medium mb-3">Account Information</h3>
@@ -295,13 +319,13 @@ function ProfileEditPage() {
                 <div>
                   <p className="text-muted-foreground">Member since</p>
                   <p className="font-medium">
-                    {new Date(profile.created_at).toLocaleDateString()}
+                    {new Date(profile.created_at || '').toLocaleDateString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Last updated</p>
                   <p className="font-medium">
-                    {new Date(profile.updated_at).toLocaleDateString()}
+                    {new Date(profile.updated_at || '').toLocaleDateString()}
                   </p>
                 </div>
               </div>

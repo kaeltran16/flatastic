@@ -196,7 +196,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     </Label>
                     <Input
                       id="amount"
-                      type="number"
+                      type="tel"
                       step="0.01"
                       min="0.01"
                       placeholder="0.00"

@@ -231,6 +231,81 @@ export type Database = {
           }
         ];
       };
+      payment_notes: {
+        Row: {
+          amount: number;
+          created_at: string | null;
+          from_user_id: string;
+          id: string;
+          note: string | null;
+          to_user_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          amount: number;
+          created_at?: string | null;
+          from_user_id: string;
+          id?: string;
+          note?: string | null;
+          to_user_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string | null;
+          from_user_id?: string;
+          id?: string;
+          note?: string | null;
+          to_user_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      pending_invitations: {
+        Row: {
+          created_at: string | null;
+          expires_at: string;
+          household_id: string;
+          id: string;
+          invited_by: string;
+          invited_email: string;
+          message: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          expires_at?: string;
+          household_id: string;
+          id?: string;
+          invited_by: string;
+          invited_email: string;
+          message?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          expires_at?: string;
+          household_id?: string;
+          id?: string;
+          invited_by?: string;
+          invited_email?: string;
+          message?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'pending_invitations_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'pending_invitations_invited_by_fkey';
+            columns: ['invited_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -239,6 +314,7 @@ export type Database = {
           full_name: string | null;
           household_id: string | null;
           id: string;
+          payment_link: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -248,6 +324,7 @@ export type Database = {
           full_name?: string | null;
           household_id?: string | null;
           id: string;
+          payment_link?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -257,6 +334,7 @@ export type Database = {
           full_name?: string | null;
           household_id?: string | null;
           id?: string;
+          payment_link?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -268,6 +346,36 @@ export type Database = {
             referencedColumns: ['id'];
           }
         ];
+      };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          created_at: string;
+          endpoint: string;
+          id: string;
+          p256dh: string;
+          updated_at: string;
+          user_agent: string | null;
+        };
+        Insert: {
+          auth: string;
+          created_at?: string;
+          endpoint: string;
+          id?: string;
+          p256dh: string;
+          updated_at?: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          auth?: string;
+          created_at?: string;
+          endpoint?: string;
+          id?: string;
+          p256dh?: string;
+          updated_at?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: {

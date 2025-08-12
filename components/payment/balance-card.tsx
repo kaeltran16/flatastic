@@ -17,6 +17,7 @@ interface BalanceCardProps {
   balance: Balance;
   currentUserId: string | undefined;
   onSettle: (balance: Balance) => void;
+  onRemind?: (balance: Balance) => void;
   variant?: 'net' | 'individual' | 'all';
   showSettled?: boolean;
   index?: number; // For staggered animations
@@ -26,10 +27,22 @@ const BalanceCard = ({
   balance,
   currentUserId,
   onSettle,
+  onRemind,
   variant = 'net',
   showSettled = false,
   index = 0,
 }: BalanceCardProps) => {
+  // Helper functions for permission checks
+  const canRemind = (balance: Balance, currentUserId: string | undefined) => {
+    // Only the person who is owed money can send reminders
+    return currentUserId === balance.to_user_id;
+  };
+
+  const canSettle = (balance: Balance, currentUserId: string | undefined) => {
+    // Only the person who owes money can settle/pay
+    return currentUserId === balance.from_user_id;
+  };
+
   const cardVariants = {
     hidden: {
       opacity: 0,
@@ -252,22 +265,44 @@ const BalanceCard = ({
                     </span>
                   </motion.div>
 
-                  <motion.div
-                    variants={buttonVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                  >
-                    <Button
-                      size="sm"
-                      onClick={() => onSettle(balance)}
-                      className="w-full sm:w-auto h-9 sm:h-8 text-sm"
+                  {canSettle(balance, currentUserId) && (
+                    <motion.div
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
                     >
-                      <motion.div variants={iconVariants}>
-                        <DollarSign className="h-4 w-4 mr-1 sm:mr-2" />
-                      </motion.div>
-                      Settle
-                    </Button>
-                  </motion.div>
+                      <Button
+                        size="sm"
+                        onClick={() => onSettle(balance)}
+                        className="w-full sm:w-auto h-9 sm:h-8 text-sm"
+                      >
+                        <motion.div variants={iconVariants}>
+                          <DollarSign className="h-4 w-4 mr-1 sm:mr-2" />
+                        </motion.div>
+                        Settle
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  {canRemind(balance, currentUserId) && (
+                    <motion.div
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onRemind?.(balance)}
+                        className="w-full sm:w-auto h-9 sm:h-8 text-sm"
+                      >
+                        <motion.div variants={iconVariants}>
+                          <Bell className="h-4 w-4 mr-1 sm:mr-2" />
+                        </motion.div>
+                        Remind
+                      </Button>
+                    </motion.div>
+                  )}
                 </div>
 
                 <motion.div
@@ -402,7 +437,54 @@ const BalanceCard = ({
                   </motion.div>
 
                   <div className="flex flex-col sm:flex-row gap-2 justify-center lg:justify-end">
+                    {canRemind(balance, currentUserId) && (
+                      <motion.div
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onRemind?.(balance)}
+                          className="w-full sm:w-auto h-9 text-sm"
+                        >
+                          <motion.div variants={iconVariants}>
+                            <Bell className="h-4 w-4 mr-2" />
+                          </motion.div>
+                          Send Reminder
+                        </Button>
+                      </motion.div>
+                    )}
+
+                    {canSettle(balance, currentUserId) && (
+                      <motion.div
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                      >
+                        <Button
+                          size="sm"
+                          onClick={() => onSettle(balance)}
+                          className="w-full sm:w-auto h-9 text-sm"
+                        >
+                          <motion.div variants={iconVariants}>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                          </motion.div>
+                          Record Payment
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mobile/Tablet buttons - full width */}
+                <div className="flex gap-2 lg:hidden">
+                  {canRemind(balance, currentUserId) && (
                     <motion.div
+                      className={`${
+                        canSettle(balance, currentUserId) ? 'flex-1' : 'w-full'
+                      }`}
                       variants={buttonVariants}
                       whileHover="hover"
                       whileTap="tap"
@@ -410,16 +492,20 @@ const BalanceCard = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full sm:w-auto h-9 text-sm"
+                        onClick={() => onRemind?.(balance)}
+                        className="w-full h-9 text-sm"
                       >
-                        <motion.div variants={iconVariants}>
-                          <Bell className="h-4 w-4 mr-2" />
-                        </motion.div>
-                        Remind
+                        <Bell className="h-4 w-4 mr-2" />
+                        Send Reminder
                       </Button>
                     </motion.div>
+                  )}
 
+                  {canSettle(balance, currentUserId) && (
                     <motion.div
+                      className={`${
+                        canRemind(balance, currentUserId) ? 'flex-1' : 'w-full'
+                      }`}
                       variants={buttonVariants}
                       whileHover="hover"
                       whileTap="tap"
@@ -427,50 +513,13 @@ const BalanceCard = ({
                       <Button
                         size="sm"
                         onClick={() => onSettle(balance)}
-                        className="w-full sm:w-auto h-9 text-sm"
+                        className="w-full h-9 text-sm"
                       >
-                        <motion.div variants={iconVariants}>
-                          <CreditCard className="h-4 w-4 mr-2" />
-                        </motion.div>
+                        <CreditCard className="h-4 w-4 mr-2" />
                         Record Payment
                       </Button>
                     </motion.div>
-                  </div>
-                </div>
-
-                {/* Mobile/Tablet buttons - full width */}
-                <div className="flex gap-2 lg:hidden">
-                  <motion.div
-                    className="flex-1"
-                    variants={buttonVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-9 text-sm"
-                    >
-                      <Bell className="h-4 w-4 mr-2" />
-                      Remind
-                    </Button>
-                  </motion.div>
-
-                  <motion.div
-                    className="flex-1"
-                    variants={buttonVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                  >
-                    <Button
-                      size="sm"
-                      onClick={() => onSettle(balance)}
-                      className="w-full h-9 text-sm"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Record Payment
-                    </Button>
-                  </motion.div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -633,7 +682,52 @@ const BalanceCard = ({
                       </motion.div>
 
                       <div className="flex gap-2">
+                        {canRemind(balance, currentUserId) && (
+                          <motion.div
+                            variants={buttonVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onRemind?.(balance)}
+                              className="h-8 text-xs px-2"
+                            >
+                              <Bell className="h-3 w-3 mr-1" />
+                              Remind
+                            </Button>
+                          </motion.div>
+                        )}
+
+                        {canSettle(balance, currentUserId) && (
+                          <motion.div
+                            variants={buttonVariants}
+                            whileHover="hover"
+                            whileTap="tap"
+                          >
+                            <Button
+                              size="sm"
+                              onClick={() => onSettle(balance)}
+                              className="h-8 text-xs px-2"
+                            >
+                              <CreditCard className="h-3 w-3 mr-1" />
+                              Pay
+                            </Button>
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile buttons - full width at bottom */}
+                    <div className="flex gap-2 sm:hidden">
+                      {canRemind(balance, currentUserId) && (
                         <motion.div
+                          className={`${
+                            canSettle(balance, currentUserId)
+                              ? 'flex-1'
+                              : 'w-full'
+                          }`}
                           variants={buttonVariants}
                           whileHover="hover"
                           whileTap="tap"
@@ -641,14 +735,22 @@ const BalanceCard = ({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs px-2"
+                            onClick={() => onRemind?.(balance)}
+                            className="w-full h-9 text-sm"
                           >
-                            <Bell className="h-3 w-3 mr-1" />
+                            <Bell className="h-4 w-4 mr-2" />
                             Remind
                           </Button>
                         </motion.div>
+                      )}
 
+                      {canSettle(balance, currentUserId) && (
                         <motion.div
+                          className={`${
+                            canRemind(balance, currentUserId)
+                              ? 'flex-1'
+                              : 'w-full'
+                          }`}
                           variants={buttonVariants}
                           whileHover="hover"
                           whileTap="tap"
@@ -656,48 +758,13 @@ const BalanceCard = ({
                           <Button
                             size="sm"
                             onClick={() => onSettle(balance)}
-                            className="h-8 text-xs px-2"
+                            className="w-full h-9 text-sm"
                           >
-                            <CreditCard className="h-3 w-3 mr-1" />
+                            <CreditCard className="h-4 w-4 mr-2" />
                             Pay
                           </Button>
                         </motion.div>
-                      </div>
-                    </div>
-
-                    {/* Mobile buttons - full width at bottom */}
-                    <div className="flex gap-2 sm:hidden">
-                      <motion.div
-                        className="flex-1"
-                        variants={buttonVariants}
-                        whileHover="hover"
-                        whileTap="tap"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full h-9 text-sm"
-                        >
-                          <Bell className="h-4 w-4 mr-2" />
-                          Remind
-                        </Button>
-                      </motion.div>
-
-                      <motion.div
-                        className="flex-1"
-                        variants={buttonVariants}
-                        whileHover="hover"
-                        whileTap="tap"
-                      >
-                        <Button
-                          size="sm"
-                          onClick={() => onSettle(balance)}
-                          className="w-full h-9 text-sm"
-                        >
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Pay
-                        </Button>
-                      </motion.div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
