@@ -1,8 +1,6 @@
-import AddExpenseButton from '@/components/expense/add-expense-button';
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -12,16 +10,8 @@ import {
 } from '@/components/ui/card';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { Balance } from '@/lib/supabase/types';
-import {
-  ChevronRight,
-  DollarSign,
-  Receipt,
-  TrendingDown,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
-import Link from 'next/link';
 
 interface BalancesSidebarProps {
   balances: Balance[];
@@ -174,7 +164,7 @@ export default function BalancesSidebar({
       </motion.div>
 
       {/* Quick Actions - Mobile Optimized */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -224,10 +214,10 @@ export default function BalancesSidebar({
             </Link>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> */}
 
       {/* Household Overview */}
-      {balances.length > yourBalances.length && (
+      {/* {balances.length > yourBalances.length && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -268,8 +258,8 @@ export default function BalancesSidebar({
               </Link>
             </CardContent>
           </Card>
-        </motion.div>
-      )}
+        </motion.div> */}
+      {/* )} */}
     </div>
   );
 }

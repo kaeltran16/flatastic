@@ -9,12 +9,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
-import { Calendar, CheckCircle, Clock, DollarSign, Users } from 'lucide-react';
+import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Edit,
+  MoreVertical,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
+import DeleteExpenseDialog from './delete-expense-dialog';
+import EditExpenseDialog, { ExpenseFormData } from './edit-expense-dialog';
 import PaymentDialog from './payment-dialog';
 
 interface ExpenseDetailsDialogProps {
@@ -22,6 +40,12 @@ interface ExpenseDetailsDialogProps {
   currentUser: Profile;
   trigger: React.ReactNode;
   onSettle?: (expense: ExpenseWithDetails) => void;
+  onEditExpense?: (
+    expenseId: string,
+    expenseData: ExpenseFormData
+  ) => Promise<void>;
+  onDeleteExpense?: (expenseId: string) => Promise<void>;
+  onExpenseUpdated?: () => void;
 }
 
 export default function ExpenseDetailsDialog({
@@ -29,10 +53,14 @@ export default function ExpenseDetailsDialog({
   currentUser,
   trigger,
   onSettle,
+  onEditExpense,
+  onDeleteExpense,
+  onExpenseUpdated,
 }: ExpenseDetailsDialogProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [showAllSplits, setShowAllSplits] = useState(false);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -76,14 +104,12 @@ export default function ExpenseDetailsDialog({
   );
   const isCurrentUserSettled = currentUserSplit?.is_settled || false;
 
-  // Calculate unsettled splits for better mobile display
-  const unsettledSplits = expense.splits.filter((split) => !split.is_settled);
-  const settledSplits = expense.splits.filter((split) => split.is_settled);
-
-  // Determine which splits to show based on mobile optimization
-  const visibleSplits = showAllSplits
-    ? expense.splits
-    : expense.splits.slice(0, 3);
+  // Check if expense can be edited/deleted (only payer can, and only if others haven't settled)
+  const canModify =
+    isPayer &&
+    expense.splits.some(
+      (split) => split.user_id !== currentUser.id && split.is_settled
+    ) === false;
 
   // Animation variants matching the add dialog
   const containerVariants = {
@@ -111,6 +137,21 @@ export default function ExpenseDetailsDialog({
     visible: { opacity: 1, x: 0, transition: { ease: 'easeOut' as const } },
   };
 
+  const handleEdit = () => {
+    setIsOpen(false);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    setIsOpen(false);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleExpenseUpdated = () => {
+    onExpenseUpdated?.();
+    setIsOpen(false);
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -131,10 +172,61 @@ export default function ExpenseDetailsDialog({
                 className="flex flex-col"
               >
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Expense Details
-                  </DialogTitle>
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Expense Details
+                    </DialogTitle>
+
+                    {/* Actions Menu - only show for payer */}
+                    {isPayer && (onEditExpense || onDeleteExpense) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {onEditExpense && (
+                            <DropdownMenuItem
+                              onClick={handleEdit}
+                              disabled={!canModify}
+                              className="flex items-center gap-2"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit Expense
+                            </DropdownMenuItem>
+                          )}
+                          {onDeleteExpense && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={!canModify}
+                                className="flex items-center gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete Expense
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {!canModify && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                Cannot modify: others have settled
+                              </div>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+
                   <DialogDescription>
                     View the details of this expense and manage payments.
                   </DialogDescription>
@@ -316,6 +408,19 @@ export default function ExpenseDetailsDialog({
                     </motion.div>
                   </DialogFooter>
                 )}
+
+                {/* If expense is settled or user has settled, just show close button */}
+                {(expense.status === 'settled' || isCurrentUserSettled) && (
+                  <DialogFooter className="pt-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Close
+                    </Button>
+                  </DialogFooter>
+                )}
               </motion.div>
             </DialogContent>
           )}
@@ -330,6 +435,28 @@ export default function ExpenseDetailsDialog({
         currentUser={currentUser}
         onSettle={onSettle}
       />
+
+      {/* Edit Dialog */}
+      {onEditExpense && (
+        <EditExpenseDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          expense={expense}
+          onExpenseEdited={handleExpenseUpdated}
+          onEditExpense={onEditExpense}
+        />
+      )}
+
+      {/* Delete Dialog */}
+      {onDeleteExpense && (
+        <DeleteExpenseDialog
+          isOpen={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          expense={expense}
+          onExpenseDeleted={handleExpenseUpdated}
+          onDeleteExpense={onDeleteExpense}
+        />
+      )}
     </>
   );
 }

@@ -12,13 +12,8 @@ import { useBalances } from '@/hooks/use-balance';
 import { useExpenses } from '@/hooks/use-expense';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function ExpensesPage() {
-  const [editingExpense, setEditingExpense] =
-    useState<ExpenseWithDetails | null>(null);
-
   const {
     expenses,
     currentUser,
@@ -55,26 +50,22 @@ export default function ExpensesPage() {
       await addExpense(expenseData);
       // Refresh balances after adding expense
       await refreshBalances();
-      toast.success('Expense added successfully');
     } catch (error) {
       console.error('Failed to add expense:', error);
-      toast.error('Failed to add expense');
       throw error;
     }
   };
 
-  const handleEditExpense = async (expenseData: ExpenseFormData) => {
-    if (!editingExpense) return;
-
+  const handleEditExpense = async (
+    expenseId: string,
+    expenseData: ExpenseFormData
+  ) => {
     try {
-      await editExpense(editingExpense.id, expenseData);
+      await editExpense(expenseId, expenseData);
       // Refresh balances after editing expense
       await refreshBalances();
-      setEditingExpense(null);
-      toast.success('Expense updated successfully');
     } catch (error) {
       console.error('Failed to edit expense:', error);
-      toast.error('Failed to update expense');
       throw error;
     }
   };
@@ -84,10 +75,8 @@ export default function ExpensesPage() {
       await deleteExpense(expenseId);
       // Refresh balances after deleting expense
       await refreshBalances();
-      toast.success('Expense deleted successfully');
     } catch (error) {
       console.error('Failed to delete expense:', error);
-      toast.error('Failed to delete expense');
       throw error;
     }
   };
@@ -102,16 +91,14 @@ export default function ExpensesPage() {
       await settleExpense(expense);
       // Refresh balances after settling
       await refreshBalances();
-      toast.success('Payment recorded successfully');
     } catch (error) {
       console.error('Failed to settle expense:', error);
-      toast.error('Failed to record payment');
       throw error;
     }
   };
 
-  const handleEditClick = (expense: ExpenseWithDetails) => {
-    setEditingExpense(expense);
+  const handleExpenseUpdated = async () => {
+    await refreshData();
   };
 
   // Animation variants
@@ -250,11 +237,7 @@ export default function ExpensesPage() {
             >
               <AddExpenseButton
                 onExpenseAdded={refreshData}
-                onAddExpense={
-                  editingExpense ? handleEditExpense : handleAddExpense
-                }
-                editingExpense={editingExpense}
-                onCancelEdit={() => setEditingExpense(null)}
+                onAddExpense={handleAddExpense}
               />
             </motion.div>
           </motion.div>
@@ -275,6 +258,21 @@ export default function ExpensesPage() {
             className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-6 sm:mt-8"
             variants={gridVariants}
           >
+            <motion.div
+              className="xl:col-span-1 order-first xl:order-last"
+              variants={sidebarVariants}
+            >
+              <div className="sticky top-4">
+                <BalancesSidebar
+                  balances={balances}
+                  yourBalances={yourBalances}
+                  yourNetBalance={yourNetBalance}
+                  currentUser={currentUser}
+                  onExpenseAdded={refreshData}
+                  onAddExpense={handleAddExpense}
+                />
+              </div>
+            </motion.div>
             {/* Main Content */}
             <motion.div
               className="xl:col-span-2 space-y-4 sm:space-y-6"
@@ -292,30 +290,16 @@ export default function ExpensesPage() {
                   currentUser={currentUser}
                   onExpenseAdded={refreshData}
                   onAddExpense={handleAddExpense}
+                  onEditExpense={handleEditExpense}
+                  onDeleteExpense={handleDeleteExpense}
                   onViewDetails={handleViewDetails}
                   onSettle={handleSettle}
-                  onEdit={handleEditClick}
-                  onDelete={handleDeleteExpense}
+                  onExpenseUpdated={handleExpenseUpdated}
                 />
               </motion.div>
             </motion.div>
           </motion.div>
           {/* Sidebar */}
-          <motion.div
-            className="xl:col-span-1 order-first xl:order-last"
-            variants={sidebarVariants}
-          >
-            <div className="sticky top-4">
-              <BalancesSidebar
-                balances={balances}
-                yourBalances={yourBalances}
-                yourNetBalance={yourNetBalance}
-                currentUser={currentUser}
-                onExpenseAdded={refreshData}
-                onAddExpense={handleAddExpense}
-              />
-            </div>
-          </motion.div>
         </div>
       </motion.div>
     </AnimatePresence>

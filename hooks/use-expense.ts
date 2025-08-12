@@ -4,6 +4,14 @@ import type { ExpenseSplit, Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
+export interface ExpenseFormData {
+  description: string;
+  amount: string;
+  category: string;
+  date: string;
+  split_type: 'equal' | 'custom';
+}
+
 export function useExpenses() {
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
   const [householdMembers, setHouseholdMembers] = useState<Profile[]>([]);
@@ -104,13 +112,7 @@ export function useExpenses() {
     setExpenses(processedExpenses);
   };
 
-  const addExpense = async (expenseData: {
-    description: string;
-    amount: string;
-    category: string;
-    date: string;
-    split_type: string;
-  }) => {
+  const addExpense = async (expenseData: ExpenseFormData) => {
     if (!currentUser?.household_id) throw new Error('No household found');
 
     // Create the expense
@@ -149,6 +151,113 @@ export function useExpenses() {
     }
 
     // Refresh data after adding expense
+    await loadData();
+  };
+
+  const editExpense = async (
+    expenseId: string,
+    expenseData: ExpenseFormData
+  ) => {
+    if (!currentUser?.household_id) throw new Error('No household found');
+
+    // Check if user can edit this expense (only the payer can edit)
+    const expense = expenses.find((e) => e.id === expenseId);
+    if (!expense) throw new Error('Expense not found');
+    if (expense.paid_by !== currentUser.id) {
+      throw new Error('Only the payer can edit this expense');
+    }
+
+    // Check if expense has any settled splits (except the payer's own)
+    const hasOtherSettledSplits = expense.splits.some(
+      (split) => split.user_id !== currentUser.id && split.is_settled
+    );
+
+    if (hasOtherSettledSplits) {
+      throw new Error('Cannot edit expense with settled payments from others');
+    }
+
+    // Update the expense
+    const { error: expenseError } = await supabase
+      .from('expenses')
+      .update({
+        description: expenseData.description.trim(),
+        amount: parseFloat(expenseData.amount),
+        category: expenseData.category,
+        date: expenseData.date,
+        split_type: expenseData.split_type,
+      })
+      .eq('id', expenseId);
+
+    if (expenseError) throw expenseError;
+
+    // Delete existing splits and recreate them
+    const { error: deleteSplitsError } = await supabase
+      .from('expense_splits')
+      .delete()
+      .eq('expense_id', expenseId);
+
+    if (deleteSplitsError) throw deleteSplitsError;
+
+    // Create new expense splits
+    if (expenseData.split_type === 'equal') {
+      const splitAmount =
+        parseFloat(expenseData.amount) / householdMembers.length;
+      const splits = householdMembers.map((member) => ({
+        expense_id: expenseId,
+        user_id: member.id,
+        amount_owed: splitAmount,
+        is_settled: member.id === currentUser.id,
+      }));
+
+      const { error: splitsError } = await supabase
+        .from('expense_splits')
+        .insert(splits);
+
+      if (splitsError) throw splitsError;
+    }
+
+    // Refresh data after editing expense
+    await loadData();
+  };
+
+  const deleteExpense = async (expenseId: string) => {
+    if (!currentUser?.household_id) throw new Error('No household found');
+
+    // Check if user can delete this expense (only the payer can delete)
+    const expense = expenses.find((e) => e.id === expenseId);
+    if (!expense) throw new Error('Expense not found');
+    if (expense.paid_by !== currentUser.id) {
+      throw new Error('Only the payer can delete this expense');
+    }
+
+    // Check if expense has any settled splits from others
+    const hasOtherSettledSplits = expense.splits.some(
+      (split) => split.user_id !== currentUser.id && split.is_settled
+    );
+
+    if (hasOtherSettledSplits) {
+      throw new Error(
+        'Cannot delete expense with settled payments from others'
+      );
+    }
+
+    // Delete expense splits first (due to foreign key constraint)
+    const { error: deleteSplitsError } = await supabase
+      .from('expense_splits')
+      .delete()
+      .eq('expense_id', expenseId);
+
+    if (deleteSplitsError) throw deleteSplitsError;
+
+    // Delete the expense
+    const { error: deleteExpenseError } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId);
+
+    if (deleteExpenseError) throw deleteExpenseError;
+
+    // Refresh data after deleting expense
     await loadData();
   };
 
@@ -231,6 +340,8 @@ export function useExpenses() {
     error,
     stats,
     addExpense,
+    editExpense,
+    deleteExpense,
     settleExpense,
     refreshData: loadData,
   };
