@@ -6,12 +6,10 @@ interface LoadingSpinnerProps {
   message?: string;
 }
 
-export function LoadingSpinner({
-  message = 'Loading...',
-}: LoadingSpinnerProps) {
+export function LoadingSpinner({ message = '' }: LoadingSpinnerProps) {
   return (
     <motion.div
-      className="min-h-screen bg-background flex items-center justify-center px-4"
+      className="fixed inset-0 bg-background bg-background flex items-center justify-center px-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

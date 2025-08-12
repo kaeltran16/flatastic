@@ -81,7 +81,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
     name: '',
     description: '',
     assigned_to: 'unassigned',
-    due_date: null,
+    due_date: new Date(),
     status: 'pending',
     recurring_type: 'none',
     recurring_interval: 1,
@@ -125,7 +125,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
         name: chore.name || '',
         description: chore.description || '',
         assigned_to: chore.assigned_to || 'unassigned',
-        due_date: chore.due_date ? new Date(chore.due_date) : null,
+        due_date: chore.due_date ? new Date(chore.due_date) : new Date(),
         status: chore.status as ChoreStatus,
         recurring_type: chore.recurring_type as RecurringType,
         recurring_interval: chore.recurring_interval || 1,
@@ -152,7 +152,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
         name: chore.name || '',
         description: chore.description || '',
         assigned_to: chore.assigned_to || 'unassigned',
-        due_date: chore.due_date ? new Date(chore.due_date) : null,
+        due_date: chore.due_date ? new Date(chore.due_date) : new Date(),
         status: chore.status as ChoreStatus,
         recurring_type: chore.recurring_type as RecurringType,
         recurring_interval: chore.recurring_interval || 1,
@@ -191,7 +191,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
           formData.assigned_to === 'unassigned'
             ? undefined
             : formData.assigned_to,
-        due_date: formData.due_date?.toISOString(),
+        due_date: formData.due_date?.toISOString() || undefined,
         status: formData.status,
         recurring_type:
           formData.recurring_type === 'none'
@@ -274,17 +274,17 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <AnimatePresence>
         {isOpen && (
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[95vh] overflow-y-auto p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Edit className="w-5 h-5" />
-                  Edit Chore
+              <DialogHeader className="pb-4">
+                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Edit className="w-5 h-5 flex-shrink-0" />
+                  <span className="truncate">Edit Chore</span>
                 </DialogTitle>
               </DialogHeader>
 
@@ -292,13 +292,13 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm"
+                  className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm mb-4"
                 >
                   {error}
                 </motion.div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -343,7 +343,8 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                   />
                 </motion.div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Mobile: Stack vertically, Desktop: Grid */}
+                <div className="flex flex-col space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 sm:space-y-0">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -351,7 +352,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                     className="space-y-2"
                   >
                     <Label className="text-sm font-medium flex items-center gap-2">
-                      <User className="w-4 h-4" />
+                      <User className="w-4 h-4 flex-shrink-0" />
                       Assign to
                     </Label>
                     <Select
@@ -361,7 +362,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                       }
                       disabled={isSubmitting || isDeleting}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select member (optional)" />
                       </SelectTrigger>
                       <SelectContent>
@@ -377,16 +378,16 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                                 <img
                                   src={member.avatar_url}
                                   alt={member.full_name || member.email}
-                                  className="w-6 h-6 rounded-full object-cover"
+                                  className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                                 />
                               ) : (
-                                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
+                                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium flex-shrink-0">
                                   {getInitials(
                                     member.full_name || member.email
                                   )}
                                 </div>
                               )}
-                              <span>
+                              <span className="truncate">
                                 {member.id === currentUserId
                                   ? 'You'
                                   : member.full_name}
@@ -412,7 +413,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                       }
                       disabled={isSubmitting || isDeleting}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -420,11 +421,11 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                           <SelectItem key={status.value} value={status.value}>
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-2 h-2 rounded-full ${
+                                className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                   status.color.split(' ')[0]
                                 }`}
                               />
-                              {status.label}
+                              <span className="truncate">{status.label}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -440,7 +441,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                   className="space-y-2"
                 >
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4" />
+                    <CalendarDays className="w-4 h-4 flex-shrink-0" />
                     Due Date
                   </Label>
                   <div className="flex gap-2">
@@ -448,19 +449,21 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className="flex-1 justify-start text-left font-normal"
+                          className="flex-1 justify-start text-left font-normal min-w-0"
                           disabled={isSubmitting || isDeleting}
                         >
-                          <CalendarDays className="mr-2 h-4 w-4" />
-                          {formatDate(formData.due_date)}
+                          <CalendarDays className="mr-2 h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {formatDate(formData.due_date)}
+                          </span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={formData.due_date || undefined}
+                          selected={formData.due_date || new Date()}
                           onSelect={(date: Date | undefined) =>
-                            handleInputChange('due_date', date || null)
+                            handleInputChange('due_date', date || new Date())
                           }
                           initialFocus
                         />
@@ -470,6 +473,7 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                       <Button
                         variant="outline"
                         size="icon"
+                        className="flex-shrink-0"
                         onClick={() => handleInputChange('due_date', null)}
                         disabled={isSubmitting || isDeleting}
                         title="Clear due date"
@@ -484,12 +488,13 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.35 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <Repeat className="w-4 h-4" />
+                    <Repeat className="w-4 h-4 flex-shrink-0" />
                     Recurring
                   </Label>
+
                   <Select
                     value={formData.recurring_type}
                     onValueChange={(value: FormData['recurring_type']) =>
@@ -497,13 +502,27 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                     }
                     disabled={isSubmitting || isDeleting}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {recurringTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                          <div className="flex items-center gap-2">
+                            {type.value === 'none' && (
+                              <span className="text-gray-400">◯</span>
+                            )}
+                            {type.value === 'daily' && (
+                              <span className="text-blue-500">📅</span>
+                            )}
+                            {type.value === 'weekly' && (
+                              <span className="text-green-500">📆</span>
+                            )}
+                            {type.value === 'monthly' && (
+                              <span className="text-purple-500">🗓️</span>
+                            )}
+                            {type.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -511,53 +530,178 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
 
                   {formData.recurring_type !== 'none' && (
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="space-y-3"
                     >
-                      <Label className="text-sm">Every</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={formData.recurring_interval}
-                        onChange={handleNumberInputChange}
-                        className="w-20"
-                        disabled={isSubmitting || isDeleting}
-                      />
-                      <Label className="text-sm">
-                        {formData.recurring_type === 'daily'
-                          ? 'days'
-                          : formData.recurring_type === 'weekly'
-                          ? 'weeks'
-                          : formData.recurring_type === 'monthly'
-                          ? 'months'
-                          : 'intervals'}
-                      </Label>
+                      {/* Simple interval input */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">Repeat every</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={formData.recurring_interval}
+                          onChange={handleNumberInputChange}
+                          className="w-16 h-8 text-center text-sm"
+                          disabled={isSubmitting || isDeleting}
+                        />
+                        <span className="text-gray-600">
+                          {formData.recurring_interval === 1
+                            ? formData.recurring_type === 'daily'
+                              ? 'day'
+                              : formData.recurring_type === 'weekly'
+                              ? 'week'
+                              : formData.recurring_type === 'monthly'
+                              ? 'month'
+                              : 'time'
+                            : formData.recurring_type === 'daily'
+                            ? 'days'
+                            : formData.recurring_type === 'weekly'
+                            ? 'weeks'
+                            : formData.recurring_type === 'monthly'
+                            ? 'months'
+                            : 'times'}
+                        </span>
+                      </div>
+
+                      {/* Quick preset buttons for common intervals */}
+                      {formData.recurring_type !==
+                        ('none' as RecurringType) && (
+                        <div className="flex gap-1 flex-wrap">
+                          {formData.recurring_type === 'daily' &&
+                            [1, 2, 3, 7].map((interval) => (
+                              <button
+                                key={interval}
+                                type="button"
+                                onClick={() =>
+                                  handleInputChange(
+                                    'recurring_interval',
+                                    interval
+                                  )
+                                }
+                                disabled={isSubmitting || isDeleting}
+                                className={`
+                                px-2 py-1 text-xs rounded border transition-colors
+                                ${
+                                  formData.recurring_interval === interval
+                                    ? 'bg-gray-900 text-white border-gray-900'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                }
+                              `}
+                              >
+                                {interval === 1
+                                  ? 'Daily'
+                                  : interval === 7
+                                  ? 'Weekly'
+                                  : `${interval} days`}
+                              </button>
+                            ))}
+
+                          {formData.recurring_type === 'weekly' &&
+                            [1, 2, 3, 4].map((interval) => (
+                              <button
+                                key={interval}
+                                type="button"
+                                onClick={() =>
+                                  handleInputChange(
+                                    'recurring_interval',
+                                    interval
+                                  )
+                                }
+                                disabled={isSubmitting || isDeleting}
+                                className={`
+                                px-2 py-1 text-xs rounded border transition-colors
+                                ${
+                                  formData.recurring_interval === interval
+                                    ? 'bg-gray-900 text-white border-gray-900'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                }
+                              `}
+                              >
+                                {interval === 1
+                                  ? 'Weekly'
+                                  : `${interval} weeks`}
+                              </button>
+                            ))}
+
+                          {formData.recurring_type === 'monthly' &&
+                            [1, 2, 3, 6].map((interval) => (
+                              <button
+                                key={interval}
+                                type="button"
+                                onClick={() =>
+                                  handleInputChange(
+                                    'recurring_interval',
+                                    interval
+                                  )
+                                }
+                                disabled={isSubmitting || isDeleting}
+                                className={`
+                                px-2 py-1 text-xs rounded border transition-colors
+                                ${
+                                  formData.recurring_interval === interval
+                                    ? 'bg-gray-900 text-white border-gray-900'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                }
+                              `}
+                              >
+                                {interval === 1
+                                  ? 'Monthly'
+                                  : interval === 6
+                                  ? '6 months'
+                                  : `${interval} months`}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Simple preview */}
+                      <div className="text-xs text-gray-500 italic">
+                        {formData.recurring_interval === 1
+                          ? `Repeats ${formData.recurring_type}`
+                          : `Repeats every ${formData.recurring_interval} ${
+                              formData.recurring_type === 'daily'
+                                ? 'days'
+                                : formData.recurring_type === 'weekly'
+                                ? 'weeks'
+                                : 'months'
+                            }`}
+                        {formData.due_date &&
+                          ` starting ${formData.due_date.toLocaleDateString(
+                            'en-US',
+                            { month: 'short', day: 'numeric' }
+                          )}`}
+                      </div>
                     </motion.div>
                   )}
                 </motion.div>
 
-                <DialogFooter className="flex justify-between pt-4">
-                  <div className="flex gap-2">
+                {/* Mobile: Stack buttons vertically, Desktop: Spread horizontally */}
+                <DialogFooter className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
                       variant="outline"
                       onClick={handleCancel}
                       disabled={isSubmitting || isDeleting}
+                      className="w-full sm:w-auto"
                     >
                       Cancel
                     </Button>
                     <motion.div
                       whileHover={{ scale: isDeleting ? 1 : 1.02 }}
                       whileTap={{ scale: isDeleting ? 1 : 0.98 }}
+                      className="w-full sm:w-auto"
                     >
                       <Button
                         variant="destructive"
                         onClick={handleDelete}
                         disabled={isSubmitting || isDeleting || !onDeleteChore}
+                        className="w-full sm:w-auto"
                       >
-                        <Trash2 className="w-4 h-4 mr-2" />
+                        <Trash2 className="w-4 h-4 mr-2 flex-shrink-0" />
                         {isDeleting ? 'Deleting...' : 'Delete'}
                       </Button>
                     </motion.div>
@@ -566,13 +710,14 @@ const EditChoreDialog: React.FC<EditChoreDialogProps> = ({
                   <motion.div
                     whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                     whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                    className="w-full sm:w-auto"
                   >
                     <Button
                       onClick={handleSubmit}
                       disabled={isSubmitting || isDeleting || !onUpdateChore}
-                      className="bg-gray-900 hover:bg-gray-800 text-white"
+                      className="bg-gray-900 hover:bg-gray-800 text-white w-full sm:w-auto"
                     >
-                      <Edit className="w-4 h-4 mr-2" />
+                      <Edit className="w-4 h-4 mr-2 flex-shrink-0" />
                       {isSubmitting ? 'Updating...' : 'Update Chore'}
                     </Button>
                   </motion.div>

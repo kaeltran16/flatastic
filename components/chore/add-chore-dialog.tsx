@@ -41,7 +41,7 @@ interface FormData {
   name: string;
   description: string;
   assigned_to: string;
-  due_date: Date | null;
+  due_date: Date;
   recurring_type: RecurringType;
   recurring_interval: number;
 }
@@ -70,7 +70,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
     name: '',
     description: '',
     assigned_to: '',
-    due_date: null,
+    due_date: new Date(),
     recurring_type: 'none',
     recurring_interval: 1,
   });
@@ -104,7 +104,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
       name: '',
       description: '',
       assigned_to: '',
-      due_date: null,
+      due_date: new Date(),
       recurring_type: 'none',
       recurring_interval: 1,
     });
@@ -349,9 +349,9 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                     >
                       <Calendar
                         mode="single"
-                        selected={formData.due_date || undefined}
+                        selected={formData.due_date}
                         onSelect={(date: Date | undefined) =>
-                          handleInputChange('due_date', date || null)
+                          handleInputChange('due_date', date || new Date())
                         }
                         initialFocus
                         className="scale-95 sm:scale-100"

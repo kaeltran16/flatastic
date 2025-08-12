@@ -148,7 +148,7 @@ export default function HouseholdPage() {
   const isAdmin = profile?.id === household?.admin_id;
 
   if (loading) {
-    return <LoadingSpinner message="Loading household..." />;
+    return <LoadingSpinner />;
   }
 
   if (error) {

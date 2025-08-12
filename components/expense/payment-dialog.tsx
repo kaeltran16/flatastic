@@ -198,115 +198,127 @@ export default function PaymentDialog({
                     </TabsList>
 
                     <AnimatePresence mode="wait">
-                      <TabsContent value="digital" className="space-y-4">
-                        <motion.div
+                      {activeTab === 'digital' && (
+                        <TabsContent
                           key="digital"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.3 }}
+                          value="digital"
+                          className="space-y-4"
+                          asChild
                         >
-                          {/* Payment Link Button Section */}
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="text-center space-y-4"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {/* Payment Link Button Section */}
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.5, delay: 0.2 }}
+                              className="text-center space-y-4"
+                            >
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="mx-auto w-full max-w-xs bg-gradient-to-r from-pink-500 to-orange-500 rounded-xl p-6 shadow-lg"
+                              >
+                                <div className="text-center space-y-3">
+                                  <motion.div
+                                    animate={{
+                                      scale: [1, 1.1, 1],
+                                      rotate: [0, 5, -5, 0],
+                                    }}
+                                    transition={{
+                                      duration: 2,
+                                      repeat: Infinity,
+                                      repeatDelay: 3,
+                                    }}
+                                  >
+                                    <Smartphone className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-white" />
+                                  </motion.div>
+                                  <p className="text-sm text-white/90 px-2 font-medium">
+                                    Pay with MoMo
+                                  </p>
+                                  <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.5 }}
+                                    className="flex items-center justify-center gap-1"
+                                  >
+                                    <Sparkles className="h-3 w-3 text-yellow-300" />
+                                    <p className="text-xs font-medium text-white">
+                                      Quick & Secure
+                                    </p>
+                                    <Sparkles className="h-3 w-3 text-yellow-300" />
+                                  </motion.div>
+
+                                  <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="pt-2"
+                                  >
+                                    <Button
+                                      onClick={handlePaymentLinkClick}
+                                      disabled={!expense?.payer_payment_link}
+                                      className="w-full bg-white text-pink-600 hover:bg-white/90 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                                    >
+                                      Open MoMo
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                  </motion.div>
+                                </div>
+                              </motion.div>
+
+                              {expense?.payer_payment_link ? (
+                                <p className="text-sm text-muted-foreground">
+                                  Tap to open MoMo and send payment
+                                </p>
+                              ) : (
+                                <p className="text-sm text-red-500">
+                                  Payment link not available for this user
+                                </p>
+                              )}
+                            </motion.div>
+                          </motion.div>
+                        </TabsContent>
+                      )}
+
+                      {activeTab === 'manual' && (
+                        <TabsContent
+                          key="manual"
+                          value="manual"
+                          className="space-y-4 mt-0"
+                          asChild
+                        >
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="text-center p-6 border-2 border-dashed border-muted rounded-lg"
                           >
                             <motion.div
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="mx-auto w-full max-w-xs bg-gradient-to-r from-pink-500 to-orange-500 rounded-xl p-6 shadow-lg"
+                              initial={{ scale: 0, rotate: -180 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              transition={{ duration: 0.5, delay: 0.2 }}
                             >
-                              <div className="text-center space-y-3">
-                                <motion.div
-                                  animate={{
-                                    scale: [1, 1.1, 1],
-                                    rotate: [0, 5, -5, 0],
-                                  }}
-                                  transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    repeatDelay: 3,
-                                  }}
-                                >
-                                  <Smartphone className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-white" />
-                                </motion.div>
-                                <p className="text-sm text-white/90 px-2 font-medium">
-                                  Pay with MoMo
-                                </p>
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  transition={{ delay: 0.5 }}
-                                  className="flex items-center justify-center gap-1"
-                                >
-                                  <Sparkles className="h-3 w-3 text-yellow-300" />
-                                  <p className="text-xs font-medium text-white">
-                                    Quick & Secure
-                                  </p>
-                                  <Sparkles className="h-3 w-3 text-yellow-300" />
-                                </motion.div>
-
-                                <motion.div
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="pt-2"
-                                >
-                                  <Button
-                                    onClick={handlePaymentLinkClick}
-                                    disabled={!expense?.payer_payment_link}
-                                    className="w-full bg-white text-pink-600 hover:bg-white/90 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                                  >
-                                    Open MoMo
-                                    <ExternalLink className="h-4 w-4" />
-                                  </Button>
-                                </motion.div>
-                              </div>
+                              <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                             </motion.div>
-
-                            {expense?.payer_payment_link ? (
-                              <p className="text-sm text-muted-foreground">
-                                Tap to open MoMo and send payment
-                              </p>
-                            ) : (
-                              <p className="text-sm text-red-500">
-                                Payment link not available for this user
-                              </p>
-                            )}
+                            <h4 className="font-medium mb-2">
+                              Pay with Cash or Other Method
+                            </h4>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Pay {expense.payer_name} directly using cash, bank
+                              transfer, or any other method.
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Click "Mark as Paid" below once you've completed
+                              the payment.
+                            </p>
                           </motion.div>
-                        </motion.div>
-                      </TabsContent>
-
-                      <TabsContent value="manual" className="space-y-4 mt-0">
-                        <motion.div
-                          key="manual"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.3 }}
-                          className="text-center p-6 border-2 border-dashed border-muted rounded-lg"
-                        >
-                          <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                          >
-                            <CreditCard className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                          </motion.div>
-                          <h4 className="font-medium mb-2">
-                            Pay with Cash or Other Method
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Pay {expense.payer_name} directly using cash, bank
-                            transfer, or any other method.
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Click "Mark as Paid" below once you've completed the
-                            payment.
-                          </p>
-                        </motion.div>
-                      </TabsContent>
+                        </TabsContent>
+                      )}
                     </AnimatePresence>
                   </Tabs>
                 </motion.div>

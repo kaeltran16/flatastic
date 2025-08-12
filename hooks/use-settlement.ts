@@ -1,11 +1,18 @@
 // hooks/useSettlements.ts
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/lib/supabase/schema.alias';
-import { Balance, ExpenseSplitWithExpense } from '@/lib/supabase/types';
+import {
+  Balance,
+  ExpenseSplitWithExpense,
+  Settlement,
+} from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
 export function useSettlements() {
   const [balances, setBalances] = useState<Balance[]>([]);
+  const [completedSettlements, setCompletedSettlements] = useState<
+    Settlement[]
+  >([]);
   const [householdMembers, setHouseholdMembers] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile>();
   const [loading, setLoading] = useState(true);
@@ -51,13 +58,59 @@ export function useSettlements() {
       if (membersError) throw membersError;
       setHouseholdMembers(members || []);
 
-      // Load balances
-      await loadBalances(profile.household_id, members || []);
+      // Load balances and completed settlements
+      await Promise.all([
+        loadBalances(profile.household_id, members || []),
+        loadCompletedSettlements(profile.household_id, members || []),
+      ]);
     } catch (err) {
       console.error('Error loading settlement data:', err);
       setError('Failed to load settlement data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCompletedSettlements = async (
+    householdId: string,
+    members: Profile[]
+  ) => {
+    try {
+      // Get all payment notes for users in this household
+      const householdUserIds = members.map((m) => m.id);
+
+      const { data: paymentNotes, error } = await supabase
+        .from('payment_notes')
+        .select('*')
+        .in('from_user_id', householdUserIds)
+        .in('to_user_id', householdUserIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform payment notes into Settlement objects
+      const settlements: Settlement[] = (paymentNotes || []).map((note) => {
+        const fromUser = members.find((m) => m.id === note.from_user_id);
+        const toUser = members.find((m) => m.id === note.to_user_id);
+
+        return {
+          ...note,
+          from_user_name:
+            fromUser?.full_name || fromUser?.email || 'Unknown User',
+          to_user_name: toUser?.full_name || toUser?.email || 'Unknown User',
+          amount: note.amount,
+          note: note.note || '',
+          settled_at: note.created_at || new Date().toISOString(),
+          created_at: note.created_at || new Date().toISOString(),
+          updated_at: note.updated_at || new Date().toISOString(),
+        };
+      });
+
+      setCompletedSettlements(settlements);
+    } catch (error) {
+      console.error('Error loading completed settlements:', error);
+      // Don't throw here, just log the error and continue with empty settlements
+      setCompletedSettlements([]);
     }
   };
 
@@ -262,16 +315,14 @@ export function useSettlements() {
         }
       }
 
-      // Optional: Create a payment record for history tracking
-      const { error: noteError } = await supabase
-        .from('payment_notes') // You might want to create this table
-        .insert({
-          from_user_id: balance.from_user_id,
-          to_user_id: balance.to_user_id,
-          amount: amount,
-          note: note || '',
-          created_at: new Date().toISOString(),
-        });
+      // Create a payment record for history tracking
+      const { error: noteError } = await supabase.from('payment_notes').insert({
+        from_user_id: balance.from_user_id,
+        to_user_id: balance.to_user_id,
+        amount: amount,
+        note: note || '',
+        created_at: new Date().toISOString(),
+      });
 
       // Don't throw on note errors, just log them
       if (noteError) {
@@ -298,6 +349,7 @@ export function useSettlements() {
 
   return {
     balances,
+    completedSettlements,
     householdMembers,
     currentUser,
     loading,

@@ -7,13 +7,13 @@ import { useEffect, useState } from 'react';
 // Components
 import ErrorState from '@/components/chore/error';
 import ChoreFilters from '@/components/chore/filters';
-import LoadingState from '@/components/chore/loading';
 import SetupRequiredState from '@/components/chore/requirements';
 import ChoreStatsCards from '@/components/chore/stats-card';
 import ChoreTabs from '@/components/chore/tabs';
 
 // Types
 import AddChoreButton from '@/components/chore/add-chore-button';
+import { LoadingSpinner } from '@/components/household/loading';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 
 // Data structure for chore updates
@@ -276,7 +276,7 @@ export default function ChoresPage() {
 
   // Loading state
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingSpinner />;
   }
 
   // Error state

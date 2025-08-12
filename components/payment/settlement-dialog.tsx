@@ -215,173 +215,187 @@ const SettlementDialog = ({
                     </TabsList>
 
                     <AnimatePresence mode="wait">
-                      <TabsContent value="digital" className="space-y-4">
-                        <motion.div
+                      {activeTab === 'digital' && (
+                        <TabsContent
                           key="digital"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          {/* Payment Link Button Section */}
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="text-center space-y-4"
-                          >
-                            <motion.div
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="mx-auto w-full bg-gradient-to-r from-pink-500 to-orange-500 rounded-xl p-6 shadow-lg"
-                            >
-                              <div className="text-center space-y-3">
-                                <motion.div
-                                  animate={{
-                                    scale: [1, 1.1, 1],
-                                    rotate: [0, 5, -5, 0],
-                                  }}
-                                  transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    repeatDelay: 3,
-                                  }}
-                                >
-                                  <Smartphone className="h-12 w-12 mx-auto text-white" />
-                                </motion.div>
-                                <p className="text-sm text-white/90 px-2 font-medium">
-                                  Pay ${selectedBalance?.amount.toFixed(2)} with
-                                  MoMo
-                                </p>
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  transition={{ delay: 0.5 }}
-                                  className="flex items-center justify-center gap-1"
-                                >
-                                  <Sparkles className="h-3 w-3 text-yellow-300" />
-                                  <p className="text-xs font-medium text-white">
-                                    Quick & Secure
-                                  </p>
-                                  <Sparkles className="h-3 w-3 text-yellow-300" />
-                                </motion.div>
-
-                                <motion.div
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  className="pt-2"
-                                >
-                                  <Button
-                                    onClick={handlePaymentLinkClick}
-                                    disabled={!hasPaymentLink}
-                                    className="w-full bg-white text-pink-600 hover:bg-white/90 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                                  >
-                                    Open MoMo
-                                    <ExternalLink className="h-4 w-4" />
-                                  </Button>
-                                </motion.div>
-                              </div>
-                            </motion.div>
-
-                            {hasPaymentLink ? (
-                              <p className="text-sm text-muted-foreground">
-                                Tap to open MoMo and send payment
-                              </p>
-                            ) : (
-                              <p className="text-sm text-red-500">
-                                Payment link not available for this user
-                              </p>
-                            )}
-                          </motion.div>
-                        </motion.div>
-                      </TabsContent>
-
-                      <TabsContent value="manual" className="space-y-4">
-                        <motion.div
-                          key="manual"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.3 }}
+                          value="digital"
                           className="space-y-4"
+                          asChild
                         >
                           <motion.div
-                            variants={formFieldVariants}
-                            initial="hidden"
-                            animate="visible"
-                            transition={{ delay: 0.1 }}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3 }}
                           >
-                            <Label
-                              htmlFor="amount"
-                              className="text-sm sm:text-base"
-                            >
-                              Payment Amount
-                            </Label>
+                            {/* Payment Link Button Section */}
                             <motion.div
-                              whileFocus={{ scale: 1.02 }}
-                              transition={{
-                                type: 'spring',
-                                stiffness: 300,
-                                damping: 30,
-                              }}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.5, delay: 0.2 }}
+                              className="text-center space-y-4"
                             >
-                              <Input
-                                id="amount"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max={selectedBalance?.amount || 0}
-                                value={paymentAmount}
-                                onChange={(e) =>
-                                  setPaymentAmount(e.target.value)
-                                }
-                                placeholder="0.00"
-                                className="mt-2 h-11 sm:h-10 text-base sm:text-sm"
-                              />
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="mx-auto w-full bg-gradient-to-r from-pink-500 to-orange-500 rounded-xl p-6 shadow-lg"
+                              >
+                                <div className="text-center space-y-3">
+                                  <motion.div
+                                    animate={{
+                                      scale: [1, 1.1, 1],
+                                      rotate: [0, 5, -5, 0],
+                                    }}
+                                    transition={{
+                                      duration: 2,
+                                      repeat: Infinity,
+                                      repeatDelay: 3,
+                                    }}
+                                  >
+                                    <Smartphone className="h-12 w-12 mx-auto text-white" />
+                                  </motion.div>
+                                  <p className="text-sm text-white/90 px-2 font-medium">
+                                    Pay ${selectedBalance?.amount.toFixed(2)}{' '}
+                                    with MoMo
+                                  </p>
+                                  <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.5 }}
+                                    className="flex items-center justify-center gap-1"
+                                  >
+                                    <Sparkles className="h-3 w-3 text-yellow-300" />
+                                    <p className="text-xs font-medium text-white">
+                                      Quick & Secure
+                                    </p>
+                                    <Sparkles className="h-3 w-3 text-yellow-300" />
+                                  </motion.div>
+
+                                  <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="pt-2"
+                                  >
+                                    <Button
+                                      onClick={handlePaymentLinkClick}
+                                      disabled={!hasPaymentLink}
+                                      className="w-full bg-white text-pink-600 hover:bg-white/90 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                                    >
+                                      Open MoMo
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Button>
+                                  </motion.div>
+                                </div>
+                              </motion.div>
+
+                              {hasPaymentLink ? (
+                                <p className="text-sm text-muted-foreground">
+                                  Tap to open MoMo and send payment
+                                </p>
+                              ) : (
+                                <p className="text-sm text-red-500">
+                                  Payment link not available for this user
+                                </p>
+                              )}
                             </motion.div>
-                            <motion.p
-                              className="text-xs sm:text-sm text-muted-foreground mt-2"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
+                          </motion.div>
+                        </TabsContent>
+                      )}
+
+                      {activeTab === 'manual' && (
+                        <TabsContent
+                          key="manual"
+                          value="manual"
+                          className="space-y-4"
+                          asChild
+                        >
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-4"
+                          >
+                            <motion.div
+                              variants={formFieldVariants}
+                              initial="hidden"
+                              animate="visible"
+                              transition={{ delay: 0.1 }}
+                            >
+                              <Label
+                                htmlFor="amount"
+                                className="text-sm sm:text-base"
+                              >
+                                Payment Amount
+                              </Label>
+                              <motion.div
+                                whileFocus={{ scale: 1.02 }}
+                                transition={{
+                                  type: 'spring',
+                                  stiffness: 300,
+                                  damping: 30,
+                                }}
+                              >
+                                <Input
+                                  id="amount"
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max={selectedBalance?.amount || 0}
+                                  value={paymentAmount}
+                                  onChange={(e) =>
+                                    setPaymentAmount(e.target.value)
+                                  }
+                                  placeholder="0.00"
+                                  className="mt-2 h-11 sm:h-10 text-base sm:text-sm"
+                                />
+                              </motion.div>
+                              <motion.p
+                                className="text-xs sm:text-sm text-muted-foreground mt-2"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                              >
+                                Maximum: $
+                                {selectedBalance?.amount.toFixed(2) || '0.00'}
+                              </motion.p>
+                            </motion.div>
+
+                            <motion.div
+                              variants={formFieldVariants}
+                              initial="hidden"
+                              animate="visible"
                               transition={{ delay: 0.2 }}
                             >
-                              Maximum: $
-                              {selectedBalance?.amount.toFixed(2) || '0.00'}
-                            </motion.p>
-                          </motion.div>
-
-                          <motion.div
-                            variants={formFieldVariants}
-                            initial="hidden"
-                            animate="visible"
-                            transition={{ delay: 0.2 }}
-                          >
-                            <Label
-                              htmlFor="note"
-                              className="text-sm sm:text-base"
-                            >
-                              Note (optional)
-                            </Label>
-                            <motion.div
-                              whileFocus={{ scale: 1.01 }}
-                              transition={{
-                                type: 'spring',
-                                stiffness: 300,
-                                damping: 30,
-                              }}
-                            >
-                              <Textarea
-                                id="note"
-                                value={paymentNote}
-                                onChange={(e) => setPaymentNote(e.target.value)}
-                                placeholder="Add a note about this payment..."
-                                rows={3}
-                                className="mt-2 text-base sm:text-sm resize-none"
-                              />
+                              <Label
+                                htmlFor="note"
+                                className="text-sm sm:text-base"
+                              >
+                                Note (optional)
+                              </Label>
+                              <motion.div
+                                whileFocus={{ scale: 1.01 }}
+                                transition={{
+                                  type: 'spring',
+                                  stiffness: 300,
+                                  damping: 30,
+                                }}
+                              >
+                                <Textarea
+                                  id="note"
+                                  value={paymentNote}
+                                  onChange={(e) =>
+                                    setPaymentNote(e.target.value)
+                                  }
+                                  placeholder="Add a note about this payment..."
+                                  rows={3}
+                                  className="mt-2 text-base sm:text-sm resize-none"
+                                />
+                              </motion.div>
                             </motion.div>
                           </motion.div>
-                        </motion.div>
-                      </TabsContent>
+                        </TabsContent>
+                      )}
                     </AnimatePresence>
                   </Tabs>
                 </motion.div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { LoadingSpinner } from '@/components/household/loading';
 import {
   BalanceCard,
   PaymentsSidebar,
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettlements } from '@/hooks/use-settlement';
-import type { Balance, Settlement } from '@/lib/supabase/types';
+import type { Balance } from '@/lib/supabase/types';
 import {
   AlertCircle,
   CheckCircle,
@@ -27,6 +28,7 @@ import { useState } from 'react';
 export default function PaymentsPage() {
   const {
     balances,
+    completedSettlements,
     householdMembers,
     currentUser,
     loading,
@@ -36,9 +38,6 @@ export default function PaymentsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<Balance | null>(null);
-
-  // Mock completed settlements for demo - replace with real data from your hook
-  const [completedSettlements] = useState<Settlement[]>([]);
 
   const handleSettlePayment = async (
     balance: Balance,
@@ -61,8 +60,15 @@ export default function PaymentsPage() {
       balance.to_user_id === currentUser?.id
   );
 
+  // Filter completed settlements to only show those involving current user
+  const userCompletedSettlements = completedSettlements.filter(
+    (settlement) =>
+      settlement.from_user_id === currentUser?.id ||
+      settlement.to_user_id === currentUser?.id
+  );
+
   const pendingCount = userBalances.length;
-  const completedCount = completedSettlements.length;
+  const completedCount = userCompletedSettlements.length;
 
   // Calculate total amounts
   const totalOwed = userBalances
@@ -74,14 +80,7 @@ export default function PaymentsPage() {
     .reduce((sum, balance) => sum + balance.amount, 0);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading payment data...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error) {
@@ -205,7 +204,7 @@ export default function PaymentsPage() {
               </TabsContent>
 
               <TabsContent value="completed" className="space-y-4">
-                {completedSettlements.length === 0 ? (
+                {userCompletedSettlements.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -218,7 +217,7 @@ export default function PaymentsPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  completedSettlements.map((settlement) => (
+                  userCompletedSettlements.map((settlement) => (
                     <SettlementCard
                       key={settlement.id}
                       settlement={settlement}
@@ -229,7 +228,7 @@ export default function PaymentsPage() {
 
               <TabsContent value="all" className="space-y-4">
                 {userBalances.length === 0 &&
-                completedSettlements.length === 0 ? (
+                userCompletedSettlements.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -255,7 +254,7 @@ export default function PaymentsPage() {
                     ))}
 
                     {/* Show completed settlements */}
-                    {completedSettlements.map((settlement) => (
+                    {userCompletedSettlements.map((settlement) => (
                       <SettlementCard
                         key={settlement.id}
                         settlement={settlement}
