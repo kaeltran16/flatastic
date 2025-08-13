@@ -16,12 +16,14 @@ const AnimatedCounter = ({
   suffix = '',
   className = '',
   duration = 800,
+  decimals = 0,
 }: {
   value: number;
   prefix?: string;
   suffix?: string;
   className?: string;
   duration?: number;
+  decimals?: number;
 }) => {
   const [count, setCount] = useState(0);
 
@@ -35,7 +37,7 @@ const AnimatedCounter = ({
 
       // Use easeOut for smooth deceleration
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.round(value * easeOut));
+      setCount(value * easeOut);
 
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
@@ -53,11 +55,13 @@ const AnimatedCounter = ({
       }
     };
   }, [value, duration]);
+  const displayValue =
+    decimals > 0 ? count.toFixed(decimals) : Math.round(count);
 
   return (
     <span className={className}>
       {prefix}
-      {count}
+      {displayValue}
       {suffix}
     </span>
   );
@@ -192,9 +196,7 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
                 <AnimatedCounter
                   value={Math.abs(stats.balance)}
                   prefix={stats.balance >= 0 ? '+$' : '-$'}
-                  suffix={`.${(Math.abs(stats.balance) % 1)
-                    .toFixed(2)
-                    .slice(2)}`}
+                  decimals={2}
                 />
               </motion.div>
               <motion.p

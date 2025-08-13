@@ -14,6 +14,7 @@ import ChoreTabs from '@/components/chore/tabs';
 // Types
 import AddChoreButton from '@/components/chore/add-chore-button';
 import { LoadingSpinner } from '@/components/household/loading';
+import { addChore } from '@/lib/actions/chore';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 
 // Data structure for chore updates
@@ -143,8 +144,23 @@ export default function ChoresPage() {
   }, [currentUser?.household_id, supabase]);
 
   // Handle adding new chore
-  const handleNewChore = (newChore: Chore): void => {
-    setChores((prev) => [newChore, ...prev]);
+  // const handleNewChore = (newChore: Chore): void => {
+  //   setChores((prev) => [newChore, ...prev]);
+  // };
+
+  // In your component
+  const handleNewChore = async (choreData: Chore) => {
+    // Validate input first
+
+    try {
+      const newChore = await addChore(choreData);
+      setChores((prev) => [newChore, ...prev]);
+      // Handle success - the UI will automatically update due to revalidatePath
+      console.log('Chore added successfully:', newChore);
+    } catch (error) {
+      // Handle error
+      console.error('Failed to add chore:', error);
+    }
   };
 
   // Handle updating chore

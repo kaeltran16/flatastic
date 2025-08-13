@@ -36,8 +36,12 @@ export function MemberCard({
   onRemoveMember,
 }: MemberCardProps) {
   const isCurrentUser = member.id === currentUserId;
-  const canManageMember =
-    member.id !== currentUserId && member.id === household?.admin_id;
+  const isCurrentUserAdmin = household?.admin_id === currentUserId;
+
+  // Show delete button only if:
+  // 1. Current user is the admin, AND
+  // 2. The member is not the current user (can't delete yourself)
+  const canManageMember = isCurrentUserAdmin && !isCurrentUser;
 
   return (
     <motion.div
@@ -48,7 +52,7 @@ export function MemberCard({
       exit="exit"
       whileHover="hover"
       transition={{ delay: index * 0.05 }}
-      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-0 bg-card/50 hover:bg-card transition-colors"
+      className="flex flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-0 bg-card/50 hover:bg-card transition-colors"
     >
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
         <motion.div
@@ -88,6 +92,20 @@ export function MemberCard({
               >
                 <Badge variant="secondary" className="text-xs px-2 py-0.5">
                   You
+                </Badge>
+              </motion.div>
+            )}
+            {member.id === household?.admin_id && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{
+                  delay: index * 0.1 + 0.5,
+                  type: 'spring',
+                }}
+              >
+                <Badge variant="default" className="text-xs px-2 py-0.5">
+                  Admin
                 </Badge>
               </motion.div>
             )}

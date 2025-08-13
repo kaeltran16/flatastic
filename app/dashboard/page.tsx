@@ -2,7 +2,6 @@ import RecentChores from '@/components/dashboard/chore';
 import RecentExpenses from '@/components/dashboard/expense';
 import DashboardHeader from '@/components/dashboard/header';
 import ProgressCards from '@/components/dashboard/progress-cards';
-import QuickActions from '@/components/dashboard/quick-action';
 import StatsCards from '@/components/dashboard/stats-card';
 import { getChores } from '@/lib/actions/chore';
 import { getExpenses } from '@/lib/actions/expense';
@@ -39,7 +38,6 @@ export default async function Dashboard() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          <QuickActions user={profile} />
           <RecentExpenses expenses={expenses.slice(0, 5)} />
           <ProgressCards stats={stats} />
         </div>

@@ -55,7 +55,8 @@ export async function getHouseholdStats(): Promise<HouseholdStats> {
   const [
     { data: chores },
     { data: expenses },
-    { data: splits },
+    { data: userOwedSplits },
+    { data: othersOweSplits },
     { data: members },
   ] = await Promise.all([
     supabase
@@ -76,7 +77,20 @@ export async function getHouseholdStats(): Promise<HouseholdStats> {
         ).toISOString()
       ),
 
-    supabase.from('expense_splits').select('*').eq('user_id', user.id),
+    // What current user owes to others
+    supabase
+      .from('expense_splits')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_settled', false),
+
+    // What others owe to current user (splits for expenses they paid)
+    supabase
+      .from('expense_splits')
+      .select('*, expense:expenses!inner(paid_by)')
+      .eq('expense.paid_by', user.id)
+      .neq('user_id', user.id)
+      .eq('is_settled', false),
 
     supabase
       .from('profiles')
@@ -98,15 +112,13 @@ export async function getHouseholdStats(): Promise<HouseholdStats> {
   const monthlyExpenses =
     expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
 
-  // Calculate balance (simplified)
+  // Calculate balance CORRECTLY
   const userOwes =
-    splits
-      ?.filter((s) => !s.is_settled)
-      .reduce((sum, s) => sum + Number(s.amount_owed), 0) || 0;
+    userOwedSplits?.reduce((sum, s) => sum + Number(s.amount_owed), 0) || 0;
+
   const othersOwe =
-    expenses
-      ?.filter((e) => e.paid_by === user.id)
-      .reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+    othersOweSplits?.reduce((sum, s) => sum + Number(s.amount_owed), 0) || 0;
+
   const balance = othersOwe - userOwes;
 
   // Calculate chore progress (this week)
