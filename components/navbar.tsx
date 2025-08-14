@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useNotifications, useProfile } from '@/hooks/use-supabase-data';
+import { useNotifications } from '@/hooks/use-push-notification';
+import { useProfile } from '@/hooks/use-supabase-data';
 import { createClient } from '@/lib/supabase/client';
 import {
   AlertCircle,
@@ -53,7 +54,11 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
-  const { notifications, loading: notificationsLoading } = useNotifications();
+  const {
+    notifications,
+    loading: notificationsLoading,
+    isSubscribed,
+  } = useNotifications();
 
   // Handle scroll effect
   useEffect(() => {

@@ -1,196 +1,127 @@
-// hooks/useNotifications.ts
+// lib/use-push-notifications.ts
 'use client';
 
-import {
-  getCurrentSubscription,
-  isPushNotificationSupported,
-  registerServiceWorker,
-  requestNotificationPermission,
-  subscribeToNotifications,
-  unsubscribeFromNotifications,
-  type PushSubscriptionData,
-} from '@/lib/push-notification';
+import { subscribeUser } from '@/app/pwa-nextjs/actions';
+import { urlBase64ToUint8Array } from '@/app/pwa-nextjs/utils';
+import { createClient } from '@/lib/supabase/client';
+import { Notifications } from '@/lib/supabase/schema.alias';
 import { useEffect, useState } from 'react';
 
-export function useNotifications() {
-  const [permission, setPermission] =
-    useState<NotificationPermission>('default');
-  const [subscription, setSubscription] = useState<PushSubscriptionData | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
+export function useNotifications(userId?: string) {
+  // Notifications data state
+  const [notifications, setNotifications] = useState<Notifications[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(false);
 
+  // Push notifications state
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [hasAttempted, setHasAttempted] = useState(false);
+
+  const supabase = createClient();
+
+  // Fetch notifications from database
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsSupported(isPushNotificationSupported());
+    async function getNotifications() {
+      try {
+        setLoading(true);
+        setError(null);
 
-      if ('Notification' in window) {
-        setPermission(Notification.permission);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        // Check for existing subscription on mount
-        if (Notification.permission === 'granted') {
-          checkExistingSubscription();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Notifications query error:', error);
+          setError(error.message);
+          return;
         }
+
+        setNotifications(data || []);
+      } catch (error: any) {
+        console.error('Error loading notifications:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
     }
-  }, []);
 
-  const checkExistingSubscription = async () => {
-    try {
-      const currentSub = await getCurrentSubscription();
-      if (currentSub) {
-        setSubscription(currentSub);
-        // Register service worker if not already registered
-        await registerServiceWorker();
-      }
-    } catch (error) {
-      console.error('Failed to check existing subscription:', error);
-    }
-  };
+    getNotifications();
+  }, [supabase]);
 
-  const requestPermission = async () => {
-    if (!isSupported) {
-      setError('Push notifications are not supported in this browser');
-      return false;
-    }
+  // Handle push notification subscription
+  useEffect(() => {
+    if (hasAttempted) return;
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const permission = await requestNotificationPermission();
-      setPermission(permission);
-
-      if (permission === 'granted') {
-        await registerServiceWorker();
-        const sub = await subscribeToNotifications();
-
-        if (sub) {
-          setSubscription(sub);
-
-          // Send subscription to server
-          const response = await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to save subscription to server');
-          }
-
-          // Also add to send-notification endpoint for testing
-          await fetch('/api/send-notification', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sub),
-          });
-
-          return true;
+    const autoSubscribe = async () => {
+      console.log('attempt to subscribe to notifications');
+      try {
+        // Check support
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          return;
         }
-      } else if (permission === 'denied') {
-        setError(
-          'Notification permission denied. Please enable notifications in your browser settings.'
-        );
-      }
 
-      return false;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to setup notifications: ${errorMessage}`);
-      console.error('Error requesting permission:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        // Register service worker
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
 
-  const sendTestNotification = async () => {
-    if (!subscription) {
-      setError('No subscription available');
-      return false;
-    }
+        // Check existing subscription
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          setIsSubscribed(true);
+          return;
+        }
 
-    setIsLoading(true);
-    setError(null);
+        // Request permission
+        let permission = Notification.permission;
+        if (permission === 'default') {
+          permission = await Notification.requestPermission();
+        }
 
-    try {
-      const response = await fetch('/api/send-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Test Notification 🚀',
-          body: 'This is a test push notification from your PWA!',
-          url: '/',
-          icon: '/icon-192x192.png',
-        }),
-      });
+        if (permission !== 'granted') return;
 
-      const result = await response.json();
+        // Subscribe
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) return;
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send notification');
-      }
-
-      console.log('Notification sent:', result);
-      return true;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to send notification: ${errorMessage}`);
-      console.error('Error sending test notification:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const unsubscribe = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const success = await unsubscribeFromNotifications();
-
-      if (success && subscription) {
-        // Remove from server
-        await fetch('/api/subscribe', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
         });
 
-        setSubscription(null);
+        // Send to server
+        const result = await subscribeUser(
+          JSON.parse(JSON.stringify(subscription)),
+          navigator.userAgent,
+          userId
+        );
+
+        if (result.success) {
+          setIsSubscribed(true);
+          console.log('Push notifications enabled');
+        }
+      } catch (error) {
+        console.error('Push subscription failed:', error);
+      } finally {
+        setHasAttempted(true);
       }
+    };
 
-      return success;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to unsubscribe: ${errorMessage}`);
-      console.error('Error unsubscribing:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearError = () => {
-    setError(null);
-  };
+    autoSubscribe();
+  }, [hasAttempted, userId]);
 
   return {
-    permission,
-    subscription,
-    isLoading,
+    notifications,
+    loading,
     error,
-    isSupported,
-    requestPermission,
-    sendTestNotification,
-    unsubscribe,
-    clearError,
+    isSubscribed,
   };
 }

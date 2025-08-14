@@ -1,6 +1,6 @@
 // hooks/useSupabaseData.ts
 import { createClient } from '@/lib/supabase/client';
-import { Household, Notification, Profile } from '@/lib/supabase/schema.alias';
+import { Household, Profile } from '@/lib/supabase/schema.alias';
 import { ChoreWithProfiles, ExpenseWithProfile } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
@@ -286,50 +286,50 @@ export function useExpenses() {
 // NOTIFICATIONS HOOK
 // =====================================================
 
-export function useNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+// export function useNotifications() {
+//   const [notifications, setNotifications] = useState<Notification[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const supabase = createClient();
 
-  useEffect(() => {
-    async function getNotifications() {
-      try {
-        setLoading(true);
-        setError(null);
+//   useEffect(() => {
+//     async function getNotifications() {
+//       try {
+//         setLoading(true);
+//         setError(null);
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+//         const {
+//           data: { user },
+//         } = await supabase.auth.getUser();
 
-        if (!user) return;
+//         if (!user) return;
 
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+//         const { data, error } = await supabase
+//           .from('notifications')
+//           .select('*')
+//           .eq('user_id', user.id)
+//           .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Notifications query error:', error);
-          setError(error.message);
-          return;
-        }
+//         if (error) {
+//           console.error('Notifications query error:', error);
+//           setError(error.message);
+//           return;
+//         }
 
-        setNotifications(data || []);
-      } catch (error: any) {
-        console.error('Error loading notifications:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    }
+//         setNotifications(data || []);
+//       } catch (error: any) {
+//         console.error('Error loading notifications:', error);
+//         setError(error.message);
+//       } finally {
+//         setLoading(false);
+//       }
+//     }
 
-    getNotifications();
-  }, [supabase]);
+//     getNotifications();
+//   }, [supabase]);
 
-  return { notifications, loading, error };
-}
+//   return { notifications, loading, error };
+// }
 
 // =====================================================
 // HOUSEHOLD STATS HOOK

@@ -1,5 +1,6 @@
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { Navbar } from '@/components/navbar';
+import { SilentSubscriber } from '@/components/silent-subscriber';
 import { Toaster } from '@/components/ui/sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -56,7 +57,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* <LoadingScreenHTML /> */}
+        {/* Auto-subscribe to push notifications silently on app load */}
+        <SilentSubscriber />
 
         <div>
           <Navbar />
