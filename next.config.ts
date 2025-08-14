@@ -8,9 +8,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   customWorkerDir: 'worker', // Directory containing your custom SW code (worker/index.js)
   reloadOnOnline: true,
   swcMinify: true,
-  fallbacks: {
-    document: '/offline', // Optional: create an offline page
-  },
+  // fallbacks: {
+  //   document: '/offline', // Optional: create an offline page
+  // },
 });
 
 /** @type {import('next').NextConfig} */

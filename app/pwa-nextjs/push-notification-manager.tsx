@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 
+import * as Sentry from '@sentry/nextjs'; // Make sure to install and configure Sentry
 import { useEffect, useState } from 'react';
 import { PushSubscription } from 'web-push';
 import { sendNotification, subscribeUser, unsubscribeUser } from './actions';
@@ -19,106 +20,340 @@ export function PushNotificationManager() {
     message: string;
   }>({ type: null, message: '' });
 
+  // Enhanced logging function
+  const logToSentry = (
+    level: 'info' | 'error' | 'warning',
+    message: string,
+    extra?: any
+  ) => {
+    const logData = {
+      message,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      ...extra,
+    };
+
+    console.log(`[${level.toUpperCase()}] ${message}`, logData);
+
+    if (level === 'error') {
+      Sentry.captureException(new Error(message), {
+        tags: { component: 'PushNotificationManager' },
+        extra: logData,
+      });
+    } else {
+      Sentry.addBreadcrumb({
+        message,
+        level: level as any,
+        category: 'push-notifications',
+        data: logData,
+      });
+    }
+  };
+
   useEffect(() => {
+    logToSentry('info', 'PushNotificationManager component mounted');
+
     if ('serviceWorker' in navigator && 'PushManager' in window) {
+      logToSentry('info', 'Push notifications supported');
       setIsSupported(true);
       registerServiceWorker();
+    } else {
+      logToSentry('warning', 'Push notifications not supported', {
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasPushManager: 'PushManager' in window,
+      });
     }
   }, []);
 
   const showStatus = (type: 'success' | 'error' | 'info', message: string) => {
+    logToSentry(type === 'error' ? 'error' : 'info', `Status: ${message}`);
     setStatus({ type, message });
     setTimeout(() => setStatus({ type: null, message: '' }), 5000);
   };
 
   async function registerServiceWorker() {
+    logToSentry('info', 'Starting service worker registration');
+
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/',
         updateViaCache: 'none',
       });
+
+      logToSentry('info', 'Service worker registered successfully', {
+        scope: registration.scope,
+        state: registration.active?.state,
+      });
+
+      // Wait for service worker to be ready
+      const readyRegistration = await navigator.serviceWorker.ready;
+      logToSentry('info', 'Service worker ready', {
+        state: readyRegistration.active?.state,
+      });
+
       const sub = await registration.pushManager.getSubscription();
+      logToSentry('info', 'Checked existing subscription', {
+        hasSubscription: !!sub,
+        endpoint: sub?.endpoint ? 'exists' : 'none',
+      });
+
       setSubscription(sub);
       if (sub) {
         showStatus('info', 'Already subscribed to notifications');
       }
     } catch (error) {
-      console.error('Service worker registration failed:', error);
+      logToSentry('error', 'Service worker registration failed', {
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
       showStatus('error', 'Failed to register service worker');
     }
   }
 
   async function subscribeToPush() {
+    logToSentry('info', 'Starting push subscription process');
     setIsLoading(true);
+
     try {
+      // Check environment variables
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      logToSentry('info', 'Environment check', {
+        hasVapidKey: !!vapidKey,
+        vapidKeyLength: vapidKey?.length || 0,
+        nodeEnv: process.env.NODE_ENV,
+      });
+
+      if (!vapidKey) {
+        throw new Error('VAPID_PUBLIC_KEY_MISSING');
+      }
+
+      // Check notification support
+      if (!('Notification' in window)) {
+        throw new Error('NOTIFICATION_API_NOT_SUPPORTED');
+      }
+
+      logToSentry('info', 'Checking notification permission', {
+        currentPermission: Notification.permission,
+      });
+
+      // Request permission
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        logToSentry('info', 'Requesting notification permission');
+        permission = await Notification.requestPermission();
+        logToSentry('info', 'Permission request result', { permission });
+      }
+
+      if (permission !== 'granted') {
+        throw new Error(`PERMISSION_DENIED: ${permission}`);
+      }
+
+      // Get service worker registration
+      logToSentry('info', 'Getting service worker registration');
       const registration = await navigator.serviceWorker.ready;
+
+      logToSentry('info', 'Service worker ready for subscription', {
+        scope: registration.scope,
+        activeState: registration.active?.state,
+      });
+
+      // Check for existing subscription
+      const existingSub = await registration.pushManager.getSubscription();
+      if (existingSub) {
+        logToSentry('info', 'Found existing subscription', {
+          endpoint: existingSub.endpoint.substring(0, 50) + '...',
+        });
+        setSubscription(existingSub);
+        showStatus('info', 'Already subscribed to notifications');
+        return;
+      }
+
+      // Convert VAPID key
+      logToSentry('info', 'Converting VAPID key');
+      let applicationServerKey;
+      try {
+        applicationServerKey = urlBase64ToUint8Array(vapidKey);
+        logToSentry('info', 'VAPID key converted successfully', {
+          keyLength: applicationServerKey.length,
+        });
+      } catch (keyError) {
+        logToSentry('error', 'VAPID key conversion failed', {
+          error: keyError.message,
+          vapidKeyPreview: vapidKey.substring(0, 10) + '...',
+        });
+        throw new Error('VAPID_KEY_CONVERSION_FAILED');
+      }
+
+      // Create subscription
+      logToSentry('info', 'Creating push subscription');
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        applicationServerKey: applicationServerKey,
       });
+
+      logToSentry('info', 'Push subscription created', {
+        endpoint: sub.endpoint.substring(0, 50) + '...',
+        hasAuth: !!sub.getKey('auth'),
+        hasP256dh: !!sub.getKey('p256dh'),
+      });
+
       setSubscription(sub);
+
+      // Serialize subscription
       const serializedSub = JSON.parse(JSON.stringify(sub));
+      logToSentry('info', 'Subscription serialized', {
+        hasEndpoint: !!serializedSub.endpoint,
+        hasKeys: !!serializedSub.keys,
+      });
+
+      // Send to server
+      logToSentry('info', 'Sending subscription to server');
+      const startTime = Date.now();
+
       const result = await subscribeUser(serializedSub, navigator.userAgent);
+      const endTime = Date.now();
+
+      logToSentry('info', 'Server response received', {
+        success: result.success,
+        error: result.error,
+        responseTime: endTime - startTime,
+        resultKeys: Object.keys(result),
+      });
 
       if (result.success) {
         showStatus('success', 'Successfully subscribed to push notifications!');
+        logToSentry('info', 'Subscription process completed successfully');
       } else {
+        logToSentry('error', 'Server subscription failed', {
+          error: result.error,
+          result: result,
+        });
         showStatus('error', result.error || 'Failed to subscribe');
       }
     } catch (error) {
-      console.error('Subscription failed:', error);
-      showStatus('error', 'Failed to subscribe to notifications');
+      logToSentry('error', 'Subscription process failed', {
+        errorMessage: error.message,
+        errorName: error.name,
+        errorStack: error.stack,
+        errorString: error.toString(),
+      });
+
+      // More specific error messages
+      let errorMessage = 'Failed to subscribe to notifications';
+      if (
+        error.message.includes('permission') ||
+        error.message.includes('PERMISSION_DENIED')
+      ) {
+        errorMessage =
+          'Permission denied. Please enable notifications in your browser settings.';
+      } else if (error.message.includes('VAPID')) {
+        errorMessage = 'Configuration error. Please contact support.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'Push notifications are not supported on this device.';
+      } else if (error.name === 'AbortError') {
+        errorMessage = 'Subscription was cancelled.';
+      } else if (error.message.includes('NOTIFICATION_API_NOT_SUPPORTED')) {
+        errorMessage = 'Notifications are not supported in this browser.';
+      }
+
+      showStatus('error', errorMessage);
     } finally {
       setIsLoading(false);
+      logToSentry('info', 'Subscription process ended');
     }
   }
 
   async function unsubscribeFromPush() {
+    logToSentry('info', 'Starting unsubscribe process');
     setIsLoading(true);
+
     try {
       if (subscription) {
+        logToSentry('info', 'Unsubscribing from push manager');
         await subscription.unsubscribe();
+
+        logToSentry('info', 'Notifying server of unsubscription');
         const result = await unsubscribeUser(subscription.endpoint);
+
+        logToSentry('info', 'Unsubscribe server response', {
+          success: result.success,
+          error: result.error,
+        });
+
         if (result.success) {
           setSubscription(null);
           showStatus('success', 'Successfully unsubscribed from notifications');
+          logToSentry('info', 'Unsubscribe process completed successfully');
         } else {
+          logToSentry('error', 'Server unsubscribe failed', {
+            error: result.error,
+          });
           showStatus('error', result.error || 'Failed to unsubscribe');
         }
       }
     } catch (error) {
-      console.error('Unsubscription failed:', error);
+      logToSentry('error', 'Unsubscription failed', {
+        error: error.message,
+        stack: error.stack,
+      });
       showStatus('error', 'Failed to unsubscribe from notifications');
     } finally {
       setIsLoading(false);
+      logToSentry('info', 'Unsubscribe process ended');
     }
   }
 
   async function sendTestNotification() {
     if (!message.trim()) {
+      logToSentry('warning', 'Send notification attempted with empty message');
       showStatus('error', 'Please enter a message');
       return;
     }
 
+    logToSentry('info', 'Sending test notification', {
+      titleLength: title.length,
+      messageLength: message.length,
+    });
+
     setIsLoading(true);
+
     try {
+      const startTime = Date.now();
       const result = await sendNotification(message, title);
+      const endTime = Date.now();
+
+      logToSentry('info', 'Send notification response', {
+        success: result.success,
+        sent: result.sent,
+        total: result.total,
+        error: result.error,
+        responseTime: endTime - startTime,
+      });
+
       if (result.success) {
         showStatus(
           'success',
           `Notification sent successfully! (${result.sent}/${result.total} delivered)`
         );
         setMessage('');
+        logToSentry('info', 'Test notification sent successfully');
       } else {
+        logToSentry('error', 'Send notification failed', {
+          error: result.error,
+        });
         showStatus('error', result.error || 'Failed to send notification');
       }
     } catch (error) {
-      console.error('Send notification failed:', error);
+      logToSentry('error', 'Send notification error', {
+        error: error.message,
+        stack: error.stack,
+      });
       showStatus('error', 'Failed to send notification');
     } finally {
       setIsLoading(false);
+      logToSentry('info', 'Send notification process ended');
     }
   }
 
