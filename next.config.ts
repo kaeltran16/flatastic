@@ -1,4 +1,4 @@
-import {withSentryConfig} from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs';
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
@@ -26,12 +26,12 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // FIXED: Explicitly set connect-src to allow Supabase
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co ws://localhost:* http://localhost:* https://storage.googleapis.com https://api.github.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co ws://localhost:* http://localhost:* https://storage.googleapis.com https://api.github.com https://*.sentry.io",
               // Allow service workers and web workers
               "worker-src 'self' blob: data:",
               "child-src 'self' blob: data:",
               // Scripts for Next.js and Workbox
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://storage.googleapis.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://storage.googleapis.com https://va.vercel-scripts.com",
               // Styles
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               // Images - allow Supabase storage
@@ -136,9 +136,9 @@ export default withSentryConfig(undefined, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "personal-mys",
+  org: 'personal-mys',
 
-  project: "flatastic",
+  project: 'flatastic',
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
