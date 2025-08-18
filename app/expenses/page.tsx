@@ -10,6 +10,7 @@ import ExpenseStatsCards from '@/components/expense/stats-card';
 import { LoadingSpinner } from '@/components/household/loading';
 import { useBalances } from '@/hooks/use-balance';
 import { useExpenses } from '@/hooks/use-expense';
+import { useHouseholdMembers } from '@/hooks/use-supabase-data';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -35,6 +36,10 @@ export default function ExpensesPage() {
     error: balancesError,
     refreshData: refreshBalances,
   } = useBalances();
+
+  const { members: householdMembers } = useHouseholdMembers(
+    currentUser?.household_id || null
+  );
 
   // Combine loading states
   const loading = expensesLoading || balancesLoading || !currentUser;
@@ -238,6 +243,8 @@ export default function ExpensesPage() {
               <AddExpenseButton
                 onExpenseAdded={refreshData}
                 onAddExpense={handleAddExpense}
+                householdMembers={householdMembers}
+                currentUser={currentUser}
               />
             </motion.div>
           </motion.div>
@@ -288,6 +295,7 @@ export default function ExpensesPage() {
                 <ExpenseList
                   expenses={expenses}
                   currentUser={currentUser}
+                  householdMembers={householdMembers}
                   onExpenseAdded={refreshData}
                   onAddExpense={handleAddExpense}
                   onEditExpense={handleEditExpense}

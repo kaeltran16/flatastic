@@ -4,12 +4,19 @@ import type { ExpenseSplit, Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
 
+export interface CustomSplit {
+  user_id: string;
+  amount: number;
+}
+
 export interface ExpenseFormData {
   description: string;
   amount: string;
   category: string;
   date: string;
   split_type: 'equal' | 'custom';
+  custom_splits?: CustomSplit[];
+  selected_users?: string[];
 }
 
 export function useExpenses() {
@@ -132,23 +139,54 @@ export function useExpenses() {
 
     if (expenseError) throw expenseError;
 
-    // Create expense splits for all household members
+    // Create expense splits based on split type
+    let splits: any[] = [];
+
     if (expenseData.split_type === 'equal') {
+      // Equal split among all household members
       const splitAmount =
         parseFloat(expenseData.amount) / householdMembers.length;
-      const splits = householdMembers.map((member) => ({
+      splits = householdMembers.map((member) => ({
         expense_id: expense.id,
         user_id: member.id,
         amount_owed: splitAmount,
         is_settled: member.id === currentUser.id,
       }));
+    } else if (expenseData.split_type === 'custom') {
+      // Custom split based on selected users and amounts
+      if (
+        !expenseData.custom_splits ||
+        expenseData.custom_splits.length === 0
+      ) {
+        throw new Error('Custom splits are required for custom split type');
+      }
 
-      const { error: splitsError } = await supabase
-        .from('expense_splits')
-        .insert(splits);
+      // Validate that the splits add up to the total amount
+      const totalSplitAmount = expenseData.custom_splits.reduce(
+        (sum, split) => sum + split.amount,
+        0
+      );
+      const expenseAmount = parseFloat(expenseData.amount);
 
-      if (splitsError) throw splitsError;
+      if (Math.abs(totalSplitAmount - expenseAmount) > 0.01) {
+        throw new Error(
+          'Split amounts must add up to the total expense amount'
+        );
+      }
+
+      splits = expenseData.custom_splits.map((split) => ({
+        expense_id: expense.id,
+        user_id: split.user_id,
+        amount_owed: split.amount,
+        is_settled: split.user_id === currentUser.id,
+      }));
     }
+
+    const { error: splitsError } = await supabase
+      .from('expense_splits')
+      .insert(splits);
+
+    if (splitsError) throw splitsError;
 
     // Refresh data after adding expense
     await loadData();
@@ -198,23 +236,52 @@ export function useExpenses() {
 
     if (deleteSplitsError) throw deleteSplitsError;
 
-    // Create new expense splits
+    // Create new expense splits based on split type
+    let splits: any[] = [];
+
     if (expenseData.split_type === 'equal') {
       const splitAmount =
         parseFloat(expenseData.amount) / householdMembers.length;
-      const splits = householdMembers.map((member) => ({
+      splits = householdMembers.map((member) => ({
         expense_id: expenseId,
         user_id: member.id,
         amount_owed: splitAmount,
         is_settled: member.id === currentUser.id,
       }));
+    } else if (expenseData.split_type === 'custom') {
+      if (
+        !expenseData.custom_splits ||
+        expenseData.custom_splits.length === 0
+      ) {
+        throw new Error('Custom splits are required for custom split type');
+      }
 
-      const { error: splitsError } = await supabase
-        .from('expense_splits')
-        .insert(splits);
+      // Validate that the splits add up to the total amount
+      const totalSplitAmount = expenseData.custom_splits.reduce(
+        (sum, split) => sum + split.amount,
+        0
+      );
+      const expenseAmount = parseFloat(expenseData.amount);
 
-      if (splitsError) throw splitsError;
+      if (Math.abs(totalSplitAmount - expenseAmount) > 0.01) {
+        throw new Error(
+          'Split amounts must add up to the total expense amount'
+        );
+      }
+
+      splits = expenseData.custom_splits.map((split) => ({
+        expense_id: expenseId,
+        user_id: split.user_id,
+        amount_owed: split.amount,
+        is_settled: split.user_id === currentUser.id,
+      }));
     }
+
+    const { error: splitsError } = await supabase
+      .from('expense_splits')
+      .insert(splits);
+
+    if (splitsError) throw splitsError;
 
     // Refresh data after editing expense
     await loadData();

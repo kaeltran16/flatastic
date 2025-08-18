@@ -26,12 +26,14 @@ interface ExpenseListProps {
   onViewDetails: (expense: ExpenseWithDetails) => void;
   onSettle: (expense: ExpenseWithDetails) => void;
   onExpenseUpdated?: () => void;
+  householdMembers: Profile[];
   itemsPerPage?: number; // New optional prop to customize items per page
 }
 
 export default function ExpenseList({
   expenses,
   currentUser,
+  householdMembers,
   onExpenseAdded,
   onAddExpense,
   onEditExpense,
@@ -39,7 +41,7 @@ export default function ExpenseList({
   onViewDetails,
   onSettle,
   onExpenseUpdated,
-  itemsPerPage = 2,
+  itemsPerPage = 10,
 }: ExpenseListProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -85,7 +87,7 @@ export default function ExpenseList({
   // Generate page numbers to show for shadcn pagination
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
+    const maxVisiblePages = 10;
 
     if (totalPages <= maxVisiblePages) {
       // Show all pages if total is small
@@ -130,6 +132,8 @@ export default function ExpenseList({
               <AddExpenseButton
                 onExpenseAdded={onExpenseAdded}
                 onAddExpense={onAddExpense}
+                householdMembers={householdMembers}
+                currentUser={currentUser}
               />
             </div>
           )}

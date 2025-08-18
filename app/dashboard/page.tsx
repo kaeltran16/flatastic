@@ -16,7 +16,6 @@ export default async function Dashboard() {
     redirect('/auth/login');
   }
 
-  // Fetch all data in parallel
   const [chores, expenses, stats] = await Promise.all([
     getChores(),
     getExpenses(),
@@ -29,14 +28,11 @@ export default async function Dashboard() {
 
       <StatsCards stats={stats} />
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           <RecentChores chores={chores.slice(0, 5)} />
         </div>
 
-        {/* Right Column */}
         <div className="space-y-6">
           <RecentExpenses expenses={expenses.slice(0, 5)} />
           <ProgressCards stats={stats} />

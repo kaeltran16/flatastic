@@ -1,6 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DollarSign, Plus } from 'lucide-react';
+import type { Profile } from '@/lib/supabase/schema.alias';
+import { AlertCircle, DollarSign, Plus, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+export interface CustomSplit {
+  user_id: string;
+  amount: number;
+}
 
 export interface ExpenseFormData {
   description: string;
@@ -28,6 +36,8 @@ export interface ExpenseFormData {
   category: string;
   date: string;
   split_type: 'equal' | 'custom';
+  custom_splits?: CustomSplit[];
+  selected_users?: string[];
 }
 
 interface AddExpenseDialogProps {
@@ -35,6 +45,8 @@ interface AddExpenseDialogProps {
   onOpenChange: (open: boolean) => void;
   onExpenseAdded: () => void;
   onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
+  householdMembers: Profile[];
+  currentUser: Profile | null;
 }
 
 const categories = [
@@ -52,6 +64,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   onOpenChange,
   onExpenseAdded,
   onAddExpense,
+  householdMembers,
+  currentUser,
 }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
@@ -60,13 +74,85 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     category: '',
     date: new Date().toISOString().split('T')[0],
     split_type: 'equal',
+    custom_splits: [],
+    selected_users: [],
   });
+
+  const [customSplits, setCustomSplits] = useState<{
+    [userId: string]: string;
+  }>({});
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+
+  // Reset custom splits when split type changes or dialog opens
+  useEffect(() => {
+    if (formData.split_type === 'equal') {
+      setCustomSplits({});
+      setSelectedUsers(new Set());
+    } else if (formData.split_type === 'custom' && currentUser) {
+      // Initialize with current user selected
+      setSelectedUsers(new Set([currentUser.id]));
+      setCustomSplits({ [currentUser.id]: '' });
+    }
+  }, [formData.split_type, currentUser]);
+
+  // Auto-calculate remaining amount for custom splits
+  useEffect(() => {
+    if (formData.split_type === 'custom' && formData.amount) {
+      const totalAmount = parseFloat(formData.amount) || 0;
+      const assignedAmount = Object.values(customSplits).reduce(
+        (sum, amount) => {
+          return sum + (parseFloat(amount) || 0);
+        },
+        0
+      );
+      const remainingAmount = totalAmount - assignedAmount;
+
+      // If there's exactly one user without an amount, auto-fill it
+      const usersWithoutAmount = Array.from(selectedUsers).filter(
+        (userId) => !customSplits[userId] || customSplits[userId] === ''
+      );
+
+      if (usersWithoutAmount.length === 1 && remainingAmount > 0) {
+        setCustomSplits((prev) => ({
+          ...prev,
+          [usersWithoutAmount[0]]: remainingAmount.toFixed(2),
+        }));
+      }
+    }
+  }, [customSplits, selectedUsers, formData.amount, formData.split_type]);
 
   const handleInputChange = (
     field: keyof ExpenseFormData,
     value: string
   ): void => {
+    value = value.replace(',', '.');
+
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleUserSelection = (userId: string, checked: boolean) => {
+    const newSelectedUsers = new Set(selectedUsers);
+    const newCustomSplits = { ...customSplits };
+
+    if (checked) {
+      newSelectedUsers.add(userId);
+      if (!newCustomSplits[userId]) {
+        newCustomSplits[userId] = '';
+      }
+    } else {
+      newSelectedUsers.delete(userId);
+      delete newCustomSplits[userId];
+    }
+
+    setSelectedUsers(newSelectedUsers);
+    setCustomSplits(newCustomSplits);
+  };
+
+  const handleCustomSplitChange = (userId: string, amount: string) => {
+    setCustomSplits((prev) => ({
+      ...prev,
+      [userId]: amount,
+    }));
   };
 
   const resetForm = (): void => {
@@ -76,7 +162,11 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       category: '',
       date: new Date().toISOString().split('T')[0],
       split_type: 'equal',
+      custom_splits: [],
+      selected_users: [],
     });
+    setCustomSplits({});
+    setSelectedUsers(new Set());
   };
 
   const validateForm = (): boolean => {
@@ -92,6 +182,37 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       alert('Please select a category');
       return false;
     }
+
+    if (formData.split_type === 'custom') {
+      if (selectedUsers.size === 0) {
+        alert('Please select at least one user for custom split');
+        return false;
+      }
+
+      // Check if all selected users have amounts
+      for (const userId of selectedUsers) {
+        if (!customSplits[userId] || parseFloat(customSplits[userId]) <= 0) {
+          alert('Please enter valid amounts for all selected users');
+          return false;
+        }
+      }
+
+      // Check if amounts add up to total
+      const totalAmount = parseFloat(formData.amount);
+      const splitTotal = Object.values(customSplits).reduce((sum, amount) => {
+        return sum + (parseFloat(amount) || 0);
+      }, 0);
+
+      if (Math.abs(splitTotal - totalAmount) > 0.01) {
+        alert(
+          `Split amounts ($${splitTotal.toFixed(
+            2
+          )}) must equal the total expense amount ($${totalAmount.toFixed(2)})`
+        );
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -102,7 +223,19 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     setLoading(true);
 
     try {
-      await onAddExpense(formData);
+      const expenseData: ExpenseFormData = {
+        ...formData,
+      };
+
+      if (formData.split_type === 'custom') {
+        expenseData.custom_splits = Array.from(selectedUsers).map((userId) => ({
+          user_id: userId,
+          amount: parseFloat(customSplits[userId]),
+        }));
+        expenseData.selected_users = Array.from(selectedUsers);
+      }
+
+      await onAddExpense(expenseData);
 
       // Reset form and close dialog
       resetForm();
@@ -110,7 +243,11 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       onExpenseAdded();
     } catch (error) {
       console.error('Error adding expense:', error);
-      alert('Failed to add expense. Please try again.');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to add expense. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -120,6 +257,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     resetForm();
     onOpenChange(false);
   };
+
+  // Calculate totals for custom split
+  const totalAmount = parseFloat(formData.amount) || 0;
+  const assignedAmount = Object.values(customSplits).reduce((sum, amount) => {
+    return sum + (parseFloat(amount) || 0);
+  }, 0);
+  const remainingAmount = totalAmount - assignedAmount;
 
   // Variants for container and children
   const containerVariants = {
@@ -151,7 +295,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <AnimatePresence>
         {isOpen && (
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <motion.div
               initial="hidden"
               animate="visible"
@@ -196,7 +340,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     </Label>
                     <Input
                       id="amount"
-                      type="tel"
+                      type="text"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       placeholder="0.00"
@@ -266,12 +411,120 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="equal">Split Equally</SelectItem>
-                      <SelectItem value="custom" disabled>
-                        Custom Split (Coming Soon)
-                      </SelectItem>
+                      <SelectItem value="custom">Custom Split</SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>
+
+                {/* Custom Split Section */}
+                {formData.split_type === 'custom' && (
+                  <motion.div variants={childVariants} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <Label className="text-sm font-medium">
+                        Select Users and Amounts
+                      </Label>
+                    </div>
+
+                    <Card>
+                      <CardContent className="p-4 space-y-3">
+                        {householdMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-3"
+                          >
+                            <Checkbox
+                              id={`user-${member.id}`}
+                              checked={selectedUsers.has(member.id)}
+                              onCheckedChange={(checked) =>
+                                handleUserSelection(
+                                  member.id,
+                                  checked as boolean
+                                )
+                              }
+                              disabled={
+                                loading || member.id === currentUser?.id
+                              }
+                            />
+                            <Label
+                              htmlFor={`user-${member.id}`}
+                              className="flex-1 text-sm"
+                            >
+                              {member.full_name}
+                              {member.id === currentUser?.id && ' (You)'}
+                            </Label>
+                            {selectedUsers.has(member.id) && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm text-gray-500">$</span>
+                                <Input
+                                  step="0.01"
+                                  min="0"
+                                  type="number"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={customSplits[member.id] || ''}
+                                  onChange={(e) =>
+                                    handleCustomSplitChange(
+                                      member.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={loading}
+                                  className="w-20 h-8 text-sm"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+
+                    {/* Split Summary */}
+                    {totalAmount > 0 && selectedUsers.size > 0 && (
+                      <Card>
+                        <CardContent className="p-3">
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span>Total Expense:</span>
+                              <span className="font-medium">
+                                ${totalAmount.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Assigned:</span>
+                              <span className="font-medium">
+                                ${assignedAmount.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1">
+                              <span>Remaining:</span>
+                              <span
+                                className={`font-medium ${
+                                  Math.abs(remainingAmount) < 0.01
+                                    ? 'text-green-600'
+                                    : remainingAmount > 0
+                                    ? 'text-orange-600'
+                                    : 'text-red-600'
+                                }`}
+                              >
+                                ${remainingAmount.toFixed(2)}
+                              </span>
+                            </div>
+                            {Math.abs(remainingAmount) > 0.01 && (
+                              <div className="flex items-center gap-1 text-xs text-orange-600 mt-2">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>
+                                  Split amounts must equal the total expense
+                                  amount
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </motion.div>
+                )}
 
                 <DialogFooter className="flex gap-2 pt-4">
                   <Button

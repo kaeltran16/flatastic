@@ -256,7 +256,7 @@ export default function ExpenseCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                        className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 w-full"
                       >
                         Details
                       </Button>
@@ -266,7 +266,7 @@ export default function ExpenseCard({
                   {isPayer ? (
                     <Button
                       size="sm"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm w-full"
                       onClick={() => onSettle?.(expense)}
                     >
                       Mark Paid
@@ -280,10 +280,7 @@ export default function ExpenseCard({
                       onDeleteExpense={onDeleteExpense}
                       onExpenseUpdated={onExpenseUpdated}
                       trigger={
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                        >
+                        <Button size="sm" className="flex-1 w-full">
                           Pay ${expense.your_share.toFixed(2)}
                         </Button>
                       }

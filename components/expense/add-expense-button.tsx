@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Profile } from '@/lib/supabase/schema.alias';
 import { Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -15,6 +16,8 @@ export interface ExpenseFormData {
 }
 
 interface AddExpenseButtonProps extends React.ComponentProps<typeof Button> {
+  householdMembers: Profile[];
+  currentUser: Profile;
   onExpenseAdded: () => void;
   onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
   className?: string;
@@ -26,6 +29,8 @@ const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
   onAddExpense,
   className = '',
   children,
+  householdMembers,
+  currentUser,
   ...props
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -54,6 +59,8 @@ const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
 
       <AddExpenseDialog
         isOpen={isDialogOpen}
+        householdMembers={householdMembers}
+        currentUser={currentUser}
         onOpenChange={setIsDialogOpen}
         onExpenseAdded={handleExpenseAdded}
         onAddExpense={onAddExpense}

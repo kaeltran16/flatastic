@@ -91,8 +91,6 @@ export default function ExpenseDetailsDialog({
 
   const formatFullDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
@@ -274,20 +272,15 @@ export default function ExpenseDetailsDialog({
                     {/* Amount Display */}
                     <div className="text-center py-4 sm:py-6">
                       <p className="text-2xl sm:text-3xl font-bold text-primary">
-                        ${expense.amount.toFixed(2)}
+                        ${expense.your_share.toFixed(2)}
                       </p>
-                      <div className="mt-2 space-y-1">
+                      <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
-                          Your share:{' '}
+                          Total amount:{' '}
                           <span className="font-semibold text-foreground text-base">
-                            ${expense.your_share.toFixed(2)}
+                            ${expense.amount.toFixed(2)}
                           </span>
                         </p>
-                        {!isPayer && !isCurrentUserSettled && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                            Amount you owe
-                          </p>
-                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -297,7 +290,7 @@ export default function ExpenseDetailsDialog({
                     variants={childVariants}
                     className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                   >
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg border border-border/50">
                       <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground font-medium">
@@ -312,7 +305,7 @@ export default function ExpenseDetailsDialog({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg border border-border/50">
                       <Users className="h-5 w-5 text-primary flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground font-medium">
@@ -320,10 +313,6 @@ export default function ExpenseDetailsDialog({
                         </p>
                         <p className="font-semibold text-sm">
                           {expense.splits.length} people
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          ${(expense.amount / expense.splits.length).toFixed(2)}{' '}
-                          each
                         </p>
                       </div>
                     </div>
