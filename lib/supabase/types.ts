@@ -61,7 +61,8 @@ export interface ExpenseWithDetails extends Expense {
 //   type: 'owed' | 'owes';
 // }
 
-export interface ExpenseSplitWithExpense extends ExpenseSplit {
+export interface ExpenseSplitWithExpense
+  extends Omit<ExpenseSplit, 'created_at'> {
   expense: Expense;
 }
 

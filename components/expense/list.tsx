@@ -19,7 +19,6 @@ import ExpenseCard from './card';
 interface ExpenseListProps {
   expenses?: ExpenseWithDetails[];
   currentUser: Profile;
-  onExpenseAdded: () => void;
   onAddExpense: (data: ExpenseFormData) => Promise<void>;
   onEditExpense?: (expenseId: string, data: ExpenseFormData) => Promise<void>;
   onDeleteExpense?: (expenseId: string) => Promise<void>;
@@ -34,7 +33,6 @@ export default function ExpenseList({
   expenses,
   currentUser,
   householdMembers,
-  onExpenseAdded,
   onAddExpense,
   onEditExpense,
   onDeleteExpense,
@@ -130,7 +128,6 @@ export default function ExpenseList({
           {currentUser.household_id && (
             <div className="flex justify-center">
               <AddExpenseButton
-                onExpenseAdded={onExpenseAdded}
                 onAddExpense={onAddExpense}
                 householdMembers={householdMembers}
                 currentUser={currentUser}
@@ -149,6 +146,7 @@ export default function ExpenseList({
         {paginatedExpenses.map((expense) => (
           <ExpenseCard
             currentUser={currentUser}
+            householdMembers={householdMembers}
             key={expense.id}
             expense={expense}
             onViewDetails={onViewDetails}

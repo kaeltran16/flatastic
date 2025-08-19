@@ -1,7 +1,6 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { Chore } from '../supabase/schema.alias';
 import { ChoreWithProfiles } from '../supabase/types';
@@ -192,7 +191,6 @@ export async function addChore(input: Chore) {
       };
 
       // Revalidate the chores page to show the new chore
-      revalidatePath('/chores');
 
       return choreWithProfiles;
     } else {
@@ -208,9 +206,6 @@ export async function addChore(input: Chore) {
     creator_name: newChore.creator?.full_name || 'Unknown',
     creator_email: newChore.creator?.email || '',
   };
-
-  // Revalidate the chores page to show the new chore
-  revalidatePath('/chores');
 
   return formattedChore;
 }

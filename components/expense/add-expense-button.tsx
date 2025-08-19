@@ -18,14 +18,12 @@ export interface ExpenseFormData {
 interface AddExpenseButtonProps extends React.ComponentProps<typeof Button> {
   householdMembers: Profile[];
   currentUser: Profile;
-  onExpenseAdded: () => void;
   onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
   className?: string;
   children?: React.ReactNode;
 }
 
 const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
-  onExpenseAdded,
   onAddExpense,
   className = '',
   children,
@@ -34,11 +32,6 @@ const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
   ...props
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-
-  const handleExpenseAdded = (): void => {
-    console.log('New expense added');
-    onExpenseAdded();
-  };
 
   return (
     <>
@@ -62,7 +55,6 @@ const AddExpenseButton: React.FC<AddExpenseButtonProps> = ({
         householdMembers={householdMembers}
         currentUser={currentUser}
         onOpenChange={setIsDialogOpen}
-        onExpenseAdded={handleExpenseAdded}
         onAddExpense={onAddExpense}
       />
     </>

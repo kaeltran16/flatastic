@@ -1,8 +1,13 @@
 // hooks/useBalances.ts
 import { createClient } from '@/lib/supabase/client';
-import { Profile } from '@/lib/supabase/schema.alias';
+import { Expense, ExpenseSplit, Profile } from '@/lib/supabase/schema.alias';
 import { Balance } from '@/lib/supabase/types';
 import { useEffect, useState } from 'react';
+
+// Types for optimistic updates
+interface OptimisticSplit extends Omit<ExpenseSplit, 'created_at'> {
+  expense: Expense;
+}
 
 export function useBalances() {
   const [balances, setBalances] = useState<Balance[]>([]);
@@ -10,6 +15,9 @@ export function useBalances() {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Store splits for optimistic updates
+  const [splits, setSplits] = useState<OptimisticSplit[]>([]);
 
   const supabase = createClient();
 
@@ -67,26 +75,46 @@ export function useBalances() {
     members: Profile[]
   ) => {
     // Calculate balances based on expense splits
-    const { data: splits, error } = await supabase
+    const { data: serverSplits, error } = await supabase
       .from('expense_splits')
       .select(
         `
         *,
-        expenses!inner(household_id, paid_by, amount, date)
+        expenses!inner(*)
       `
       )
       .eq('expenses.household_id', householdId);
 
     if (error) throw error;
 
+    // Transform server splits to our format
+    const transformedSplits: OptimisticSplit[] = (serverSplits || []).map(
+      (split) => ({
+        id: split.id,
+        expense_id: split.expense_id,
+        user_id: split.user_id,
+        amount_owed: split.amount_owed,
+        is_settled: split.is_settled,
+        expense: split.expenses,
+      })
+    );
+
+    setSplits(transformedSplits);
+    calculateBalances(transformedSplits, userId, members);
+  };
+
+  const calculateBalances = (
+    splitsData: OptimisticSplit[],
+    userId: string,
+    members: Profile[]
+  ) => {
     // Create a map to track amounts between user pairs
-    // Key format: "payerId-debtorId", Value: amount owed
     const pairBalances = new Map<string, number>();
-    const splitsByPair = new Map<string, any[]>();
+    const splitsByPair = new Map<string, OptimisticSplit[]>();
 
     // Process each unsettled split
-    splits?.forEach((split) => {
-      const expense = split.expenses;
+    splitsData?.forEach((split) => {
+      const expense = split.expense;
       if (!split.is_settled) {
         const payerId = expense.paid_by;
         const debtorId = split.user_id;
@@ -104,10 +132,7 @@ export function useBalances() {
         if (!splitsByPair.has(pairKey)) {
           splitsByPair.set(pairKey, []);
         }
-        splitsByPair.get(pairKey)?.push({
-          ...split,
-          expense: expense,
-        });
+        splitsByPair.get(pairKey)?.push(split);
       }
     });
 
@@ -170,6 +195,168 @@ export function useBalances() {
     setBalances(balanceArray);
   };
 
+  // Helper function to create a complete expense object for optimistic updates
+  const createOptimisticExpense = (
+    expenseId: string,
+    expenseData: {
+      amount: number;
+      paid_by: string;
+      household_id: string;
+      date: string;
+      split_type: 'equal' | 'custom';
+      custom_splits?: { user_id: string; amount: number }[];
+      description?: string;
+      category?: string;
+    }
+  ): Expense => {
+    return {
+      id: expenseId,
+      household_id: expenseData.household_id,
+      paid_by: expenseData.paid_by,
+      amount: expenseData.amount,
+      date: expenseData.date,
+      category: expenseData.category || null,
+      created_at: new Date().toISOString(),
+      description: expenseData.description || '',
+      split_type: expenseData.split_type,
+      updated_at: new Date().toISOString(),
+    };
+  };
+
+  // Optimistic functions to update balances immediately
+  const addOptimisticExpense = (
+    expenseId: string,
+    expenseData: {
+      amount: number;
+      paid_by: string;
+      household_id: string;
+      date: string;
+      split_type: 'equal' | 'custom';
+      custom_splits?: { user_id: string; amount: number }[];
+      description?: string;
+      category?: string;
+    }
+  ) => {
+    if (!currentUser) return;
+
+    const optimisticExpense = createOptimisticExpense(expenseId, expenseData);
+    let newSplits: OptimisticSplit[] = [];
+
+    if (expenseData.split_type === 'equal') {
+      const splitAmount = expenseData.amount / householdMembers.length;
+      newSplits = householdMembers.map((member, index) => ({
+        id: `temp-split-${expenseId}-${member.id}`,
+        expense_id: expenseId,
+        user_id: member.id,
+        amount_owed: splitAmount,
+        is_settled: member.id === expenseData.paid_by,
+        expense: optimisticExpense,
+      }));
+    } else if (
+      expenseData.split_type === 'custom' &&
+      expenseData.custom_splits
+    ) {
+      newSplits = expenseData.custom_splits.map((split, index) => ({
+        id: `temp-split-${expenseId}-${split.user_id}`,
+        expense_id: expenseId,
+        user_id: split.user_id,
+        amount_owed: split.amount,
+        is_settled: split.user_id === expenseData.paid_by,
+        expense: optimisticExpense,
+      }));
+    }
+
+    const updatedSplits = [...splits, ...newSplits];
+    setSplits(updatedSplits);
+    calculateBalances(updatedSplits, currentUser.id, householdMembers);
+  };
+
+  const updateOptimisticExpense = (
+    expenseId: string,
+    expenseData: {
+      amount: number;
+      paid_by: string;
+      household_id: string;
+      date: string;
+      split_type: 'equal' | 'custom';
+      custom_splits?: { user_id: string; amount: number }[];
+      description?: string;
+      category?: string;
+    }
+  ) => {
+    if (!currentUser) return;
+
+    // Remove old splits for this expense
+    const filteredSplits = splits.filter(
+      (split) => split.expense_id !== expenseId
+    );
+
+    const optimisticExpense = createOptimisticExpense(expenseId, expenseData);
+    let newSplits: OptimisticSplit[] = [];
+
+    if (expenseData.split_type === 'equal') {
+      const splitAmount = expenseData.amount / householdMembers.length;
+      newSplits = householdMembers.map((member) => ({
+        id: `updated-split-${expenseId}-${member.id}`,
+        expense_id: expenseId,
+        user_id: member.id,
+        amount_owed: splitAmount,
+        is_settled: member.id === expenseData.paid_by,
+        expense: optimisticExpense,
+      }));
+    } else if (
+      expenseData.split_type === 'custom' &&
+      expenseData.custom_splits
+    ) {
+      newSplits = expenseData.custom_splits.map((split) => ({
+        id: `updated-split-${expenseId}-${split.user_id}`,
+        expense_id: expenseId,
+        user_id: split.user_id,
+        amount_owed: split.amount,
+        is_settled: split.user_id === expenseData.paid_by,
+        expense: optimisticExpense,
+      }));
+    }
+
+    const updatedSplits = [...filteredSplits, ...newSplits];
+    setSplits(updatedSplits);
+    calculateBalances(updatedSplits, currentUser.id, householdMembers);
+  };
+
+  const removeOptimisticExpense = (expenseId: string) => {
+    if (!currentUser) return;
+
+    const updatedSplits = splits.filter(
+      (split) => split.expense_id !== expenseId
+    );
+    setSplits(updatedSplits);
+    calculateBalances(updatedSplits, currentUser.id, householdMembers);
+  };
+
+  const settleOptimisticExpense = (
+    expenseId: string,
+    userId: string,
+    isPayer: boolean
+  ) => {
+    if (!currentUser) return;
+
+    const updatedSplits = splits.map((split) => {
+      if (split.expense_id === expenseId) {
+        if (isPayer) {
+          // If payer is settling, mark all splits as settled
+          return { ...split, is_settled: true };
+        } else if (split.user_id === userId) {
+          // If user is settling their own split
+          return { ...split, is_settled: true };
+        }
+      }
+      return split;
+    });
+
+    setSplits(updatedSplits);
+    calculateBalances(updatedSplits, currentUser.id, householdMembers);
+  };
+
   // Get balances involving the current user
   const yourBalances = balances.filter(
     (balance) =>
@@ -201,5 +388,10 @@ export function useBalances() {
     loading,
     error,
     refreshData: loadData,
+    // Optimistic update functions
+    addOptimisticExpense,
+    updateOptimisticExpense,
+    removeOptimisticExpense,
+    settleOptimisticExpense,
   };
 }

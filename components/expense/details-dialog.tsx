@@ -38,6 +38,7 @@ import PaymentDialog from './payment-dialog';
 interface ExpenseDetailsDialogProps {
   expense: ExpenseWithDetails;
   currentUser: Profile;
+  householdMembers: Profile[];
   trigger: React.ReactNode;
   onSettle?: (expense: ExpenseWithDetails) => void;
   onEditExpense?: (
@@ -51,6 +52,7 @@ interface ExpenseDetailsDialogProps {
 export default function ExpenseDetailsDialog({
   expense,
   currentUser,
+  householdMembers,
   trigger,
   onSettle,
   onEditExpense,
@@ -431,7 +433,8 @@ export default function ExpenseDetailsDialog({
           isOpen={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           expense={expense}
-          onExpenseEdited={handleExpenseUpdated}
+          householdMembers={householdMembers}
+          currentUser={currentUser}
           onEditExpense={onEditExpense}
         />
       )}

@@ -15,6 +15,20 @@ import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
 
 export default function ExpensesPage() {
+  // Initialize balances hook first
+  const {
+    balances,
+    yourBalances,
+    yourNetBalance,
+    loading: balancesLoading,
+    error: balancesError,
+    addOptimisticExpense,
+    updateOptimisticExpense,
+    removeOptimisticExpense,
+    settleOptimisticExpense,
+  } = useBalances();
+
+  // Pass balance update functions to expenses hook
   const {
     expenses,
     currentUser,
@@ -25,17 +39,12 @@ export default function ExpensesPage() {
     editExpense,
     deleteExpense,
     settleExpense,
-    refreshData: refreshExpenses,
-  } = useExpenses();
-
-  const {
-    balances,
-    yourBalances,
-    yourNetBalance,
-    loading: balancesLoading,
-    error: balancesError,
-    refreshData: refreshBalances,
-  } = useBalances();
+  } = useExpenses({
+    addOptimisticExpense,
+    updateOptimisticExpense,
+    removeOptimisticExpense,
+    settleOptimisticExpense,
+  });
 
   const { members: householdMembers } = useHouseholdMembers(
     currentUser?.household_id || null
@@ -45,16 +54,11 @@ export default function ExpensesPage() {
   const loading = expensesLoading || balancesLoading || !currentUser;
   const error = expensesError || balancesError;
 
-  // Refresh both expenses and balances
-  const refreshData = async () => {
-    await Promise.all([refreshExpenses(), refreshBalances()]);
-  };
-
+  // These handlers now only call the expense functions - no manual refresh needed!
   const handleAddExpense = async (expenseData: ExpenseFormData) => {
     try {
       await addExpense(expenseData);
-      // Refresh balances after adding expense
-      await refreshBalances();
+      // No manual refresh needed - optimistic updates handle everything!
     } catch (error) {
       console.error('Failed to add expense:', error);
       throw error;
@@ -67,8 +71,7 @@ export default function ExpensesPage() {
   ) => {
     try {
       await editExpense(expenseId, expenseData);
-      // Refresh balances after editing expense
-      await refreshBalances();
+      // No manual refresh needed - optimistic updates handle everything!
     } catch (error) {
       console.error('Failed to edit expense:', error);
       throw error;
@@ -78,8 +81,7 @@ export default function ExpensesPage() {
   const handleDeleteExpense = async (expenseId: string) => {
     try {
       await deleteExpense(expenseId);
-      // Refresh balances after deleting expense
-      await refreshBalances();
+      // No manual refresh needed - optimistic updates handle everything!
     } catch (error) {
       console.error('Failed to delete expense:', error);
       throw error;
@@ -94,16 +96,11 @@ export default function ExpensesPage() {
   const handleSettle = async (expense: ExpenseWithDetails) => {
     try {
       await settleExpense(expense);
-      // Refresh balances after settling
-      await refreshBalances();
+      // No manual refresh needed - optimistic updates handle everything!
     } catch (error) {
       console.error('Failed to settle expense:', error);
       throw error;
     }
-  };
-
-  const handleExpenseUpdated = async () => {
-    await refreshData();
   };
 
   // Animation variants
@@ -241,7 +238,6 @@ export default function ExpensesPage() {
               whileTap="tap"
             >
               <AddExpenseButton
-                onExpenseAdded={refreshData}
                 onAddExpense={handleAddExpense}
                 householdMembers={householdMembers}
                 currentUser={currentUser}
@@ -275,7 +271,6 @@ export default function ExpensesPage() {
                   yourBalances={yourBalances}
                   yourNetBalance={yourNetBalance}
                   currentUser={currentUser}
-                  onExpenseAdded={refreshData}
                   onAddExpense={handleAddExpense}
                 />
               </div>
@@ -296,18 +291,15 @@ export default function ExpensesPage() {
                   expenses={expenses}
                   currentUser={currentUser}
                   householdMembers={householdMembers}
-                  onExpenseAdded={refreshData}
                   onAddExpense={handleAddExpense}
                   onEditExpense={handleEditExpense}
                   onDeleteExpense={handleDeleteExpense}
                   onViewDetails={handleViewDetails}
                   onSettle={handleSettle}
-                  onExpenseUpdated={handleExpenseUpdated}
                 />
               </motion.div>
             </motion.div>
           </motion.div>
-          {/* Sidebar */}
         </div>
       </motion.div>
     </AnimatePresence>

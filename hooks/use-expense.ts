@@ -19,7 +19,19 @@ export interface ExpenseFormData {
   selected_users?: string[];
 }
 
-export function useExpenses() {
+// Add balance update functions to the hook interface
+interface BalanceUpdateFunctions {
+  addOptimisticExpense?: (expenseId: string, expenseData: any) => void;
+  updateOptimisticExpense?: (expenseId: string, expenseData: any) => void;
+  removeOptimisticExpense?: (expenseId: string) => void;
+  settleOptimisticExpense?: (
+    expenseId: string,
+    userId: string,
+    isPayer: boolean
+  ) => void;
+}
+
+export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
   const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
   const [householdMembers, setHouseholdMembers] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
@@ -122,38 +134,22 @@ export function useExpenses() {
   const addExpense = async (expenseData: ExpenseFormData) => {
     if (!currentUser?.household_id) throw new Error('No household found');
 
-    // Create the expense
-    const { data: expense, error: expenseError } = await supabase
-      .from('expenses')
-      .insert({
-        household_id: currentUser.household_id,
-        description: expenseData.description.trim(),
-        amount: parseFloat(expenseData.amount),
-        paid_by: currentUser.id,
-        category: expenseData.category,
-        date: expenseData.date,
-        split_type: expenseData.split_type,
-      })
-      .select()
-      .single();
+    // Create optimistic expense object
+    const tempId = `temp-${Date.now()}`;
+    const expenseAmount = parseFloat(expenseData.amount);
 
-    if (expenseError) throw expenseError;
-
-    // Create expense splits based on split type
-    let splits: any[] = [];
+    let optimisticSplits: any[] = [];
 
     if (expenseData.split_type === 'equal') {
-      // Equal split among all household members
-      const splitAmount =
-        parseFloat(expenseData.amount) / householdMembers.length;
-      splits = householdMembers.map((member) => ({
-        expense_id: expense.id,
+      const splitAmount = expenseAmount / householdMembers.length;
+      optimisticSplits = householdMembers.map((member) => ({
+        id: `temp-split-${member.id}`,
+        expense_id: tempId,
         user_id: member.id,
         amount_owed: splitAmount,
         is_settled: member.id === currentUser.id,
       }));
     } else if (expenseData.split_type === 'custom') {
-      // Custom split based on selected users and amounts
       if (
         !expenseData.custom_splits ||
         expenseData.custom_splits.length === 0
@@ -166,7 +162,6 @@ export function useExpenses() {
         (sum, split) => sum + split.amount,
         0
       );
-      const expenseAmount = parseFloat(expenseData.amount);
 
       if (Math.abs(totalSplitAmount - expenseAmount) > 0.01) {
         throw new Error(
@@ -174,22 +169,134 @@ export function useExpenses() {
         );
       }
 
-      splits = expenseData.custom_splits.map((split) => ({
-        expense_id: expense.id,
+      optimisticSplits = expenseData.custom_splits.map((split) => ({
+        id: `temp-split-${split.user_id}`,
+        expense_id: tempId,
         user_id: split.user_id,
         amount_owed: split.amount,
         is_settled: split.user_id === currentUser.id,
       }));
     }
 
-    const { error: splitsError } = await supabase
-      .from('expense_splits')
-      .insert(splits);
+    const optimisticExpense: ExpenseWithDetails = {
+      id: tempId,
+      household_id: currentUser.household_id,
+      description: expenseData.description.trim(),
+      amount: expenseAmount,
+      paid_by: currentUser.id,
+      category: expenseData.category,
+      date: expenseData.date,
+      split_type: expenseData.split_type,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      payer_name: currentUser.full_name || 'Unknown',
+      payer_payment_link: currentUser.payment_link || 'Unknown',
+      splits: optimisticSplits,
+      your_share:
+        optimisticSplits.find((s) => s.user_id === currentUser.id)
+          ?.amount_owed || 0,
+      status: 'pending' as const,
+    };
 
-    if (splitsError) throw splitsError;
+    // Optimistically update expenses UI
+    setExpenses((prev) => [optimisticExpense, ...prev]);
 
-    // Refresh data after adding expense
-    await loadData();
+    // Optimistically update balances
+    if (balanceUpdates?.addOptimisticExpense) {
+      balanceUpdates.addOptimisticExpense(tempId, {
+        amount: expenseAmount,
+        paid_by: currentUser.id,
+        household_id: currentUser.household_id,
+        date: expenseData.date,
+        split_type: expenseData.split_type,
+        custom_splits: expenseData.custom_splits,
+      });
+    }
+
+    try {
+      // Create the actual expense in the database
+      const { data: expense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          household_id: currentUser.household_id,
+          description: expenseData.description.trim(),
+          amount: expenseAmount,
+          paid_by: currentUser.id,
+          category: expenseData.category,
+          date: expenseData.date,
+          split_type: expenseData.split_type,
+        })
+        .select()
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      // Create expense splits
+      let splits: any[] = [];
+      if (expenseData.split_type === 'equal') {
+        const splitAmount = expenseAmount / householdMembers.length;
+        splits = householdMembers.map((member) => ({
+          expense_id: expense.id,
+          user_id: member.id,
+          amount_owed: splitAmount,
+          is_settled: member.id === currentUser.id,
+        }));
+      } else if (expenseData.split_type === 'custom') {
+        splits = expenseData.custom_splits!.map((split) => ({
+          expense_id: expense.id,
+          user_id: split.user_id,
+          amount_owed: split.amount,
+          is_settled: split.user_id === currentUser.id,
+        }));
+      }
+
+      const { data: createdSplits, error: splitsError } = await supabase
+        .from('expense_splits')
+        .insert(splits)
+        .select();
+
+      if (splitsError) throw splitsError;
+
+      // Update the optimistic expense with real data
+      const realExpense: ExpenseWithDetails = {
+        ...expense,
+        payer_name: currentUser.full_name || 'Unknown',
+        payer_payment_link: currentUser.payment_link || 'Unknown',
+        splits: createdSplits,
+        your_share:
+          createdSplits.find((s) => s.user_id === currentUser.id)
+            ?.amount_owed || 0,
+        status: 'pending' as const,
+      };
+
+      // Replace the optimistic expense with the real one
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === tempId ? realExpense : exp))
+      );
+
+      // Update balances with real expense ID
+      if (
+        balanceUpdates?.removeOptimisticExpense &&
+        balanceUpdates?.addOptimisticExpense
+      ) {
+        balanceUpdates.removeOptimisticExpense(tempId);
+        balanceUpdates.addOptimisticExpense(expense.id, {
+          amount: expenseAmount,
+          paid_by: currentUser.id,
+          household_id: currentUser.household_id,
+          date: expenseData.date,
+          split_type: expenseData.split_type,
+          custom_splits: expenseData.custom_splits,
+        });
+      }
+    } catch (error) {
+      // Remove the optimistic updates on error
+      setExpenses((prev) => prev.filter((exp) => exp.id !== tempId));
+      if (balanceUpdates?.removeOptimisticExpense) {
+        balanceUpdates.removeOptimisticExpense(tempId);
+      }
+      throw error;
+    }
   };
 
   const editExpense = async (
@@ -198,15 +305,16 @@ export function useExpenses() {
   ) => {
     if (!currentUser?.household_id) throw new Error('No household found');
 
-    // Check if user can edit this expense (only the payer can edit)
-    const expense = expenses.find((e) => e.id === expenseId);
-    if (!expense) throw new Error('Expense not found');
-    if (expense.paid_by !== currentUser.id) {
+    // Find the existing expense
+    const existingExpense = expenses.find((e) => e.id === expenseId);
+    if (!existingExpense) throw new Error('Expense not found');
+
+    // Validation checks
+    if (existingExpense.paid_by !== currentUser.id) {
       throw new Error('Only the payer can edit this expense');
     }
 
-    // Check if expense has any settled splits (except the payer's own)
-    const hasOtherSettledSplits = expense.splits.some(
+    const hasOtherSettledSplits = existingExpense.splits.some(
       (split) => split.user_id !== currentUser.id && split.is_settled
     );
 
@@ -214,35 +322,14 @@ export function useExpenses() {
       throw new Error('Cannot edit expense with settled payments from others');
     }
 
-    // Update the expense
-    const { error: expenseError } = await supabase
-      .from('expenses')
-      .update({
-        description: expenseData.description.trim(),
-        amount: parseFloat(expenseData.amount),
-        category: expenseData.category,
-        date: expenseData.date,
-        split_type: expenseData.split_type,
-      })
-      .eq('id', expenseId);
-
-    if (expenseError) throw expenseError;
-
-    // Delete existing splits and recreate them
-    const { error: deleteSplitsError } = await supabase
-      .from('expense_splits')
-      .delete()
-      .eq('expense_id', expenseId);
-
-    if (deleteSplitsError) throw deleteSplitsError;
-
-    // Create new expense splits based on split type
-    let splits: any[] = [];
+    // Create optimistic updated expense
+    const expenseAmount = parseFloat(expenseData.amount);
+    let optimisticSplits: any[] = [];
 
     if (expenseData.split_type === 'equal') {
-      const splitAmount =
-        parseFloat(expenseData.amount) / householdMembers.length;
-      splits = householdMembers.map((member) => ({
+      const splitAmount = expenseAmount / householdMembers.length;
+      optimisticSplits = householdMembers.map((member, index) => ({
+        id: existingExpense.splits[index]?.id || `temp-split-${member.id}`,
         expense_id: expenseId,
         user_id: member.id,
         amount_owed: splitAmount,
@@ -256,12 +343,10 @@ export function useExpenses() {
         throw new Error('Custom splits are required for custom split type');
       }
 
-      // Validate that the splits add up to the total amount
       const totalSplitAmount = expenseData.custom_splits.reduce(
         (sum, split) => sum + split.amount,
         0
       );
-      const expenseAmount = parseFloat(expenseData.amount);
 
       if (Math.abs(totalSplitAmount - expenseAmount) > 0.01) {
         throw new Error(
@@ -269,7 +354,10 @@ export function useExpenses() {
         );
       }
 
-      splits = expenseData.custom_splits.map((split) => ({
+      optimisticSplits = expenseData.custom_splits.map((split) => ({
+        id:
+          existingExpense.splits.find((s) => s.user_id === split.user_id)?.id ||
+          `temp-split-${split.user_id}`,
         expense_id: expenseId,
         user_id: split.user_id,
         amount_owed: split.amount,
@@ -277,27 +365,132 @@ export function useExpenses() {
       }));
     }
 
-    const { error: splitsError } = await supabase
-      .from('expense_splits')
-      .insert(splits);
+    const optimisticExpense: ExpenseWithDetails = {
+      ...existingExpense,
+      description: expenseData.description.trim(),
+      amount: expenseAmount,
+      category: expenseData.category,
+      date: expenseData.date,
+      split_type: expenseData.split_type,
+      updated_at: new Date().toISOString(),
+      splits: optimisticSplits,
+      your_share:
+        optimisticSplits.find((s) => s.user_id === currentUser.id)
+          ?.amount_owed || 0,
+    };
 
-    if (splitsError) throw splitsError;
+    // Optimistically update expenses UI
+    setExpenses((prev) =>
+      prev.map((exp) => (exp.id === expenseId ? optimisticExpense : exp))
+    );
 
-    // Refresh data after editing expense
-    await loadData();
+    // Optimistically update balances
+    if (balanceUpdates?.updateOptimisticExpense) {
+      balanceUpdates.updateOptimisticExpense(expenseId, {
+        amount: expenseAmount,
+        paid_by: currentUser.id,
+        household_id: currentUser.household_id,
+        date: expenseData.date,
+        split_type: expenseData.split_type,
+        custom_splits: expenseData.custom_splits,
+      });
+    }
+
+    try {
+      // Update the expense in the database
+      const { error: expenseError } = await supabase
+        .from('expenses')
+        .update({
+          description: expenseData.description.trim(),
+          amount: expenseAmount,
+          category: expenseData.category,
+          date: expenseData.date,
+          split_type: expenseData.split_type,
+        })
+        .eq('id', expenseId);
+
+      if (expenseError) throw expenseError;
+
+      // Delete and recreate splits
+      const { error: deleteSplitsError } = await supabase
+        .from('expense_splits')
+        .delete()
+        .eq('expense_id', expenseId);
+
+      if (deleteSplitsError) throw deleteSplitsError;
+
+      // Create new splits
+      let splits: any[] = [];
+      if (expenseData.split_type === 'equal') {
+        const splitAmount = expenseAmount / householdMembers.length;
+        splits = householdMembers.map((member) => ({
+          expense_id: expenseId,
+          user_id: member.id,
+          amount_owed: splitAmount,
+          is_settled: member.id === currentUser.id,
+        }));
+      } else if (expenseData.split_type === 'custom') {
+        splits = expenseData.custom_splits!.map((split) => ({
+          expense_id: expenseId,
+          user_id: split.user_id,
+          amount_owed: split.amount,
+          is_settled: split.user_id === currentUser.id,
+        }));
+      }
+
+      const { data: newSplits, error: splitsError } = await supabase
+        .from('expense_splits')
+        .insert(splits)
+        .select();
+
+      if (splitsError) throw splitsError;
+
+      // Update with real data from server
+      const updatedExpense: ExpenseWithDetails = {
+        ...optimisticExpense,
+        splits: newSplits,
+        your_share:
+          newSplits.find((s) => s.user_id === currentUser.id)?.amount_owed || 0,
+      };
+
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === expenseId ? updatedExpense : exp))
+      );
+    } catch (error) {
+      // Revert to original expense on error
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === expenseId ? existingExpense : exp))
+      );
+
+      // Revert balance update
+      if (balanceUpdates?.updateOptimisticExpense) {
+        balanceUpdates.updateOptimisticExpense(expenseId, {
+          amount: existingExpense.amount,
+          paid_by: existingExpense.paid_by,
+          household_id: existingExpense.household_id,
+          date: existingExpense.date,
+          split_type: existingExpense.split_type,
+          custom_splits: existingExpense.splits.map((s) => ({
+            user_id: s.user_id,
+            amount: s.amount_owed,
+          })),
+        });
+      }
+      throw error;
+    }
   };
 
   const deleteExpense = async (expenseId: string) => {
     if (!currentUser?.household_id) throw new Error('No household found');
 
-    // Check if user can delete this expense (only the payer can delete)
     const expense = expenses.find((e) => e.id === expenseId);
     if (!expense) throw new Error('Expense not found');
+
+    // Validation checks
     if (expense.paid_by !== currentUser.id) {
       throw new Error('Only the payer can delete this expense');
     }
 
-    // Check if expense has any settled splits from others
     const hasOtherSettledSplits = expense.splits.some(
       (split) => split.user_id !== currentUser.id && split.is_settled
     );
@@ -308,43 +501,119 @@ export function useExpenses() {
       );
     }
 
-    // Delete expense splits first (due to foreign key constraint)
-    const { error: deleteSplitsError } = await supabase
-      .from('expense_splits')
-      .delete()
-      .eq('expense_id', expenseId);
+    // Optimistically remove from UI
+    setExpenses((prev) => prev.filter((exp) => exp.id !== expenseId));
 
-    if (deleteSplitsError) throw deleteSplitsError;
+    // Optimistically update balances
+    if (balanceUpdates?.removeOptimisticExpense) {
+      balanceUpdates.removeOptimisticExpense(expenseId);
+    }
 
-    // Delete the expense
-    const { error: deleteExpenseError } = await supabase
-      .from('expenses')
-      .delete()
-      .eq('id', expenseId);
+    try {
+      // Delete from database
+      const { error: deleteSplitsError } = await supabase
+        .from('expense_splits')
+        .delete()
+        .eq('expense_id', expenseId);
 
-    if (deleteExpenseError) throw deleteExpenseError;
+      if (deleteSplitsError) throw deleteSplitsError;
 
-    // Refresh data after deleting expense
-    await loadData();
+      const { error: deleteExpenseError } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+
+      if (deleteExpenseError) throw deleteExpenseError;
+    } catch (error) {
+      // Restore the expense on error
+      setExpenses((prev) =>
+        [expense, ...prev].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+      );
+
+      // Restore balance
+      if (balanceUpdates?.addOptimisticExpense) {
+        balanceUpdates.addOptimisticExpense(expenseId, {
+          amount: expense.amount,
+          paid_by: expense.paid_by,
+          household_id: expense.household_id,
+          date: expense.date,
+          split_type: expense.split_type,
+          custom_splits: expense.splits.map((s) => ({
+            user_id: s.user_id,
+            amount: s.amount_owed,
+          })),
+        });
+      }
+      throw error;
+    }
   };
 
   const settleExpense = async (expense: ExpenseWithDetails) => {
+    if (!currentUser) throw new Error('No current user');
+
+    const isPayer = expense.paid_by === currentUser.id;
+
+    // Create optimistic update
+    let updatedSplits;
+    if (isPayer) {
+      const unsettledSplits = expense.splits.filter(
+        (split) => !split.is_settled
+      );
+      if (unsettledSplits.length === 0) {
+        throw new Error('All splits are already settled');
+      }
+
+      updatedSplits = expense.splits.map((split) => ({
+        ...split,
+        is_settled: true,
+      }));
+    } else {
+      const userSplit = expense.splits.find(
+        (split) => split.user_id === currentUser.id
+      );
+      if (!userSplit) {
+        throw new Error('No split found for current user');
+      }
+      if (userSplit.is_settled) {
+        throw new Error('Your split is already settled');
+      }
+
+      updatedSplits = expense.splits.map((split) =>
+        split.user_id === currentUser.id
+          ? { ...split, is_settled: true }
+          : split
+      );
+    }
+
+    const optimisticExpense = {
+      ...expense,
+      splits: updatedSplits,
+      status: updatedSplits.every((split) => split.is_settled)
+        ? ('settled' as const)
+        : ('pending' as const),
+    };
+
+    // Optimistically update expenses UI
+    setExpenses((prev) =>
+      prev.map((exp) => (exp.id === expense.id ? optimisticExpense : exp))
+    );
+
+    // Optimistically update balances
+    if (balanceUpdates?.settleOptimisticExpense) {
+      balanceUpdates.settleOptimisticExpense(
+        expense.id,
+        currentUser.id,
+        isPayer
+      );
+    }
+
     try {
-      if (!currentUser) throw new Error('No current user');
-
-      // Check if current user is the payer
-      const isPayer = expense.paid_by === currentUser.id;
-
       if (isPayer) {
-        // If you're the payer, mark ALL unsettled splits as settled
-        // (This means you're forgiving the debt or received payment outside the app)
         const unsettledSplits = expense.splits.filter(
           (split) => !split.is_settled
         );
-
-        if (unsettledSplits.length === 0) {
-          throw new Error('All splits are already settled');
-        }
 
         const { error } = await supabase
           .from('expense_splits')
@@ -356,36 +625,36 @@ export function useExpenses() {
 
         if (error) throw error;
       } else {
-        // If you're not the payer, mark only your split as settled
         const userSplit = expense.splits.find(
           (split) => split.user_id === currentUser.id
         );
 
-        if (!userSplit) {
-          throw new Error('No split found for current user');
-        }
-
-        if (userSplit.is_settled) {
-          throw new Error('Your split is already settled');
-        }
-
         const { error } = await supabase
           .from('expense_splits')
           .update({ is_settled: true })
-          .eq('id', userSplit.id);
+          .eq('id', userSplit!.id);
 
         if (error) throw error;
       }
-
-      // Refresh data
-      await loadData();
     } catch (error) {
+      // Revert optimistic update on error
+      setExpenses((prev) =>
+        prev.map((exp) => (exp.id === expense.id ? expense : exp))
+      );
+
+      // Revert balance update by recalculating from the original expense
+      if (balanceUpdates?.settleOptimisticExpense) {
+        // This is a bit tricky - we'd need to revert the settlement
+        // For now, we'll rely on a full refresh if settlement fails
+        console.warn('Settlement failed - balance state may be inconsistent');
+      }
+
       console.error('Failed to settle expense:', error);
       throw error;
     }
   };
 
-  // Calculate stats
+  // Calculate stats from current state
   const stats = {
     totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
     yourTotalShare: expenses.reduce(

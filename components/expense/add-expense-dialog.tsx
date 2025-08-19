@@ -24,6 +24,7 @@ import type { Profile } from '@/lib/supabase/schema.alias';
 import { AlertCircle, DollarSign, Plus, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export interface CustomSplit {
   user_id: string;
@@ -43,7 +44,6 @@ export interface ExpenseFormData {
 interface AddExpenseDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onExpenseAdded: () => void;
   onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
   householdMembers: Profile[];
   currentUser: Profile | null;
@@ -62,7 +62,6 @@ const categories = [
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   isOpen,
   onOpenChange,
-  onExpenseAdded,
   onAddExpense,
   householdMembers,
   currentUser,
@@ -171,28 +170,28 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
   const validateForm = (): boolean => {
     if (!formData.description.trim()) {
-      alert('Please enter a description');
+      toast.error('Please enter a description');
       return false;
     }
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      alert('Please enter a valid amount');
+    if (!formData.amount || parseFloat(formData.amount) < 0) {
+      toast.error('Please enter a valid amount');
       return false;
     }
     if (!formData.category) {
-      alert('Please select a category');
+      toast.error('Please select a category');
       return false;
     }
 
     if (formData.split_type === 'custom') {
       if (selectedUsers.size === 0) {
-        alert('Please select at least one user for custom split');
+        toast.error('Please select at least one user for custom split');
         return false;
       }
 
       // Check if all selected users have amounts
       for (const userId of selectedUsers) {
-        if (!customSplits[userId] || parseFloat(customSplits[userId]) <= 0) {
-          alert('Please enter valid amounts for all selected users');
+        if (!customSplits[userId] || parseFloat(customSplits[userId]) < 0) {
+          toast.error('Please enter valid amounts for all selected users');
           return false;
         }
       }
@@ -204,7 +203,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       }, 0);
 
       if (Math.abs(splitTotal - totalAmount) > 0.01) {
-        alert(
+        toast.error(
           `Split amounts ($${splitTotal.toFixed(
             2
           )}) must equal the total expense amount ($${totalAmount.toFixed(2)})`
@@ -240,10 +239,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       // Reset form and close dialog
       resetForm();
       onOpenChange(false);
-      onExpenseAdded();
     } catch (error) {
       console.error('Error adding expense:', error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : 'Failed to add expense. Please try again.'
@@ -457,7 +455,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                               <div className="flex items-center gap-1">
                                 <span className="text-sm text-gray-500">$</span>
                                 <Input
-                                  step="0.01"
                                   min="0"
                                   type="number"
                                   inputMode="decimal"

@@ -36,6 +36,7 @@ interface ExpenseCardProps {
   onDeleteExpense?: (expenseId: string) => Promise<void>;
   onExpenseUpdated?: () => void;
   currentUser: Profile;
+  householdMembers: Profile[];
 }
 
 export default function ExpenseCard({
@@ -46,6 +47,7 @@ export default function ExpenseCard({
   onDeleteExpense,
   onExpenseUpdated,
   currentUser,
+  householdMembers,
 }: ExpenseCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -248,6 +250,7 @@ export default function ExpenseCard({
                   <ExpenseDetailsDialog
                     expense={expense}
                     currentUser={currentUser}
+                    householdMembers={householdMembers}
                     onSettle={onSettle}
                     onEditExpense={onEditExpense}
                     onDeleteExpense={onDeleteExpense}
@@ -275,6 +278,7 @@ export default function ExpenseCard({
                     <ExpenseDetailsDialog
                       expense={expense}
                       currentUser={currentUser}
+                      householdMembers={householdMembers}
                       onSettle={onSettle}
                       onEditExpense={onEditExpense}
                       onDeleteExpense={onDeleteExpense}
@@ -296,6 +300,7 @@ export default function ExpenseCard({
                 <ExpenseDetailsDialog
                   expense={expense}
                   currentUser={currentUser}
+                  householdMembers={householdMembers}
                   onSettle={onSettle}
                   onEditExpense={onEditExpense}
                   onDeleteExpense={onDeleteExpense}
@@ -320,8 +325,9 @@ export default function ExpenseCard({
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         expense={expense}
-        onExpenseEdited={() => onExpenseUpdated?.()}
         onEditExpense={onEditExpense!}
+        householdMembers={householdMembers}
+        currentUser={currentUser}
       />
 
       <DeleteExpenseDialog

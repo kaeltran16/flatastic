@@ -100,9 +100,15 @@ function ProfileEditPage() {
 
     if (!formData.payment_link.trim()) {
       newErrors.payment_link = 'Payment link is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    }
+
+    if (
+      formData.payment_link.trim() &&
+      !formData.payment_link.startsWith('https://')
+    ) {
       newErrors.payment_link = 'Please enter a valid payment link';
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -297,17 +303,17 @@ function ProfileEditPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="full_name">Payment Link</Label>
+              <Label htmlFor="payment_link">Payment Link</Label>
               <Input
                 id="payment_link"
-                value={profile.payment_link || 'No payment link'}
+                value={formData.payment_link}
                 onChange={(e) =>
                   setFormData({ ...formData, payment_link: e.target.value })
                 }
-                placeholder="Enter your payment link"
+                placeholder="https://me.momo.vn/1234567890"
                 className={errors.payment_link ? 'border-red-500' : ''}
               />
-              {errors.full_name && (
+              {errors.payment_link && (
                 <p className="text-sm text-red-500">{errors.payment_link}</p>
               )}
             </div>
