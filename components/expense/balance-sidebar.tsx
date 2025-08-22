@@ -1,4 +1,3 @@
-import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,7 +17,6 @@ interface BalancesSidebarProps {
   yourBalances: Balance[];
   yourNetBalance: number;
   currentUser: Profile | null;
-  onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
 }
 
 export default function BalancesSidebar({
@@ -26,7 +24,6 @@ export default function BalancesSidebar({
   yourBalances,
   yourNetBalance,
   currentUser,
-  onAddExpense,
 }: BalancesSidebarProps) {
   const getBalanceDisplay = (balance: Balance) => {
     const isYouOwing = balance.from_user_id === currentUser?.id;

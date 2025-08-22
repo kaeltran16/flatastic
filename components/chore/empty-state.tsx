@@ -1,7 +1,7 @@
-import AddChoreButton from '@/components/chore/add-chore-button';
+import ChoreDialog from '@/components/chore/chore-dialog';
 import { Card } from '@/components/ui/card';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface EmptyChoresStateProps {
@@ -51,16 +51,16 @@ export default function EmptyChoresState({
               Get started by adding your first chore!
             </p>
           </div>
-          <AddChoreButton
-            onChoreAdded={onChoreAdded}
+          <ChoreDialog
+            mode="create"
             householdId={household.id}
             currentUserId={currentUser.id}
             householdMembers={householdMembers}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Chore
-          </AddChoreButton>
+            onSubmit={async (formData) => {
+              await onChoreAdded(formData as unknown as Chore);
+            }}
+            isLoading={false}
+          />
         </div>
       </Card>
     </motion.div>

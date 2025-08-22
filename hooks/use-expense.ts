@@ -11,7 +11,7 @@ export interface CustomSplit {
 
 export interface ExpenseFormData {
   description: string;
-  amount: string;
+  amount: number;
   category: string;
   date: string;
   split_type: 'equal' | 'custom';
@@ -136,7 +136,7 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
 
     // Create optimistic expense object
     const tempId = `temp-${Date.now()}`;
-    const expenseAmount = parseFloat(expenseData.amount);
+    const expenseAmount = expenseData.amount;
 
     let optimisticSplits: any[] = [];
 
@@ -323,7 +323,7 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
     }
 
     // Create optimistic updated expense
-    const expenseAmount = parseFloat(expenseData.amount);
+    const expenseAmount = expenseData.amount;
     let optimisticSplits: any[] = [];
 
     if (expenseData.split_type === 'equal') {

@@ -1,9 +1,20 @@
+// lib/actions/chore.ts
 'use server';
 
+import { ChoreFormData } from '@/hooks/use-chore';
 import { createClient } from '@/lib/supabase/server';
+import { ChoreWithProfiles } from '@/lib/supabase/types';
+import { CreateChoreSchema, UpdateChoreSchema } from '@/lib/validations/chore';
+import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
-import { Chore } from '../supabase/schema.alias';
-import { ChoreWithProfiles } from '../supabase/types';
+
+// Custom error class for chore operations
+class ChoreActionError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+    this.name = 'ChoreActionError';
+  }
+}
 
 export async function getChores(): Promise<ChoreWithProfiles[]> {
   const supabase = await createClient();
@@ -87,125 +98,318 @@ export async function getChores(): Promise<ChoreWithProfiles[]> {
   );
 }
 
-export async function addChore(input: Chore) {
+// Helper function to get authenticated user and household
+async function getAuthenticatedUserWithHousehold() {
   const supabase = await createClient();
 
-  // Get the authenticated user
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError) {
-    throw new Error(`Authentication failed: ${authError.message}`);
+    throw new ChoreActionError(
+      `Authentication failed: ${authError.message}`,
+      'AUTH_ERROR'
+    );
   }
 
   if (!user) {
-    throw new Error('User not authenticated');
+    throw new ChoreActionError('User not authenticated', 'NO_USER');
   }
 
-  // Validate that user belongs to the household
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('household_id')
+    .select('household_id, full_name')
     .eq('id', user.id)
     .single();
 
   if (profileError) {
-    throw new Error(`Failed to verify user profile: ${profileError.message}`);
+    throw new ChoreActionError(
+      `Failed to get user profile: ${profileError.message}`,
+      'PROFILE_ERROR'
+    );
   }
 
-  if (userProfile.household_id !== input.household_id) {
-    throw new Error('User does not belong to this household');
+  if (!userProfile.household_id) {
+    throw new ChoreActionError(
+      'User is not part of any household',
+      'NO_HOUSEHOLD'
+    );
   }
 
-  // Prepare chore data for insertion
-  const choreData: Chore = {
-    id: uuidv4(),
-    name: input.name.trim(),
-    description: input.description?.trim() || null,
-    assigned_to: input.assigned_to || null,
-    due_date: input.due_date || null,
-    recurring_type: input.recurring_type || 'none',
-    recurring_interval: input.recurring_interval || null,
-    household_id: input.household_id,
-    created_by: user.id,
-    status: 'pending',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  return { user, userProfile, supabase };
+}
 
-  // Insert the chore
-  const { data: newChore, error: insertError } = await supabase
-    .from('chores')
-    .insert(choreData)
-    .select(
-      `
-      *,
-      assignee:profiles!assigned_to(full_name, email),
-      creator:profiles!created_by(full_name, email)
-    `
-    )
-    .single();
+// Server action to create a chore
+export async function createChoreAction(formData: ChoreFormData) {
+  try {
+    // Extract and validate form data
+    const rawData = {
+      name: formData.name,
+      description: formData.description || null,
+      assigned_to: formData.assigned_to || null,
+      due_date: formData.due_date || null,
+      recurring_type: formData.recurring_type || 'none',
+      recurring_interval: formData.recurring_interval || null,
+      household_id: formData.household_id,
+    };
 
-  if (insertError) {
-    // Fallback to basic insert if joins not available
-    if (insertError.message.includes('relationship')) {
-      const { data: basicChore, error: basicError } = await supabase
-        .from('chores')
-        .insert(choreData)
-        .select('*')
-        .single();
+    // Validate input
+    const validatedData = CreateChoreSchema.parse(rawData);
 
-      if (basicError) {
-        throw new Error(`Failed to create chore: ${basicError.message}`);
-      }
+    const { user, userProfile, supabase } =
+      await getAuthenticatedUserWithHousehold();
 
-      // Get profile information separately
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in(
-          'id',
-          [basicChore.assigned_to, basicChore.created_by].filter(Boolean)
-        );
-
-      if (profileError) {
-        console.warn('Failed to load profiles for new chore:', profileError);
-      }
-
-      const profileMap = new Map(
-        profiles?.map((profile) => [profile.id, profile]) || []
+    // Verify user belongs to the household
+    if (userProfile.household_id !== validatedData.household_id) {
+      throw new ChoreActionError(
+        'User does not belong to this household',
+        'UNAUTHORIZED'
       );
-
-      const choreWithProfiles = {
-        ...basicChore,
-        assignee: profileMap.get(basicChore.assigned_to),
-        creator: profileMap.get(basicChore.created_by),
-        assignee_name:
-          profileMap.get(basicChore.assigned_to)?.full_name || 'Unassigned',
-        assignee_email: profileMap.get(basicChore.assigned_to)?.email || '',
-        creator_name:
-          profileMap.get(basicChore.created_by)?.full_name || 'Unknown',
-        creator_email: profileMap.get(basicChore.created_by)?.email || '',
-      };
-
-      // Revalidate the chores page to show the new chore
-
-      return choreWithProfiles;
-    } else {
-      throw new Error(`Failed to create chore: ${insertError.message}`);
     }
+
+    // Prepare chore data
+    const choreData = {
+      ...validatedData,
+      id: uuidv4(),
+      created_by: user.id,
+      status: 'pending' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Insert chore
+    const { data: newChore, error: insertError } = await supabase
+      .from('chores')
+      .insert(choreData)
+      .select('*')
+      .single();
+
+    if (insertError) {
+      throw new ChoreActionError(
+        `Failed to create chore: ${insertError.message}`,
+        'INSERT_ERROR'
+      );
+    }
+
+    revalidatePath('/chores');
+    return { success: true, data: newChore };
+  } catch (error) {
+    console.error('Create chore error:', error);
+
+    if (error instanceof ChoreActionError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create chore',
+      code: 'UNKNOWN_ERROR',
+    };
   }
+}
 
-  // Format the response with profile names for consistency
-  const formattedChore = {
-    ...newChore,
-    assignee_name: newChore.assignee?.full_name || 'Unassigned',
-    assignee_email: newChore.assignee?.email || '',
-    creator_name: newChore.creator?.full_name || 'Unknown',
-    creator_email: newChore.creator?.email || '',
-  };
+// Server action to update a chore
+export async function updateChoreAction(
+  choreId: string,
+  formData: ChoreFormData
+) {
+  try {
+    // Extract and validate form data
+    const rawData = {
+      name: formData.name || undefined,
+      description: formData.description || undefined,
+      assigned_to: formData.assigned_to || undefined,
+      due_date: formData.due_date || undefined,
+      status: formData.status || undefined,
+      recurring_type: formData.recurring_type || undefined,
+      recurring_interval: formData.recurring_interval || undefined,
+    };
 
-  return formattedChore;
+    // Remove undefined values
+    const cleanedData = Object.fromEntries(
+      Object.entries(rawData).filter(([_, value]) => value !== undefined)
+    );
+
+    // Validate input
+    const validatedData = UpdateChoreSchema.parse(cleanedData);
+
+    const { user, userProfile, supabase } =
+      await getAuthenticatedUserWithHousehold();
+
+    // Check if chore exists and user has permission
+    const { data: existingChore, error: fetchError } = await supabase
+      .from('chores')
+      .select('household_id')
+      .eq('id', choreId)
+      .single();
+
+    if (fetchError) {
+      throw new ChoreActionError('Chore not found', 'NOT_FOUND');
+    }
+
+    if (existingChore.household_id !== userProfile.household_id) {
+      throw new ChoreActionError(
+        'Not authorized to update this chore',
+        'UNAUTHORIZED'
+      );
+    }
+
+    // Update chore
+    const { data: updatedChore, error: updateError } = await supabase
+      .from('chores')
+      .update({
+        ...validatedData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', choreId)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      throw new ChoreActionError(
+        `Failed to update chore: ${updateError.message}`,
+        'UPDATE_ERROR'
+      );
+    }
+
+    revalidatePath('/chores');
+    return { success: true, data: updatedChore };
+  } catch (error) {
+    console.error('Update chore error:', error);
+
+    if (error instanceof ChoreActionError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update chore',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+// Server action to delete a chore
+export async function deleteChoreAction(choreId: string) {
+  try {
+    const { user, userProfile, supabase } =
+      await getAuthenticatedUserWithHousehold();
+
+    // Check if chore exists and user has permission
+    const { data: existingChore, error: fetchError } = await supabase
+      .from('chores')
+      .select('household_id')
+      .eq('id', choreId)
+      .single();
+
+    if (fetchError) {
+      throw new ChoreActionError('Chore not found', 'NOT_FOUND');
+    }
+
+    if (existingChore.household_id !== userProfile.household_id) {
+      throw new ChoreActionError(
+        'Not authorized to delete this chore',
+        'UNAUTHORIZED'
+      );
+    }
+
+    // Delete chore
+    const { error: deleteError } = await supabase
+      .from('chores')
+      .delete()
+      .eq('id', choreId);
+
+    if (deleteError) {
+      throw new ChoreActionError(
+        `Failed to delete chore: ${deleteError.message}`,
+        'DELETE_ERROR'
+      );
+    }
+
+    revalidatePath('/chores');
+    return { success: true };
+  } catch (error) {
+    console.error('Delete chore error:', error);
+
+    if (error instanceof ChoreActionError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete chore',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+// Server action to mark chore as complete
+export async function markChoreCompleteAction(choreId: string) {
+  try {
+    const { user, userProfile, supabase } =
+      await getAuthenticatedUserWithHousehold();
+
+    // Check if chore exists and user has permission
+    const { data: existingChore, error: fetchError } = await supabase
+      .from('chores')
+      .select('household_id, status')
+      .eq('id', choreId)
+      .single();
+
+    if (fetchError) {
+      throw new ChoreActionError('Chore not found', 'NOT_FOUND');
+    }
+
+    if (existingChore.household_id !== userProfile.household_id) {
+      throw new ChoreActionError(
+        'Not authorized to update this chore',
+        'UNAUTHORIZED'
+      );
+    }
+
+    if (existingChore.status === 'completed') {
+      throw new ChoreActionError(
+        'Chore is already completed',
+        'ALREADY_COMPLETED'
+      );
+    }
+
+    // Mark as complete
+    const { data: updatedChore, error: updateError } = await supabase
+      .from('chores')
+      .update({
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', choreId)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      throw new ChoreActionError(
+        `Failed to mark chore complete: ${updateError.message}`,
+        'UPDATE_ERROR'
+      );
+    }
+
+    revalidatePath('/chores');
+    return { success: true, data: updatedChore };
+  } catch (error) {
+    console.error('Mark complete error:', error);
+
+    if (error instanceof ChoreActionError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to mark chore complete',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
 }

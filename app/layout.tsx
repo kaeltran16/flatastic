@@ -2,6 +2,7 @@ import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { Navbar } from '@/components/navbar';
 import { SilentSubscriber } from '@/components/silent-subscriber';
 import { Toaster } from '@/components/ui/sonner';
+import { QueryProvider } from '@/lib/providers/query-providers';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Metadata } from 'next';
@@ -57,17 +58,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Auto-subscribe to push notifications silently on app load */}
-        <SilentSubscriber />
+        <QueryProvider>
+          {/* Auto-subscribe to push notifications silently on app load */}
+          <SilentSubscriber />
 
-        <div>
-          <Navbar />
-          <AppBreadcrumb />
-          <main>{children}</main>
-          <Toaster />
-          <Analytics />
-          <SpeedInsights />
-        </div>
+          <div>
+            <Navbar />
+            <AppBreadcrumb />
+            <main>{children}</main>
+            <Toaster />
+            <Analytics />
+            <SpeedInsights />
+          </div>
+        </QueryProvider>
       </body>
     </html>
   );

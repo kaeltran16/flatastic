@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import {
@@ -32,7 +33,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import DeleteExpenseDialog from './delete-expense-dialog';
-import EditExpenseDialog, { ExpenseFormData } from './edit-expense-dialog';
+import ExpenseDialog from './expense-dialog';
 import PaymentDialog from './payment-dialog';
 
 interface ExpenseDetailsDialogProps {
@@ -429,13 +430,15 @@ export default function ExpenseDetailsDialog({
 
       {/* Edit Dialog */}
       {onEditExpense && (
-        <EditExpenseDialog
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
+        <ExpenseDialog
+          mode="edit"
+          householdId={expense.household_id}
+          currentUserId={expense.paid_by}
           expense={expense}
           householdMembers={householdMembers}
-          currentUser={currentUser}
-          onEditExpense={onEditExpense}
+          onSubmit={async (formData) => {
+            await onEditExpense?.(expense.id, formData);
+          }}
         />
       )}
 
