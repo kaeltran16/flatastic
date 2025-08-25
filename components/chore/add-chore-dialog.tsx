@@ -28,6 +28,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import UserAvatar from '../user-avatar';
 
 interface AddChoreDialogProps {
   isOpen: boolean;
@@ -296,24 +297,11 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                           value={member.id}
                           className="py-3 sm:py-2"
                         >
-                          <div className="flex items-center gap-2 sm:gap-2">
-                            {member.avatar_url ? (
-                              <img
-                                src={member.avatar_url}
-                                alt={member.full_name || member.email}
-                                className="w-7 h-7 sm:w-6 sm:h-6 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
-                                {getInitials(member.full_name || member.email)}
-                              </div>
-                            )}
-                            <span className="text-base sm:text-sm">
-                              {member.id === currentUserId
-                                ? 'You'
-                                : member.full_name}
-                            </span>
-                          </div>
+                          <UserAvatar
+                            user={member}
+                            showAsYou={member.id === currentUserId}
+                            shouldShowName={true}
+                          />
                         </SelectItem>
                       ))}
                     </SelectContent>

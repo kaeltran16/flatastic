@@ -332,7 +332,6 @@ export default function ExpenseDetailsDialog({
                         className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0"
                         user={currentUser}
                         shouldShowName={true}
-                        showAsYou={true}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-muted-foreground">

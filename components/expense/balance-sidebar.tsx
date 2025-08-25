@@ -110,7 +110,6 @@ export default function BalancesSidebar({
                         <UserAvatar
                           user={currentUser || undefined}
                           shouldShowName={false}
-                          showAsYou={true}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{display.name}</p>

@@ -160,7 +160,7 @@ export default function ChoreCard({
             {/* Assignment and Date Info */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pl-8 sm:pl-0 text-sm text-muted-foreground">
               {assignedMember && (
-                <UserAvatar user={assignedMember} showAsYou={true} />
+                <UserAvatar user={assignedMember} showAsYou={false} />
               )}
 
               {chore.due_date && !isCompleted && (
