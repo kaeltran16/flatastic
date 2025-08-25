@@ -33,6 +33,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import UserAvatar from './user-avatar';
 
 const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
 
@@ -462,7 +463,7 @@ export function Navbar() {
                       variant="ghost"
                       className="relative h-10 w-10 rounded-full"
                     >
-                      <Avatar className="h-8 w-8 border-2 border-primary/20">
+                      {/* <Avatar className="h-8 w-8 border-2 border-primary/20">
                         <AvatarImage src={profile.avatar_url || undefined} />
                         <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
                           {profile.full_name
@@ -470,7 +471,8 @@ export function Navbar() {
                             .map((n) => n[0])
                             .join('') || 'U'}
                         </AvatarFallback>
-                      </Avatar>
+                      </Avatar> */}
+                      <UserAvatar user={profile} shouldShowName={false} />
                     </Button>
                   </motion.div>
                 </DropdownMenuTrigger>

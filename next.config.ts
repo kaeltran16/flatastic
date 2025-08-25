@@ -128,6 +128,32 @@ const nextConfig = {
   experimental: {
     // Add any experimental features you need
   },
+
+  images: {
+    remotePatterns: [
+      // Google/Gmail avatars
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh4.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh5.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh6.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.googleapis.com',
+      },
+    ],
+  },
 };
 
 module.exports = withPWA(nextConfig);

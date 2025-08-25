@@ -99,7 +99,7 @@ export function useProfile() {
 // CHORES HOOK WITH POSTREST JOINS
 // =====================================================
 
-export function useChores() {
+export function useChores(householdId: string | null) {
   const [chores, setChores] = useState<ChoreWithProfiles[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +121,7 @@ export function useChores() {
             creator:profiles!created_by(full_name, email)
           `
           )
+          .eq('household_id', householdId)
           .order('created_at', { ascending: false });
 
         // If the join syntax fails, fall back to separate queries

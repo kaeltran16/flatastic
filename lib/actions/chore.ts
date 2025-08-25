@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
-import { Chore } from '../supabase/schema.alias';
+import { Chore, ChoreInsert } from '../supabase/schema.alias';
 import { ChoreWithProfiles } from '../supabase/types';
 
 export async function getChores(): Promise<ChoreWithProfiles[]> {
@@ -87,7 +87,7 @@ export async function getChores(): Promise<ChoreWithProfiles[]> {
   );
 }
 
-export async function addChore(input: Chore) {
+export async function addChore(input: ChoreInsert) {
   const supabase = await createClient();
 
   // Get the authenticated user

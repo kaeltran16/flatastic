@@ -7,13 +7,64 @@ export type Json =
   | Json[];
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: '12.2.12 (cd3cf9e)';
   };
   public: {
     Tables: {
+      chore_templates: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          description: string | null;
+          household_id: string | null;
+          id: string;
+          is_active: boolean | null;
+          is_custom: boolean | null;
+          name: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          household_id?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          is_custom?: boolean | null;
+          name: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          household_id?: string | null;
+          id?: string;
+          is_active?: boolean | null;
+          is_custom?: boolean | null;
+          name?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'chore_templates_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'chore_templates_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       chores: {
         Row: {
           assigned_to: string | null;
@@ -58,6 +109,13 @@ export type Database = {
           updated_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'chores_assigned_to_fkey';
+            columns: ['assigned_to'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'chores_household_id_fkey';
             columns: ['household_id'];
@@ -149,6 +207,64 @@ export type Database = {
           }
         ];
       };
+      fund_penalties: {
+        Row: {
+          amount: number;
+          chore_id: string | null;
+          created_at: string | null;
+          description: string | null;
+          household_id: string;
+          id: string;
+          reason: string;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          amount: number;
+          chore_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          household_id: string;
+          id?: string;
+          reason: string;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          amount?: number;
+          chore_id?: string | null;
+          created_at?: string | null;
+          description?: string | null;
+          household_id?: string;
+          id?: string;
+          reason?: string;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fund_penalties_chore_id_fkey';
+            columns: ['chore_id'];
+            isOneToOne: false;
+            referencedRelation: 'chores';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fund_penalties_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fund_penalties_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       households: {
         Row: {
           admin_id: string;
@@ -195,6 +311,8 @@ export type Database = {
           is_read: boolean | null;
           is_urgent: boolean | null;
           message: string;
+          push_sent: boolean | null;
+          push_sent_at: string | null;
           title: string;
           type: string;
           user_id: string;
@@ -206,6 +324,8 @@ export type Database = {
           is_read?: boolean | null;
           is_urgent?: boolean | null;
           message: string;
+          push_sent?: boolean | null;
+          push_sent_at?: string | null;
           title: string;
           type: string;
           user_id: string;
@@ -217,6 +337,8 @@ export type Database = {
           is_read?: boolean | null;
           is_urgent?: boolean | null;
           message?: string;
+          push_sent?: boolean | null;
+          push_sent_at?: string | null;
           title?: string;
           type?: string;
           user_id?: string;
@@ -378,6 +500,41 @@ export type Database = {
           user_agent?: string | null;
           user_id?: string | null;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey1';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      webhook_logs: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          operation: string;
+          record_id: string | null;
+          request_id: number | null;
+          table_name: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          operation: string;
+          record_id?: string | null;
+          request_id?: number | null;
+          table_name: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          operation?: string;
+          record_id?: string | null;
+          request_id?: number | null;
+          table_name?: string;
+        };
         Relationships: [];
       };
     };
@@ -385,7 +542,41 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      cleanup_expired_invitations: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      create_chore_reminder: {
+        Args: { p_assigned_user_id: string; p_chore_id: string };
+        Returns: string;
+      };
+      create_chore_reminder_notification: {
+        Args: { p_assigned_user_id: string; p_chore_id: string };
+        Returns: string;
+      };
+      create_expense_notification: {
+        Args: { p_expense_id: string; p_household_id: string };
+        Returns: string;
+      };
+      create_notification_with_push: {
+        Args: {
+          p_household_id?: string;
+          p_is_urgent?: boolean;
+          p_message: string;
+          p_title: string;
+          p_type?: string;
+          p_user_id?: string;
+        };
+        Returns: string;
+      };
+      generate_invite_code: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      get_user_household_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
     };
     Enums: {
       [_ in never]: never;
