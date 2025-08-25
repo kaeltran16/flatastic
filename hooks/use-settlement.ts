@@ -95,9 +95,8 @@ export function useSettlements() {
 
         return {
           ...note,
-          from_user_name:
-            fromUser?.full_name || fromUser?.email || 'Unknown User',
-          to_user_name: toUser?.full_name || toUser?.email || 'Unknown User',
+          fromUser: fromUser,
+          toUser: toUser,
           amount: note.amount,
           note: note.note || '',
           settled_at: note.created_at || new Date().toISOString(),
@@ -226,10 +225,8 @@ export function useSettlements() {
 
           if (fromUser && toUser) {
             balanceArray.push({
-              from_user_id: netFromUser,
-              from_user_name: fromUser.full_name || fromUser.email,
-              to_user_id: netToUser,
-              to_user_name: toUser.full_name || toUser.email,
+              fromUser: fromUser,
+              toUser: toUser,
               amount: Math.round(netAmount * 100) / 100, // Round to 2 decimal places
               related_splits: netSplits, // This now correctly has ExpenseSplitWithExpense[]
               payment_link: fromUser.payment_link || '',
@@ -317,8 +314,8 @@ export function useSettlements() {
 
       // Create a payment record for history tracking
       const { error: noteError } = await supabase.from('payment_notes').insert({
-        from_user_id: balance.from_user_id,
-        to_user_id: balance.to_user_id,
+        from_user_id: balance.fromUser.id,
+        to_user_id: balance.toUser.id,
         amount: amount,
         note: note || '',
         created_at: new Date().toISOString(),

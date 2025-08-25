@@ -1,5 +1,4 @@
 import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -12,6 +11,7 @@ import { Profile } from '@/lib/supabase/schema.alias';
 import { Balance } from '@/lib/supabase/types';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import UserAvatar from '../user-avatar';
 
 interface BalancesSidebarProps {
   balances: Balance[];
@@ -29,11 +29,11 @@ export default function BalancesSidebar({
   onAddExpense,
 }: BalancesSidebarProps) {
   const getBalanceDisplay = (balance: Balance) => {
-    const isYouOwing = balance.from_user_id === currentUser?.id;
+    const isYouOwing = balance.fromUser.id === currentUser?.id;
     const otherUserName = isYouOwing
-      ? balance.to_user_name
-      : balance.from_user_name;
-    const otherUserId = isYouOwing ? balance.to_user_id : balance.from_user_id;
+      ? balance.toUser.full_name
+      : balance.fromUser.full_name;
+    const otherUserId = isYouOwing ? balance.toUser.id : balance.fromUser.id;
 
     return {
       name: otherUserName,
@@ -100,30 +100,18 @@ export default function BalancesSidebar({
 
                   return (
                     <motion.div
-                      key={`${balance.from_user_id}-${balance.to_user_id}-${index}`}
+                      key={`${balance.fromUser.id}-${balance.toUser.id}-${index}`}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + index * 0.05 }}
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-9 w-9 ring-2 ring-background">
-                          <AvatarFallback className="text-xs font-medium">
-                            {display.name === 'You'
-                              ? currentUser?.full_name
-                                  ?.split(' ')
-                                  .map((n) => n[0])
-                                  .join('')
-                                  .slice(0, 2)
-                                  .toUpperCase()
-                              : display.name
-                                  .split(' ')
-                                  .map((n) => n[0])
-                                  .join('')
-                                  .slice(0, 2)
-                                  .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          user={currentUser || undefined}
+                          shouldShowName={false}
+                          showAsYou={true}
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{display.name}</p>
                           <p className="text-xs text-muted-foreground">

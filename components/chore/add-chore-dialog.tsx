@@ -26,6 +26,7 @@ import { Chore, Profile, RecurringType } from '@/lib/supabase/schema.alias';
 import { CalendarDays, Plus, Repeat, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AddChoreDialogProps {
@@ -122,7 +123,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
   const handleSubmit = async (): Promise<void> => {
     // Validate required fields
     if (!formData.name.trim()) {
-      alert('Please enter a chore name');
+      toast.error('Please enter a chore name');
       return;
     }
 
@@ -177,7 +178,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
       onOpenChange(false);
     } catch (error) {
       console.error('Error adding chore:', error);
-      alert('Failed to add chore. Please try again.');
+      toast.error('Failed to add chore. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

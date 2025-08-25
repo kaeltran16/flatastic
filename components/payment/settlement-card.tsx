@@ -1,10 +1,9 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Settlement } from '@/lib/supabase/types';
-import { getInitials } from '@/utils';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import UserAvatar from '../user-avatar';
 
 interface SettlementCardProps {
   settlement: Settlement;
@@ -156,11 +155,11 @@ const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
                   transition={{ delay: index * 0.05 + 0.1 }}
                 >
                   <motion.div variants={avatarVariants}>
-                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
-                      <AvatarFallback className="text-xs sm:text-sm font-medium">
-                        {getInitials(settlement.from_user_name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      user={settlement.fromUser}
+                      className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
+                      shouldShowName={false}
+                    />
                   </motion.div>
 
                   <motion.div variants={arrowVariants}>
@@ -168,11 +167,11 @@ const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
                   </motion.div>
 
                   <motion.div variants={avatarVariants}>
-                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
-                      <AvatarFallback className="text-xs sm:text-sm font-medium">
-                        {getInitials(settlement.to_user_name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      user={settlement.toUser}
+                      className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
+                      shouldShowName={false}
+                    />
                   </motion.div>
                 </motion.div>
                 {/* Text content */}
@@ -185,11 +184,11 @@ const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
                   >
                     <span className="font-semibold text-sm sm:text-base text-gray-900 leading-tight">
                       <span className="text-blue-600">
-                        {settlement.from_user_name}
+                        {settlement.fromUser.full_name}
                       </span>
                       <span className="text-gray-500 mx-1">paid</span>
                       <span className="text-green-600">
-                        {settlement.to_user_name}
+                        {settlement.toUser.full_name}
                       </span>
                     </span>
 

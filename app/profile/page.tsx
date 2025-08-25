@@ -1,6 +1,5 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import UserAvatar from '@/components/user-avatar';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
@@ -244,15 +244,11 @@ function ProfileEditPage() {
           <CardContent className="space-y-6">
             {/* Avatar Section */}
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="text-xl">
-                  {formData.full_name
-                    ?.split(' ')
-                    .map((n) => n[0])
-                    .join('') || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                className="h-20 w-20"
+                user={profile}
+                shouldShowName={false}
+              />
               <div className="space-y-2">
                 <p className="text-sm font-medium">Profile Picture</p>
                 <p className="text-sm text-muted-foreground">

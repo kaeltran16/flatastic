@@ -1,9 +1,7 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Balance } from '@/lib/supabase/types';
-import { getInitials } from '@/utils';
 import {
   ArrowUpRight,
   Bell,
@@ -12,6 +10,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import UserAvatar from '../user-avatar';
 
 interface BalanceCardProps {
   balance: Balance;
@@ -35,12 +34,12 @@ const BalanceCard = ({
   // Helper functions for permission checks
   const canRemind = (balance: Balance, currentUserId: string | undefined) => {
     // Only the person who is owed money can send reminders
-    return currentUserId === balance.to_user_id;
+    return currentUserId === balance.toUser.id;
   };
 
   const canSettle = (balance: Balance, currentUserId: string | undefined) => {
     // Only the person who owes money can settle/pay
-    return currentUserId === balance.from_user_id;
+    return currentUserId === balance.fromUser.id;
   };
 
   const cardVariants = {
@@ -192,11 +191,10 @@ const BalanceCard = ({
                 <div className="flex items-center justify-between sm:justify-center flex-1">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <motion.div variants={avatarVariants}>
-                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
-                        <AvatarFallback className="text-xs sm:text-sm font-medium">
-                          {getInitials(balance.from_user_name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        user={balance.fromUser}
+                        className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
+                      />
                     </motion.div>
 
                     <motion.span
@@ -209,11 +207,17 @@ const BalanceCard = ({
                     </motion.span>
 
                     <motion.div variants={avatarVariants}>
-                      <Avatar className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
+                      {/* <Avatar className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
                         <AvatarFallback className="text-xs sm:text-sm font-medium">
-                          {getInitials(balance.to_user_name)}
+                          {getInitials(balance.toUser.full_name)}
                         </AvatarFallback>
-                      </Avatar>
+                      </Avatar> */}
+
+                      <UserAvatar
+                        user={balance.toUser}
+                        className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
+                        shouldShowName={false}
+                      />
                     </motion.div>
                   </div>
 
@@ -253,15 +257,15 @@ const BalanceCard = ({
                     transition={{ delay: index * 0.05 + 0.1 }}
                   >
                     <span className="font-medium text-red-600">
-                      {balance.from_user_id === currentUserId
+                      {balance.fromUser.id === currentUserId
                         ? 'You'
-                        : balance.from_user_name}
+                        : balance.fromUser.full_name}
                     </span>
                     <span className="text-muted-foreground mx-1">→</span>
                     <span className="font-medium text-green-600">
-                      {balance.to_user_id === currentUserId
+                      {balance.toUser.id === currentUserId
                         ? 'You'
-                        : balance.to_user_name}
+                        : balance.toUser.full_name}
                     </span>
                   </motion.div>
 
@@ -349,11 +353,11 @@ const BalanceCard = ({
                   <div className="flex items-center justify-between sm:justify-start">
                     <div className="flex items-center gap-2">
                       <motion.div variants={avatarVariants}>
-                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
-                          <AvatarFallback className="text-xs sm:text-sm font-medium">
-                            {getInitials(balance.from_user_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          user={balance.fromUser}
+                          className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
+                          shouldShowName={false}
+                        />
                       </motion.div>
 
                       <motion.div variants={arrowVariants}>
@@ -361,11 +365,11 @@ const BalanceCard = ({
                       </motion.div>
 
                       <motion.div variants={avatarVariants}>
-                        <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm">
-                          <AvatarFallback className="text-xs sm:text-sm font-medium">
-                            {getInitials(balance.to_user_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          user={balance.toUser}
+                          className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
+                          shouldShowName={false}
+                        />
                       </motion.div>
                     </div>
 
@@ -390,11 +394,11 @@ const BalanceCard = ({
                     >
                       <span className="font-semibold text-sm sm:text-base">
                         <span className="text-red-600">
-                          {balance.from_user_name}
+                          {balance.fromUser.full_name}
                         </span>
                         <span className="text-muted-foreground mx-1">owes</span>
                         <span className="text-green-600">
-                          {balance.to_user_name}
+                          {balance.toUser.full_name}
                         </span>
                       </span>
 
@@ -566,11 +570,11 @@ const BalanceCard = ({
                       {/* Avatar section - more compact on mobile */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <motion.div variants={avatarVariants}>
-                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm">
-                            <AvatarFallback className="text-xs font-medium">
-                              {getInitials(balance.from_user_name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            user={balance.fromUser}
+                            className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm"
+                            shouldShowName={false}
+                          />
                         </motion.div>
 
                         <motion.div variants={arrowVariants}>
@@ -578,11 +582,11 @@ const BalanceCard = ({
                         </motion.div>
 
                         <motion.div variants={avatarVariants}>
-                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm">
-                            <AvatarFallback className="text-xs font-medium">
-                              {getInitials(balance.to_user_name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            user={balance.toUser}
+                            className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm"
+                            shouldShowName={false}
+                          />
                         </motion.div>
                       </div>
 
@@ -609,17 +613,17 @@ const BalanceCard = ({
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <span className="font-medium text-sm sm:text-base leading-tight">
                             <span className="text-red-600">
-                              {balance.from_user_id === currentUserId
+                              {balance.fromUser.id === currentUserId
                                 ? 'You'
-                                : balance.from_user_name}
+                                : balance.fromUser.full_name}
                             </span>
                             <span className="text-muted-foreground mx-1">
                               owes
                             </span>
                             <span className="text-green-600">
-                              {balance.to_user_id === currentUserId
-                                ? 'you'
-                                : balance.to_user_name}
+                              {balance.toUser.id === currentUserId
+                                ? 'You'
+                                : balance.toUser.full_name}
                             </span>
                           </span>
 

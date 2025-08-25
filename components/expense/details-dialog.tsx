@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
+import UserAvatar from '../user-avatar';
 import DeleteExpenseDialog from './delete-expense-dialog';
 import EditExpenseDialog, { ExpenseFormData } from './edit-expense-dialog';
 import PaymentDialog from './payment-dialog';
@@ -328,25 +328,13 @@ export default function ExpenseDetailsDialog({
                       Paid By
                     </h3>
                     <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
-                      <Avatar className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0">
-                        <AvatarFallback className="text-sm font-medium bg-primary/10 text-primary">
-                          {expense.payer_name
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')
-                            .slice(0, 2)
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0"
+                        user={currentUser}
+                        shouldShowName={true}
+                        showAsYou={true}
+                      />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-base">
-                          {isPayer ? 'You' : expense.payer_name}
-                          {isPayer && (
-                            <span className="ml-2 text-xs text-muted-foreground font-normal">
-                              (You paid)
-                            </span>
-                          )}
-                        </p>
                         <p className="text-sm text-muted-foreground">
                           {formatFullDate(expense.date)}
                         </p>

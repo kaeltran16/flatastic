@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -7,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Profile } from '@/lib/supabase/schema.alias';
 import { Balance } from '@/lib/supabase/types';
-import { getInitials } from '@/utils';
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -19,16 +18,11 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-
-interface HouseholdMember {
-  id: string;
-  full_name: string | null;
-  email: string;
-}
+import UserAvatar from '../user-avatar';
 
 interface PaymentSidebarProps {
   userBalances: Balance[];
-  householdMembers?: HouseholdMember[];
+  householdMembers?: Profile[];
   currentUserId?: string;
   onRecordPayment: () => void;
 }
@@ -70,11 +64,11 @@ const PaymentSidebar = ({
   onRecordPayment,
 }: PaymentSidebarProps) => {
   const totalOwed = userBalances
-    .filter((b) => b.to_user_id === currentUserId)
+    .filter((b) => b.toUser.id === currentUserId)
     .reduce((sum, b) => sum + b.amount, 0);
 
   const totalYouOwe = userBalances
-    .filter((b) => b.from_user_id === currentUserId)
+    .filter((b) => b.fromUser.id === currentUserId)
     .reduce((sum, b) => sum + b.amount, 0);
 
   const netBalance = totalOwed - totalYouOwe;
@@ -386,11 +380,11 @@ const PaymentSidebar = ({
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50/50 transition-colors cursor-pointer"
                 >
                   <motion.div variants={avatarVariants}>
-                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm">
-                      <AvatarFallback className="text-xs sm:text-sm font-medium">
-                        {getInitials(member.full_name || member.email)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      user={member}
+                      className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
+                      shouldShowName={false}
+                    />
                   </motion.div>
                   <div className="flex-1 min-w-0">
                     <motion.p

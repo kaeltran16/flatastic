@@ -13,6 +13,7 @@ import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface DeleteExpenseDialogProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ const DeleteExpenseDialog: React.FC<DeleteExpenseDialogProps> = ({
 
   const handleDelete = async (): Promise<void> => {
     if (!expense) {
-      alert('No expense to delete');
+      toast.error('No expense to delete');
       return;
     }
 
@@ -46,9 +47,9 @@ const DeleteExpenseDialog: React.FC<DeleteExpenseDialogProps> = ({
     } catch (error) {
       console.error('Error deleting expense:', error);
       if (error instanceof Error) {
-        alert(`Failed to delete expense: ${error.message}`);
+        toast.error(`Failed to delete expense: ${error.message}`);
       } else {
-        alert('Failed to delete expense. Please try again.');
+        toast.error('Failed to delete expense. Please try again.');
       }
     } finally {
       setLoading(false);

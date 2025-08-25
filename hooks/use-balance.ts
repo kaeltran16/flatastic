@@ -166,11 +166,8 @@ export function useBalances() {
           if (netAmount > 0) {
             // B owes A (net)
             balanceArray.push({
-              from_user_id: userB.id,
-              from_user_name:
-                userB.id === userId ? 'You' : userB.full_name || '',
-              to_user_id: userA.id,
-              to_user_name: userA.id === userId ? 'You' : userA.full_name || '',
+              fromUser: userB,
+              toUser: userA,
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
               payment_link: userA.payment_link || undefined,
@@ -178,11 +175,8 @@ export function useBalances() {
           } else {
             // A owes B (net)
             balanceArray.push({
-              from_user_id: userA.id,
-              from_user_name:
-                userA.id === userId ? 'You' : userA.full_name || '',
-              to_user_id: userB.id,
-              to_user_name: userB.id === userId ? 'You' : userB.full_name || '',
+              fromUser: userA,
+              toUser: userB,
               amount: Math.abs(netAmount),
               related_splits: relatedSplits,
               payment_link: userB.payment_link || undefined,
@@ -360,13 +354,13 @@ export function useBalances() {
   // Get balances involving the current user
   const yourBalances = balances.filter(
     (balance) =>
-      balance.from_user_id === currentUser?.id ||
-      balance.to_user_id === currentUser?.id
+      balance.fromUser.id === currentUser?.id ||
+      balance.toUser.id === currentUser?.id
   );
 
   // Calculate your net balance (positive if you're owed money, negative if you owe)
   const yourNetBalance = yourBalances.reduce((net, balance) => {
-    if (balance.from_user_id === currentUser?.id) {
+    if (balance.fromUser.id === currentUser?.id) {
       // You owe this amount (negative contribution to net)
       return net - balance.amount;
     } else {

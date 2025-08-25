@@ -56,15 +56,15 @@ export default function PaymentsPage() {
   // Filter balances to only show those involving current user
   const userBalances = balances.filter(
     (balance) =>
-      balance.from_user_id === currentUser?.id ||
-      balance.to_user_id === currentUser?.id
+      balance.fromUser.id === currentUser?.id ||
+      balance.toUser.id === currentUser?.id
   );
 
   // Filter completed settlements to only show those involving current user
   const userCompletedSettlements = completedSettlements.filter(
     (settlement) =>
-      settlement.from_user_id === currentUser?.id ||
-      settlement.to_user_id === currentUser?.id
+      settlement.fromUser.id === currentUser?.id ||
+      settlement.toUser.id === currentUser?.id
   );
 
   const pendingCount = userBalances.length;
@@ -72,11 +72,11 @@ export default function PaymentsPage() {
 
   // Calculate total amounts
   const totalOwed = userBalances
-    .filter((balance) => balance.to_user_id === currentUser?.id)
+    .filter((balance) => balance.toUser.id === currentUser?.id)
     .reduce((sum, balance) => sum + balance.amount, 0);
 
   const totalOwing = userBalances
-    .filter((balance) => balance.from_user_id === currentUser?.id)
+    .filter((balance) => balance.fromUser.id === currentUser?.id)
     .reduce((sum, balance) => sum + balance.amount, 0);
 
   if (loading) {
@@ -161,7 +161,7 @@ export default function PaymentsPage() {
                       <div className="space-y-3">
                         {userBalances.map((balance, index) => (
                           <BalanceCard
-                            key={`balance-${balance.from_user_id}-${balance.to_user_id}-${index}`}
+                            key={`balance-${balance.fromUser.id}-${balance.toUser.id}-${index}`}
                             balance={balance}
                             currentUserId={currentUser?.id}
                             onSettle={openSettleDialog}
@@ -190,7 +190,7 @@ export default function PaymentsPage() {
                       <div className="space-y-4">
                         {userBalances.map((balance, balanceIndex) => (
                           <BalanceCard
-                            key={`individual-${balance.from_user_id}-${balance.to_user_id}-${balanceIndex}`}
+                            key={`individual-${balance.fromUser.id}-${balance.toUser.id}-${balanceIndex}`}
                             balance={balance}
                             currentUserId={currentUser?.id}
                             onSettle={openSettleDialog}
@@ -245,7 +245,7 @@ export default function PaymentsPage() {
                     {/* Show pending balances */}
                     {userBalances.map((balance, index) => (
                       <BalanceCard
-                        key={`pending-${balance.from_user_id}-${balance.to_user_id}-${index}`}
+                        key={`pending-${balance.fromUser.id}-${balance.toUser.id}-${index}`}
                         balance={balance}
                         currentUserId={currentUser?.id}
                         onSettle={openSettleDialog}

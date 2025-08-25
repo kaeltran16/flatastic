@@ -11,13 +11,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Household, Profile } from '@/lib/supabase/schema.alias';
-import { formatDate, getInitials } from '@/utils';
+import { formatDate } from '@/utils';
 import { Calendar, Edit, Mail, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import UserAvatar from '../user-avatar';
 import { buttonHover, memberVariants } from './animations';
 
 interface MemberCardProps {
@@ -64,12 +64,12 @@ export function MemberCard({
             stiffness: 200,
           }}
         >
-          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 ring-2 ring-background">
-            <AvatarImage src={member.avatar_url || '/placeholder.svg'} />
-            <AvatarFallback className="text-xs sm:text-sm">
-              {getInitials(member.full_name || member.email)}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 ring-2 ring-background"
+            shouldShowName={false}
+            showAsYou={false}
+            user={member}
+          />
         </motion.div>
         <div className="min-w-0 flex-1">
           <motion.div

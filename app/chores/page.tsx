@@ -16,6 +16,7 @@ import AddChoreButton from '@/components/chore/add-chore-button';
 import { LoadingSpinner } from '@/components/household/loading';
 import { addChore } from '@/lib/actions/chore';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
+import { toast } from 'sonner';
 
 // Data structure for chore updates
 export interface ChoreUpdateData {
@@ -255,7 +256,7 @@ export default function ChoresPage() {
       );
     } catch (err) {
       console.error('Error marking chore complete:', err);
-      alert('Failed to mark chore as complete');
+      toast.error('Failed to mark chore as complete');
     }
   };
 

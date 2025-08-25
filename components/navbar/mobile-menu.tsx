@@ -1,11 +1,11 @@
 // components/navbar/mobile-menu.tsx
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Home, LucideIcon, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
+import UserAvatar from '../user-avatar';
 
 interface NavigationItem {
   name: string;
@@ -169,15 +169,12 @@ export function MobileMenu({
                 variants={staggerItem}
               >
                 <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10 border-2 border-primary/20">
-                    <AvatarImage src={profile.avatar_url || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                      {profile.full_name
-                        ?.split(' ')
-                        .map((n) => n[0])
-                        .join('') || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    user={profile}
+                    className="h-10 w-10 border-2 border-primary/20"
+                    shouldShowName={false}
+                  />
+
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {profile.full_name || 'User'}

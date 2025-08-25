@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import UserAvatar from '../user-avatar';
 import DeleteExpenseDialog from './delete-expense-dialog';
 import ExpenseDetailsDialog from './details-dialog';
 import EditExpenseDialog, { ExpenseFormData } from './edit-expense-dialog';
@@ -143,19 +143,11 @@ export default function ExpenseCard({
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center gap-1">
-                        <Avatar className="w-4 h-4">
-                          <AvatarFallback className="text-xs font-medium bg-gray-200 dark:bg-gray-700">
-                            {expense.payer_name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .slice(0, 2)
-                              .toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="truncate max-w-20">
-                          {isPayer ? 'You' : expense.payer_name}
-                        </span>
+                        <UserAvatar
+                          user={currentUser}
+                          shouldShowName={true}
+                          showAsYou={true}
+                        />
                       </div>
                       <span className="text-gray-400">•</span>
                       <span>{formatDate(expense.date)}</span>

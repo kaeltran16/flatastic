@@ -1,7 +1,6 @@
 // components/navbar/user-dropdown.tsx
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User } from 'lucide-react';
 import { motion } from 'motion/react';
+import UserAvatar from '../user-avatar';
 
 interface Profile {
   full_name: string | null;
@@ -36,15 +36,11 @@ export function UserDropdown({
       <DropdownMenuTrigger asChild>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-8 w-8 border-2 border-primary/20">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                {profile.full_name
-                  ?.split(' ')
-                  .map((n) => n[0])
-                  .join('') || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              user={profile}
+              className="h-8 w-8 border-2 border-primary/20"
+              shouldShowName={false}
+            />
           </Button>
         </motion.div>
       </DropdownMenuTrigger>

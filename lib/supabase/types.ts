@@ -67,10 +67,8 @@ export interface ExpenseSplitWithExpense
 }
 
 export interface Balance {
-  from_user_id: string;
-  from_user_name: string;
-  to_user_id: string;
-  to_user_name: string;
+  fromUser: Profile;
+  toUser: Profile;
   amount: number;
   related_splits: ExpenseSplitWithExpense[];
   payment_link?: string;
@@ -78,10 +76,8 @@ export interface Balance {
 
 export interface Settlement {
   id: string;
-  from_user_id: string;
-  from_user_name: string;
-  to_user_id: string;
-  to_user_name: string;
+  fromUser: Profile;
+  toUser: Profile;
   amount: number;
   description: string;
   status: 'pending' | 'completed';

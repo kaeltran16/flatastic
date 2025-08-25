@@ -51,10 +51,10 @@ const StatsCards = ({
 
   // Count of unique people involved
   const peopleOwingYou = balances.filter(
-    (b) => b.to_user_id === currentUserId
+    (b) => b.toUser.id === currentUserId
   ).length;
   const peopleYouOwe = balances.filter(
-    (b) => b.from_user_id === currentUserId
+    (b) => b.fromUser.id === currentUserId
   ).length;
 
   // Count-up animations for numbers

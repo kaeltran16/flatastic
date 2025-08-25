@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -19,6 +18,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import UserAvatar from '../user-avatar';
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -132,16 +132,7 @@ export default function PaymentDialog({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="text-sm font-medium">
-                        {expense.payer_name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar className="h-10 w-10" user={currentUser} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         Pay {expense.payer_name}

@@ -1,6 +1,5 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -466,15 +465,6 @@ export function Navbar() {
                       variant="ghost"
                       className="relative h-10 w-10 rounded-full"
                     >
-                      {/* <Avatar className="h-8 w-8 border-2 border-primary/20">
-                        <AvatarImage src={profile.avatar_url || undefined} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                          {profile.full_name
-                            ?.split(' ')
-                            .map((n) => n[0])
-                            .join('') || 'U'}
-                        </AvatarFallback>
-                      </Avatar> */}
                       <UserAvatar user={profile} shouldShowName={false} />
                     </Button>
                   </motion.div>
@@ -590,15 +580,7 @@ export function Navbar() {
                   variants={staggerItem}
                 >
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-10 w-10 border-2 border-primary/20">
-                      <AvatarImage src={profile.avatar_url || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                        {profile.full_name
-                          ?.split(' ')
-                          .map((n) => n[0])
-                          .join('') || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar user={profile} shouldShowName={false} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {profile.full_name || 'User'}

@@ -1,14 +1,13 @@
 import EditChoreButton from '@/components/chore/edit-chore-button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
-import { getInitials } from '@/utils';
-import { Calendar, CheckCircle2, User } from 'lucide-react';
+import { Calendar, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChoreUpdateData } from '../../app/chores/page';
+import UserAvatar from '../user-avatar';
 
 interface ChoreCardProps {
   chore: Chore;
@@ -161,24 +160,7 @@ export default function ChoreCard({
             {/* Assignment and Date Info */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pl-8 sm:pl-0 text-sm text-muted-foreground">
               {assignedMember && (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 flex-shrink-0" />
-                  <Avatar className="h-6 w-6 flex-shrink-0">
-                    <AvatarImage
-                      src={assignedMember.avatar_url || '/placeholder.svg'}
-                    />
-                    <AvatarFallback className="text-xs">
-                      {getInitials(
-                        assignedMember.full_name || assignedMember.email
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate">
-                    {assignedMember.id === currentUser.id
-                      ? 'You'
-                      : assignedMember.full_name}
-                  </span>
-                </div>
+                <UserAvatar user={assignedMember} showAsYou={true} />
               )}
 
               {chore.due_date && !isCompleted && (

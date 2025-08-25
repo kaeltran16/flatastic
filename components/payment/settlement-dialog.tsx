@@ -174,9 +174,9 @@ const SettlementDialog = ({
                       <>
                         Pay{' '}
                         <strong>
-                          {selectedBalance.to_user_id === currentUserId
+                          {selectedBalance.toUser.id === currentUserId
                             ? 'yourself'
-                            : selectedBalance.to_user_name}
+                            : selectedBalance.toUser.full_name}
                         </strong>{' '}
                         ${selectedBalance.amount.toFixed(2)}
                       </>

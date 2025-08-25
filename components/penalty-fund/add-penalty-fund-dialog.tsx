@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import {
+  AlertTriangle,
   CheckCircle,
   ChevronDown,
   DollarSign,
@@ -30,7 +31,6 @@ import {
   Plus,
   Users,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import React, { useMemo, useState } from 'react';
 import UserAvatar from '../user-avatar';
 
@@ -74,6 +74,8 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const penaltyReasons = [
@@ -147,12 +149,21 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
       description: '',
     });
     setExpandedSection(null);
+    setShowSuccess(false);
+    setShowError(false);
+    setErrorMessage('');
+  };
+
+  const showErrorAlert = (message: string) => {
+    setErrorMessage(message);
+    setShowError(true);
+    setTimeout(() => setShowError(false), 5000);
   };
 
   const handleSubmit = async () => {
     // Validate required fields
     if (!formData.amount || !formData.userId || !formData.reason) {
-      alert('Please fill in all required fields');
+      showErrorAlert('Please fill in all required fields');
       return;
     }
 
@@ -160,6 +171,8 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
 
     try {
       const supabase = createClient();
+      const amount = parseFloat(formData.amount);
+      const currentDate = new Date().toISOString();
 
       // Insert fund penalty record
       const { error: fundError } = await supabase
@@ -167,14 +180,49 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
         .insert({
           household_id: householdId,
           user_id: formData.userId,
-          amount: parseFloat(formData.amount),
+          amount: amount,
           reason: formData.reason,
           chore_id: formData.choreId || null,
           description: formData.description || null,
-          created_at: new Date().toISOString(),
+          created_at: currentDate,
         });
 
       if (fundError) throw fundError;
+
+      // Create corresponding expense record
+      const expenseDescription = formData.description
+        ? `Penalty: ${formData.reason} - ${formData.description}`
+        : `Penalty: ${formData.reason}`;
+
+      const { data: createdExpense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          household_id: householdId,
+          paid_by: formData.userId, // The penalized user is responsible for this expense
+          amount: amount,
+          description: expenseDescription,
+          category: 'penalty', // Categorize as penalty expense
+          date: currentDate,
+          split_type: 'custom', // Use custom since only one person owes
+          created_at: currentDate,
+          updated_at: currentDate,
+        })
+        .select()
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      // Create expense split - the penalized user owes the full amount
+      const { error: splitError } = await supabase
+        .from('expense_splits')
+        .insert({
+          expense_id: createdExpense.id,
+          user_id: formData.userId,
+          amount_owed: amount,
+          is_settled: false, // Penalty starts as unsettled
+        });
+
+      if (splitError) throw splitError;
 
       // Create notification for the penalized user
       const { error: notificationError } = await supabase
@@ -202,11 +250,10 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
       setTimeout(() => {
         resetForm();
         onOpenChange(false);
-        setShowSuccess(false);
       }, 2000);
     } catch (error) {
       console.error('Error adding fund penalty:', error);
-      alert('Failed to add penalty. Please try again.');
+      showErrorAlert('Failed to add penalty. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -217,384 +264,321 @@ const AddPenaltyDialog: React.FC<AddPenaltyDialogProps> = ({
     onOpenChange(false);
   };
 
-  const getInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  };
-
   const isFormValid = formData.amount && formData.userId && formData.reason;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <AnimatePresence>
-        {isOpen && (
-          <DialogContent className="w-[95vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              <DialogHeader className="pb-4 sm:pb-6">
-                <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <DollarSign className="w-5 h-5 text-red-600" />
-                  Add Fund Penalty
-                </DialogTitle>
-              </DialogHeader>
+      <DialogContent className="w-[95vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <div className="animate-in fade-in-50 duration-200">
+          <DialogHeader className="pb-4 sm:pb-6">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <DollarSign className="w-5 h-5 text-red-600" />
+              Add Fund Penalty
+            </DialogTitle>
+          </DialogHeader>
 
-              {/* Success Alert */}
-              <AnimatePresence>
-                {showSuccess && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-4"
-                  >
-                    <Alert className="border-green-200 bg-green-50">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-800 font-medium text-sm">
-                        🎉 Penalty added successfully!
-                      </AlertDescription>
-                    </Alert>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          {/* Success Alert */}
+          {showSuccess && (
+            <div className="mb-4 animate-in fade-in-50 duration-200">
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800 font-medium text-sm">
+                  🎉 Penalty and expense added successfully!
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
 
-              <div className="space-y-4 sm:space-y-6">
-                {/* Select Member */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="space-y-2"
-                >
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Select Member *
-                  </Label>
-                  {isLoading ? (
-                    <div className="space-y-2">
-                      {[1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="p-3 border-2 border-dashed rounded-lg animate-pulse"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-                            <div className="space-y-1 flex-1">
-                              <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                              <div className="h-2 bg-gray-200 rounded w-1/2"></div>
-                            </div>
-                          </div>
+          {/* Error Alert */}
+          {showError && (
+            <div className="mb-4 animate-in fade-in-50 duration-200">
+              <Alert className="border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 font-medium text-sm">
+                  {errorMessage}
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <div className="space-y-4 sm:space-y-6">
+            {/* Select Member */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Select Member *
+              </Label>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3 border-2 border-dashed rounded-lg animate-pulse"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div className="space-y-1 flex-1">
+                          <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-2 bg-gray-200 rounded w-1/2"></div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  ) : (
-                    <Select
-                      value={formData.userId}
-                      onValueChange={(value) =>
-                        handleSelectChange('userId', value)
-                      }
+                  ))}
+                </div>
+              ) : (
+                <Select
+                  value={formData.userId}
+                  onValueChange={(value) => handleSelectChange('userId', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
+                    <SelectValue placeholder="Select a household member" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {householdMembers.map((member) => (
+                      <SelectItem
+                        key={member.id}
+                        value={member.id}
+                        className="py-3 sm:py-2"
+                      >
+                        <UserAvatar
+                          user={member}
+                          showAsYou={member.id === currentUser.id}
+                        />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Penalty Amount */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Penalty Amount *</Label>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-2">
+                  {quickAmounts.map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => handleQuickAmount(amount)}
+                      className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium hover:scale-105 active:scale-95 ${
+                        formData.amount === amount
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      type="button"
                       disabled={isSubmitting}
                     >
-                      <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
-                        <SelectValue placeholder="Select a household member" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[200px]">
-                        {householdMembers.map((member) => (
-                          <SelectItem
-                            key={member.id}
-                            value={member.id}
-                            className="py-3 sm:py-2"
-                          >
-                            <UserAvatar
-                              user={member}
-                              showAsYou={member.id === currentUser.id}
-                            />
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </motion.div>
-
-                {/* Penalty Amount */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="space-y-2"
-                >
-                  <Label className="text-sm font-medium">
-                    Penalty Amount *
-                  </Label>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-4 gap-2">
-                      {quickAmounts.map((amount, index) => (
-                        <motion.button
-                          key={amount}
-                          onClick={() => handleQuickAmount(amount)}
-                          className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                            formData.amount === amount
-                              ? 'border-green-500 bg-green-50 text-green-700'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                          type="button"
-                          disabled={isSubmitting}
-                          whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                          whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.2 + index * 0.05 }}
-                        >
-                          ${amount}
-                        </motion.button>
-                      ))}
-                    </div>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        name="amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Custom amount"
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        className="pl-9 h-11 sm:h-10 text-base sm:text-sm"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Reason */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="space-y-2"
-                >
-                  <Label className="text-sm font-medium">Reason *</Label>
-                  <Select
-                    value={formData.reason}
-                    onValueChange={(value) =>
-                      handleSelectChange('reason', value)
-                    }
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Custom amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    className="pl-9 h-11 sm:h-10 text-base sm:text-sm"
                     disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
-                      <SelectValue placeholder="Select a reason" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {penaltyReasons.map((reason) => (
-                        <SelectItem
-                          key={reason.value}
-                          value={reason.value}
-                          className="py-3 sm:py-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{reason.icon}</span>
-                            <span className="text-base sm:text-sm">
-                              {reason.value}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </motion.div>
-
-                {/* Optional Details - Collapsible */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="space-y-3"
-                >
-                  <motion.button
-                    type="button"
-                    onClick={() =>
-                      setExpandedSection(
-                        expandedSection === 'details' ? null : 'details'
-                      )
-                    }
-                    className="flex items-center justify-between w-full text-left"
-                    whileTap={{ scale: 0.98 }}
-                    disabled={isSubmitting}
-                  >
-                    <Label className="text-sm font-medium text-gray-700">
-                      Additional Details (Optional)
-                    </Label>
-                    <motion.div
-                      animate={{
-                        rotate: expandedSection === 'details' ? 180 : 0,
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
-                    </motion.div>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {expandedSection === 'details' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-4 overflow-hidden"
-                      >
-                        {/* Related Chore */}
-                        <div className="space-y-2">
-                          <Label className="text-sm text-gray-600">
-                            Related Chore
-                          </Label>
-                          {isLoading ? (
-                            <div className="bg-gray-100 rounded-lg animate-pulse flex items-center px-3">
-                              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                              <span className="ml-2 text-sm text-gray-500">
-                                Loading chores...
-                              </span>
-                            </div>
-                          ) : relatedChores.length > 0 ? (
-                            <Select
-                              value={formData.choreId}
-                              onValueChange={(value) =>
-                                handleSelectChange('choreId', value)
-                              }
-                              disabled={isSubmitting}
-                            >
-                              <SelectTrigger className="text-sm w-full">
-                                <SelectValue placeholder="Select a chore (optional)" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-[240px] w-full">
-                                {relatedChores.map((chore) => (
-                                  <SelectItem
-                                    key={chore.id}
-                                    value={chore.id}
-                                    className="py-2 w-full"
-                                  >
-                                    <div className="flex items-center justify-between w-full min-w-0 gap-2">
-                                      {/* Left side: name and due date */}
-                                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <span className="font-medium text-sm truncate">
-                                          {chore.name}
-                                        </span>
-                                        {chore.due_date && (
-                                          <span className="text-xs text-gray-500 flex-shrink-0">
-                                            {new Date(chore.due_date) <
-                                            new Date() ? (
-                                              <span className="text-red-600 font-medium">
-                                                {new Date(
-                                                  chore.due_date
-                                                ).toLocaleDateString('en-US', {
-                                                  month: 'short',
-                                                  day: 'numeric',
-                                                })}
-                                              </span>
-                                            ) : (
-                                              new Date(
-                                                chore.due_date
-                                              ).toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                              })
-                                            )}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <Badge
-                                        variant={
-                                          getChoreStatusBadgeProps(
-                                            chore.status || ''
-                                          ).variant
-                                        }
-                                        className="text-xs px-1.5 py-0.5 flex-shrink-0 h-5"
-                                      >
-                                        {chore.status}
-                                      </Badge>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <div className="p-3 border-2 border-dashed border-gray-200 rounded-lg text-center">
-                              <p className="text-sm text-gray-500">
-                                No recent chores found for this member
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Chores assigned to the selected member will
-                                appear here
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Notes */}
-                        <div className="space-y-2">
-                          <Label className="text-sm text-gray-600">
-                            Additional Notes
-                          </Label>
-                          <Textarea
-                            name="description"
-                            placeholder="Any additional details..."
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            rows={3}
-                            className="resize-none text-sm"
-                            disabled={isSubmitting}
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                  />
+                </div>
               </div>
+            </div>
 
-              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 pt-6 sm:pt-4">
-                <Button
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm"
-                >
-                  Cancel
-                </Button>
-                <motion.div
-                  whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                  whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                  className="w-full sm:w-auto"
-                >
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!isFormValid || isSubmitting}
-                    className="w-full text-base sm:text-sm"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Adding...
-                      </>
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Reason *</Label>
+              <Select
+                value={formData.reason}
+                onValueChange={(value) => handleSelectChange('reason', value)}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {penaltyReasons.map((reason) => (
+                    <SelectItem
+                      key={reason.value}
+                      value={reason.value}
+                      className="py-3 sm:py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{reason.icon}</span>
+                        <span className="text-base sm:text-sm">
+                          {reason.value}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Optional Details - Collapsible */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedSection(
+                    expandedSection === 'details' ? null : 'details'
+                  )
+                }
+                className="flex items-center justify-between w-full text-left hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                disabled={isSubmitting}
+              >
+                <Label className="text-sm font-medium text-gray-700">
+                  Additional Details (Optional)
+                </Label>
+                <ChevronDown
+                  className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
+                    expandedSection === 'details' ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {expandedSection === 'details' && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  {/* Related Chore */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-600">
+                      Related Chore
+                    </Label>
+                    {isLoading ? (
+                      <div className="bg-gray-100 rounded-lg animate-pulse flex items-center px-3 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        <span className="ml-2 text-sm text-gray-500">
+                          Loading chores...
+                        </span>
+                      </div>
+                    ) : relatedChores.length > 0 ? (
+                      <Select
+                        value={formData.choreId}
+                        onValueChange={(value) =>
+                          handleSelectChange('choreId', value)
+                        }
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="text-sm w-full">
+                          <SelectValue placeholder="Select a chore (optional)" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[240px] w-full">
+                          {relatedChores.map((chore) => (
+                            <SelectItem
+                              key={chore.id}
+                              value={chore.id}
+                              className="py-2 w-full"
+                            >
+                              <div className="flex items-center justify-between w-full min-w-0 gap-2">
+                                {/* Left side: name and due date */}
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="font-medium text-sm truncate">
+                                    {chore.name}
+                                  </span>
+                                  {chore.due_date && (
+                                    <span className="text-xs text-gray-500 flex-shrink-0">
+                                      {new Date(chore.due_date) < new Date() ? (
+                                        <span className="text-red-600 font-medium">
+                                          {new Date(
+                                            chore.due_date
+                                          ).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                          })}
+                                        </span>
+                                      ) : (
+                                        new Date(
+                                          chore.due_date
+                                        ).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                        })
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <Badge
+                                  variant={
+                                    getChoreStatusBadgeProps(chore.status || '')
+                                      .variant
+                                  }
+                                  className="text-xs px-1.5 py-0.5 flex-shrink-0 h-5"
+                                >
+                                  {chore.status}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add ${formData.amount || '0.00'} Penalty
-                      </>
+                      <div className="p-3 border-2 border-dashed border-gray-200 rounded-lg text-center">
+                        <p className="text-sm text-gray-500">
+                          No recent chores found for this member
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Chores assigned to the selected member will appear
+                          here
+                        </p>
+                      </div>
                     )}
-                  </Button>
-                </motion.div>
-              </DialogFooter>
-            </motion.div>
-          </DialogContent>
-        )}
-      </AnimatePresence>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-600">
+                      Additional Notes
+                    </Label>
+                    <Textarea
+                      name="description"
+                      placeholder="Any additional details..."
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="resize-none text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 pt-6 sm:pt-4">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormValid || isSubmitting}
+              className="w-full sm:w-auto text-base sm:text-sm hover:scale-105 active:scale-95 transition-transform"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add ${formData.amount || '0.00'} Penalty
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 };
