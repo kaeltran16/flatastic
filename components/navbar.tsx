@@ -27,6 +27,7 @@ import {
   Menu,
   User,
   Users,
+  Wallet,
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -43,6 +44,8 @@ const navigationItems = [
   { name: 'Expenses', href: '/expenses', icon: DollarSign },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Household', href: '/household', icon: Users },
+  { name: 'Chore Scheduler', href: '/chore-scheduler', icon: Calendar },
+  { name: 'Penalty Fund', href: '/penalty-fund', icon: Wallet },
   { name: 'PWA NextJS', href: '/pwa-nextjs', icon: Users },
 ];
 
