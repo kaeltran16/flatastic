@@ -206,7 +206,7 @@ export function Navbar() {
 
   return (
     <>
-      <SilentSubscriber userId={profile.id} />
+      {profile.id && <SilentSubscriber userId={profile.id} />}
       <motion.nav
         className={`fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur-md transition-all duration-300 ${
           isScrolled ? 'shadow-lg' : 'shadow-sm'
