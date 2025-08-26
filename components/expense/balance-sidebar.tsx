@@ -18,7 +18,6 @@ interface BalancesSidebarProps {
   yourBalances: Balance[];
   yourNetBalance: number;
   currentUser: Profile | null;
-  onAddExpense: (expenseData: ExpenseFormData) => Promise<void>;
 }
 
 export default function BalancesSidebar({
@@ -26,7 +25,6 @@ export default function BalancesSidebar({
   yourBalances,
   yourNetBalance,
   currentUser,
-  onAddExpense,
 }: BalancesSidebarProps) {
   const getBalanceDisplay = (balance: Balance) => {
     const isYouOwing = balance.fromUser.id === currentUser?.id;

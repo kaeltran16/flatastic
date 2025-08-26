@@ -1,15 +1,14 @@
 'use client';
 
-import AddExpenseButton from '@/components/expense/add-expense-button';
-import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import BalancesSidebar from '@/components/expense/balance-sidebar';
 import { ErrorState } from '@/components/expense/error';
+import ExpenseDialog from '@/components/expense/expense-dialog';
 import ExpenseFilters from '@/components/expense/filter';
 import ExpenseList from '@/components/expense/list';
 import ExpenseStatsCards from '@/components/expense/stats-card';
 import { LoadingSpinner } from '@/components/household/loading';
 import { useBalances } from '@/hooks/use-balance';
-import { useExpenses } from '@/hooks/use-expense';
+import { ExpenseFormData, useExpenses } from '@/hooks/use-expense';
 import { useHouseholdMembers } from '@/hooks/use-supabase-data';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
@@ -237,10 +236,15 @@ export default function ExpensesPage() {
               whileHover="hover"
               whileTap="tap"
             >
-              <AddExpenseButton
-                onAddExpense={handleAddExpense}
+              <ExpenseDialog
+                mode="create"
+                householdId={currentUser?.household_id || ''}
+                currentUserId={currentUser?.id}
                 householdMembers={householdMembers}
-                currentUser={currentUser}
+                onSubmit={async (formData) => {
+                  await handleAddExpense(formData);
+                }}
+                isLoading={false}
               />
             </motion.div>
           </motion.div>
@@ -271,7 +275,6 @@ export default function ExpensesPage() {
                   yourBalances={yourBalances}
                   yourNetBalance={yourNetBalance}
                   currentUser={currentUser}
-                  onAddExpense={handleAddExpense}
                 />
               </div>
             </motion.div>

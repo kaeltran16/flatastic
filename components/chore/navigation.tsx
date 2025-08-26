@@ -1,7 +1,7 @@
-import AddChoreButton from '@/components/chore/add-chore-button';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 import { motion } from 'motion/react';
 import Link from 'next/link';
+import ChoreDialog from './chore-dialog';
 
 interface NavigationBarProps {
   household: Household;
@@ -34,12 +34,15 @@ export default function NavigationBar({
             <span className="ml-2 sm:ml-4 font-medium truncate">Chores</span>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <AddChoreButton
-              onChoreAdded={onChoreAdded}
+            <ChoreDialog
+              mode="create"
               householdId={household.id}
               currentUserId={currentUser.id}
               householdMembers={householdMembers}
-              className="text-sm sm:text-base"
+              onSubmit={async (formData) => {
+                await onChoreAdded(formData as unknown as Chore);
+              }}
+              isLoading={false}
             />
           </div>
         </div>

@@ -1,5 +1,3 @@
-import AddExpenseButton from '@/components/expense/add-expense-button';
-import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Pagination,
@@ -10,17 +8,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { Receipt } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ExpenseCard from './card';
+import ExpenseDialog from './expense-dialog';
 
 interface ExpenseListProps {
   expenses?: ExpenseWithDetails[];
   currentUser: Profile;
   onAddExpense: (data: ExpenseFormData) => Promise<void>;
-  onEditExpense?: (expenseId: string, data: ExpenseFormData) => Promise<void>;
+  onEditExpense?: (
+    expenseId: string,
+    expenseData: ExpenseFormData
+  ) => Promise<void>;
   onDeleteExpense?: (expenseId: string) => Promise<void>;
   onViewDetails: (expense: ExpenseWithDetails) => void;
   onSettle: (expense: ExpenseWithDetails) => void;
@@ -127,10 +130,13 @@ export default function ExpenseList({
           </p>
           {currentUser.household_id && (
             <div className="flex justify-center">
-              <AddExpenseButton
-                onAddExpense={onAddExpense}
+              <ExpenseDialog
+                mode="create"
+                householdId={currentUser.household_id}
+                currentUserId={currentUser.id}
                 householdMembers={householdMembers}
-                currentUser={currentUser}
+                onSubmit={onAddExpense}
+                isLoading={false}
               />
             </div>
           )}

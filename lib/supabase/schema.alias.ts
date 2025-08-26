@@ -37,10 +37,12 @@ export type ChoreStatus = 'pending' | 'completed' | 'overdue';
 export type ExpenseCategory =
   | 'groceries'
   | 'utilities'
-  | 'rent'
+  | 'household'
+  | 'food'
+  | 'transportation'
   | 'entertainment'
   | 'other';
-export type SplitType = 'equal' | 'custom' | 'percentage';
+export type SplitType = 'equal' | 'custom';
 export type RecurringType = 'daily' | 'weekly' | 'monthly' | 'none';
 export type NotificationType =
   | 'chore_reminder'

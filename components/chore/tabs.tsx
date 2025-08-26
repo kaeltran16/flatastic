@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChoreFormData } from '@/hooks/use-chore';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChoreUpdateData } from '../../app/chores/page';
 import ChoreCard from './card';
 import EmptyChoresState from './empty-state';
 
@@ -17,11 +17,11 @@ interface ChoreTabsProps {
   onMarkComplete: (choreId: string) => void;
   onChoreUpdated: (updatedChore: Chore) => void;
   onChoreDeleted: (choreId: string) => void;
-  onUpdateChore: (
-    choreId: string,
-    updateData: ChoreUpdateData
-  ) => Promise<void>;
+  onUpdateChore: (choreId: string, updateData: ChoreFormData) => Promise<void>;
   onDeleteChore: (choreId: string) => Promise<void>;
+  isUpdating: boolean;
+  isDeleting: boolean;
+  isMarkingComplete: boolean;
 }
 
 export default function ChoreTabs({
@@ -38,6 +38,9 @@ export default function ChoreTabs({
   onChoreDeleted,
   onUpdateChore,
   onDeleteChore,
+  isUpdating,
+  isDeleting,
+  isMarkingComplete,
 }: ChoreTabsProps) {
   const renderChoresList = (chores: Chore[], showActions = true) => (
     <div className="space-y-4">
@@ -63,6 +66,9 @@ export default function ChoreTabs({
               onChoreDeleted={onChoreDeleted}
               onUpdateChore={onUpdateChore}
               onDeleteChore={onDeleteChore}
+              isUpdating={isUpdating}
+              isDeleting={isDeleting}
+              isMarkingComplete={isMarkingComplete}
             />
           ))
         )}
