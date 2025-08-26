@@ -1,4 +1,9 @@
 'use client';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 import { LoadingSpinner } from '@/components/household/loading';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -52,17 +57,21 @@ import {
   AlertCircle,
   CalendarIcon,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Eye,
+  GripVertical,
   Loader2,
   Plus,
   RotateCcw,
+  Shuffle,
   Trash2,
   Users,
   UserX,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { AnimatePresence, motion, Reorder } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // Animation variants
@@ -141,6 +150,7 @@ export default function ChoreRotationPage() {
     recurringInterval: 1,
   });
   const [unavailableUsers, setUnavailableUsers] = useState<string[]>([]);
+  const [memberOrder, setMemberOrder] = useState<Profile[]>([]);
   const [rotationPreview, setRotationPreview] = useState<RotationAssignment[]>(
     []
   );
@@ -176,7 +186,23 @@ export default function ChoreRotationPage() {
     },
     enabled: !!profile?.household_id,
   });
+
   const isLoading = profileLoading || membersLoading || choreTemplatesLoading;
+
+  // Initialize member order when members load
+  useEffect(() => {
+    if (members.length > 0 && memberOrder.length === 0) {
+      setMemberOrder(members);
+    }
+  }, [members, memberOrder.length]);
+
+  // Update member order when availability changes
+  const updateMemberOrder = () => {
+    const availableMembers = members.filter(
+      (member) => !unavailableUsers.includes(member.id)
+    );
+    setMemberOrder(availableMembers);
+  };
 
   // Add custom chore
   const addCustomChore = async () => {
@@ -213,19 +239,28 @@ export default function ChoreRotationPage() {
 
   // Toggle user availability
   const toggleUserAvailability = (userId: string): void => {
-    setUnavailableUsers((prev) =>
-      prev.includes(userId)
+    setUnavailableUsers((prev) => {
+      const newUnavailable = prev.includes(userId)
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
+        : [...prev, userId];
+
+      return newUnavailable;
+    });
+  };
+
+  // Shuffle member order
+  const shuffleMemberOrder = (): void => {
+    const shuffled = [...memberOrder].sort(() => Math.random() - 0.5);
+    setMemberOrder(shuffled);
+    toast.success('Member order shuffled!');
   };
 
   // Generate rotation preview
   const generateRotationPreview = (): void => {
     setIsGenerating(true);
 
-    // Get available users
-    const availableUsers = members.filter(
+    // Get available users in the specified order
+    const availableUsers = memberOrder.filter(
       (user) => !unavailableUsers.includes(user.id)
     );
 
@@ -247,7 +282,7 @@ export default function ChoreRotationPage() {
       return;
     }
 
-    // Generate rotation assignments
+    // Generate rotation assignments using the custom order
     const assignments: RotationAssignment[] = [];
     const startDate = new Date(rotationSettings.startDate);
     const intervalDays =
@@ -260,7 +295,7 @@ export default function ChoreRotationPage() {
     for (let period = 0; period < 8; period++) {
       // Generate 8 periods
       choresToRotate.forEach((chore, choreIndex) => {
-        // Round-robin assignment
+        // Round-robin assignment using the custom order
         const userIndex = (choreIndex + period) % availableUsers.length;
         const assignedUser = availableUsers[userIndex];
 
@@ -300,7 +335,7 @@ export default function ChoreRotationPage() {
 
       // Create chores for the first 4 periods only (to avoid overwhelming)
       const choresToCreate = rotationPreview.filter(
-        (assignment) => assignment.period <= 4
+        (assignment) => assignment.period <= members.length
       );
 
       for (const assignment of choresToCreate) {
@@ -446,7 +481,7 @@ export default function ChoreRotationPage() {
         </div>
         <div className="text-sm font-medium capitalize">
           {activeStep === 'select' && 'Select Chores'}
-          {activeStep === 'availability' && 'Member Availability'}
+          {activeStep === 'availability' && 'Member Availability & Order'}
           {activeStep === 'settings' && 'Settings'}
           {activeStep === 'preview' && 'Preview'}
         </div>
@@ -459,7 +494,7 @@ export default function ChoreRotationPage() {
           {/* Chore Selection */}
           <motion.div variants={itemVariants}>
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <CheckCircle2 className="w-5 h-5" />
                   Select Chores
@@ -483,23 +518,26 @@ export default function ChoreRotationPage() {
             </Card>
           </motion.div>
 
-          {/* User Availability */}
+          {/* User Availability & Order */}
           <motion.div variants={itemVariants}>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Users className="w-5 h-5" />
-                  Member Availability
+                  Member Availability & Order
                 </CardTitle>
                 <CardDescription className="text-sm">
-                  Select which members should be excluded from rotation
+                  Select members and arrange their rotation order
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <UserAvailabilityContent
                   members={members}
                   unavailableUsers={unavailableUsers}
+                  memberOrder={memberOrder}
+                  setMemberOrder={setMemberOrder}
                   toggleUserAvailability={toggleUserAvailability}
+                  shuffleMemberOrder={shuffleMemberOrder}
                 />
               </CardContent>
             </Card>
@@ -560,6 +598,7 @@ export default function ChoreRotationPage() {
                   rotationPreview={rotationPreview}
                   isCreatingChores={isCreatingChores}
                   createRotationChores={createRotationChores}
+                  rotationLength={members.length}
                 />
               </CardContent>
             </Card>
@@ -616,17 +655,20 @@ export default function ChoreRotationPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    Member Availability
+                    Member Availability & Order
                   </CardTitle>
                   <CardDescription>
-                    Select who participates in rotation
+                    Select and arrange member order
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4">
                   <UserAvailabilityContent
                     members={members}
                     unavailableUsers={unavailableUsers}
+                    memberOrder={memberOrder}
+                    setMemberOrder={setMemberOrder}
                     toggleUserAvailability={toggleUserAvailability}
+                    shuffleMemberOrder={shuffleMemberOrder}
                   />
                 </CardContent>
               </Card>
@@ -701,6 +743,7 @@ export default function ChoreRotationPage() {
                     rotationPreview={rotationPreview}
                     isCreatingChores={isCreatingChores}
                     createRotationChores={createRotationChores}
+                    rotationLength={members.length}
                   />
                 </div>
               </SheetContent>
@@ -736,14 +779,16 @@ function ChoreSelectionContent({
   addCustomChore,
   removeCustomChore,
 }: ChoreSelectionProps) {
+  const [isCustomChoresOpen, setIsCustomChoresOpen] = useState<boolean>(false);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Predefined Chores */}
       <div>
         <Label className="text-sm font-medium mb-3 block">
-          Predefined Chores
+          Available Chores
         </Label>
-        <ScrollArea className="h-40 pr-2">
+        <ScrollArea className="h-40 pr-2 ">
           <div className="space-y-2">
             {choreTemplates.map((chore) => (
               <motion.div
@@ -786,109 +831,131 @@ function ChoreSelectionContent({
         </ScrollArea>
       </div>
 
-      <Separator />
-
-      {/* Custom Chores */}
-      <div>
-        <Label className="text-sm font-medium mb-3 block">Custom Chores</Label>
-
-        {/* Add Custom Chore Form */}
-        <motion.div className="space-y-2 mb-4" variants={itemVariants}>
-          <Input
-            placeholder="Chore name"
-            value={newCustomChore.name}
-            onChange={(e) =>
-              setNewCustomChore((prev) => ({
-                ...prev,
-                name: e.target.value,
-              }))
-            }
-          />
-          <Textarea
-            placeholder="Description (optional)"
-            value={newCustomChore.description}
-            onChange={(e) =>
-              setNewCustomChore((prev) => ({
-                ...prev,
-                description: e.target.value,
-              }))
-            }
-            rows={2}
-          />
+      {/* Custom Chores - Collapsible */}
+      <Collapsible
+        open={isCustomChoresOpen}
+        onOpenChange={setIsCustomChoresOpen}
+        className="mt-8"
+      >
+        <CollapsibleTrigger asChild>
           <Button
-            onClick={addCustomChore}
-            variant="outline"
-            size="sm"
-            className="w-full"
-            disabled={!newCustomChore.name.trim()}
+            variant="ghost"
+            className="w-full justify-between p-0 h-auto font-medium text-sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Custom Chore
+            <span>
+              Custom Chores{' '}
+              {customChores.length > 0 && `(${customChores.length})`}
+            </span>
+            {isCustomChoresOpen ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </Button>
-        </motion.div>
+        </CollapsibleTrigger>
 
-        {/* Custom Chores List */}
-        <AnimatePresence>
-          {customChores.length > 0 && (
-            <div className="space-y-2">
-              {customChores.map((chore) => (
-                <motion.div
-                  key={chore.id}
-                  variants={choreCardVariants}
-                  initial="hidden"
-                  animate={
-                    selectedChores.includes(chore.id) ? 'selected' : 'visible'
-                  }
-                  exit="hidden"
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                    selectedChores.includes(chore.id)
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => toggleChoreSelection(chore.id)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium truncate">{chore.name}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          Custom
-                        </Badge>
+        <CollapsibleContent className="space-y-3 mt-3">
+          {/* Add Custom Chore Form */}
+          <motion.div
+            className="space-y-2 p-3 border rounded-lg bg-gray-50"
+            variants={itemVariants}
+          >
+            <Input
+              placeholder="Chore name"
+              value={newCustomChore.name}
+              onChange={(e) =>
+                setNewCustomChore((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                }))
+              }
+            />
+            <Textarea
+              placeholder="Description (optional)"
+              value={newCustomChore.description}
+              onChange={(e) =>
+                setNewCustomChore((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              rows={2}
+            />
+            <Button
+              onClick={addCustomChore}
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={!newCustomChore.name.trim()}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Custom Chore
+            </Button>
+          </motion.div>
+
+          {/* Custom Chores List */}
+          <AnimatePresence>
+            {customChores.length > 0 && (
+              <div className="space-y-2">
+                {customChores.map((chore) => (
+                  <motion.div
+                    key={chore.id}
+                    variants={choreCardVariants}
+                    initial="hidden"
+                    animate={
+                      selectedChores.includes(chore.id) ? 'selected' : 'visible'
+                    }
+                    exit="hidden"
+                    whileTap={{ scale: 0.98 }}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedChores.includes(chore.id)
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => toggleChoreSelection(chore.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium truncate">{chore.name}</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            Custom
+                          </Badge>
+                        </div>
+                        {chore.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {chore.description}
+                          </p>
+                        )}
                       </div>
-                      {chore.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {chore.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      {selectedChores.includes(chore.id) && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
+                      <div className="flex items-center gap-2 ml-2">
+                        {selectedChores.includes(chore.id) && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                          </motion.div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeCustomChore(chore.id);
+                          }}
                         >
-                          <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                        </motion.div>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeCustomChore(chore.id);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
@@ -897,52 +964,139 @@ function ChoreSelectionContent({
 interface UserAvailabilityProps {
   members: Profile[];
   unavailableUsers: string[];
+  memberOrder: Profile[];
+  setMemberOrder: (order: Profile[]) => void;
   toggleUserAvailability: (userId: string) => void;
+  shuffleMemberOrder: () => void;
 }
 
 function UserAvailabilityContent({
   members,
   unavailableUsers,
+  memberOrder,
+  setMemberOrder,
   toggleUserAvailability,
+  shuffleMemberOrder,
 }: UserAvailabilityProps) {
+  const availableMembers = memberOrder.filter(
+    (member) => !unavailableUsers.includes(member.id)
+  );
+
   return (
-    <div className="space-y-3">
-      {members.map((member) => (
-        <motion.div
-          key={member.id}
-          className="flex items-center justify-between p-3 border rounded-lg"
-          variants={itemVariants}
-          whileTap={{ scale: 0.98 }}
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">
-                {member.full_name || 'Unnamed User'}
-              </p>
-              <p className="text-sm text-muted-foreground truncate">
-                {member.email}
-              </p>
+    <div className="space-y-4">
+      {/* All Members with Availability Toggle and Drag-and-Drop */}
+      <div className="space-y-3">
+        {availableMembers.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">
+              Select available members to arrange rotation order
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-medium">
+                Available Members ({availableMembers.length})
+              </Label>
+              <Button
+                onClick={shuffleMemberOrder}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                disabled={availableMembers.length < 2}
+              >
+                <Shuffle className="w-3 h-3 mr-1" />
+                Shuffle
+              </Button>
+            </div>
+
+            <div className="text-xs text-muted-foreground mb-3">
+              Toggle availability and drag to reorder. First member gets first
+              chore assignment.
+            </div>
+
+            <Reorder.Group
+              axis="y"
+              values={availableMembers}
+              onReorder={(newOrder) => {
+                // Preserve unavailable members at their original positions
+                const unavailableMembers = memberOrder.filter((member) =>
+                  unavailableUsers.includes(member.id)
+                );
+                setMemberOrder([...newOrder, ...unavailableMembers]);
+              }}
+              className="space-y-2"
+            >
+              {availableMembers.map((member, index) => (
+                <Reorder.Item
+                  key={member.id}
+                  value={member}
+                  className="flex items-center gap-3 p-3 border rounded-lg bg-white"
+                >
+                  <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+                  <Badge variant="outline" className="text-xs">
+                    {index + 1}
+                  </Badge>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {member.full_name || 'Unnamed User'}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {member.email}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!unavailableUsers.includes(member.id)}
+                    onCheckedChange={() => toggleUserAvailability(member.id)}
+                  />
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+          </>
+        )}
+      </div>
+
+      {/* Unavailable Members */}
+      {unavailableUsers.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-muted-foreground">
+              Unavailable Members ({unavailableUsers.length})
+            </Label>
+            <div className="space-y-2">
+              {members
+                .filter((member) => unavailableUsers.includes(member.id))
+                .map((member) => (
+                  <motion.div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 opacity-60"
+                    variants={itemVariants}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <UserX className="w-4 h-4 text-red-500" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {member.full_name || 'Unnamed User'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {member.email}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={false}
+                      onCheckedChange={() => toggleUserAvailability(member.id)}
+                    />
+                  </motion.div>
+                ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={!unavailableUsers.includes(member.id)}
-              onCheckedChange={() => toggleUserAvailability(member.id)}
-            />
-            <AnimatePresence>
-              {unavailableUsers.includes(member.id) && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                >
-                  <UserX className="w-4 h-4 text-red-500" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      ))}
+        </>
+      )}
     </div>
   );
 }
@@ -1049,12 +1203,14 @@ interface RotationPreviewProps {
   rotationPreview: RotationAssignment[];
   isCreatingChores: boolean;
   createRotationChores: () => void;
+  rotationLength: number;
 }
 
 function RotationPreviewContent({
   rotationPreview,
   isCreatingChores,
   createRotationChores,
+  rotationLength,
 }: RotationPreviewProps) {
   if (rotationPreview.length === 0) {
     return (
@@ -1068,11 +1224,11 @@ function RotationPreviewContent({
   }
 
   return (
-    <div className="space-y-4">
-      <ScrollArea className="h-80 pr-2">
+    <div className="space-y-4 p-6">
+      <ScrollArea className="h-96 pr-2">
         {/* Group assignments by period */}
         {Array.from(new Set(rotationPreview.map((a) => a.period)))
-          .slice(0, 4)
+          .slice(0, rotationLength)
           .map((period) => (
             <motion.div
               key={period}
@@ -1140,12 +1296,13 @@ function RotationPreviewContent({
           ) : (
             <>
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Create Rotation Chores (First 4 Periods)
+              Create Rotation Chores (First {rotationLength} Periods)
             </>
           )}
         </Button>
         <p className="text-xs text-muted-foreground text-center mt-2">
-          This will create {rotationPreview.filter((a) => a.period <= 4).length}{' '}
+          This will create{' '}
+          {rotationPreview.filter((a) => a.period <= rotationLength).length}{' '}
           chores
         </p>
       </motion.div>

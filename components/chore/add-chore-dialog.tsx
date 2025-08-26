@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Chore, Profile, RecurringType } from '@/lib/supabase/schema.alias';
-import { CalendarDays, Plus, Repeat, User } from 'lucide-react';
+import { CalendarDays, Plus, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -156,8 +156,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
 
       console.log('Submitting chore:', choreCreateData);
 
-      // Mock response for demo - replace with actual Supabase response
-      const mockChore: Chore = {
+      const newChore: Chore = {
         id: uuidv4(),
         ...choreCreateData,
         description: choreCreateData.description || '',
@@ -171,7 +170,7 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
 
       // Call the callback to notify parent component
       if (onChoreAdded) {
-        onChoreAdded(mockChore);
+        onChoreAdded(newChore);
       }
 
       // Reset form and close dialog
@@ -347,69 +346,6 @@ const AddChoreDialog: React.FC<AddChoreDialogProps> = ({
                       />
                     </PopoverContent>
                   </Popover>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-3 sm:space-y-4"
-                >
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <Repeat className="w-4 h-4" />
-                    Recurring
-                  </Label>
-                  <Select
-                    value={formData.recurring_type}
-                    onValueChange={(value: FormData['recurring_type']) =>
-                      handleInputChange('recurring_type', value)
-                    }
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {recurringTypes.map((type) => (
-                        <SelectItem
-                          key={type.value}
-                          value={type.value}
-                          className="py-3 sm:py-2 text-base sm:text-sm"
-                        >
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {formData.recurring_type !== 'none' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-2 flex-wrap sm:flex-nowrap"
-                    >
-                      <Label className="text-sm whitespace-nowrap">Every</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={formData.recurring_interval}
-                        onChange={handleNumberInputChange}
-                        className="w-20 h-10 sm:h-9 text-base sm:text-sm"
-                        disabled={isSubmitting}
-                      />
-                      <Label className="text-sm">
-                        {formData.recurring_type === 'daily'
-                          ? 'days'
-                          : formData.recurring_type === 'weekly'
-                          ? 'weeks'
-                          : formData.recurring_type === 'monthly'
-                          ? 'months'
-                          : 'intervals'}
-                      </Label>
-                    </motion.div>
-                  )}
                 </motion.div>
               </div>
 
