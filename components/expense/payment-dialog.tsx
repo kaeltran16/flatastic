@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import {
-  Calendar,
   CreditCard,
   DollarSign,
   ExternalLink,
@@ -56,8 +55,8 @@ export default function PaymentDialog({
   };
 
   const handlePaymentLinkClick = () => {
-    if (expense?.payer_payment_link) {
-      window.open(expense?.payer_payment_link, '_blank');
+    if (expense?.payer.payment_link) {
+      window.open(expense?.payer.payment_link, '_blank');
     } else {
       toast.error('Payment link not available');
     }
@@ -131,17 +130,12 @@ export default function PaymentDialog({
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <UserAvatar className="h-10 w-10" user={currentUser} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        Pay {expense.payer_name}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(expense.date)}
-                      </div>
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <UserAvatar
+                      className="h-10 w-10"
+                      user={expense.payer}
+                      showAsYou={expense.payer.id === currentUser.id}
+                    />
                     <div className="text-right">
                       <motion.p
                         initial={{ scale: 0 }}
@@ -251,7 +245,7 @@ export default function PaymentDialog({
                                   >
                                     <Button
                                       onClick={handlePaymentLinkClick}
-                                      disabled={!expense?.payer_payment_link}
+                                      disabled={!expense?.payer.payment_link}
                                       className="w-full bg-white text-pink-600 hover:bg-white/90 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
                                     >
                                       Open MoMo
@@ -261,7 +255,7 @@ export default function PaymentDialog({
                                 </div>
                               </motion.div>
 
-                              {expense?.payer_payment_link ? (
+                              {expense?.payer.payment_link ? (
                                 <p className="text-sm text-muted-foreground">
                                   Tap to open MoMo and send payment
                                 </p>
@@ -300,8 +294,8 @@ export default function PaymentDialog({
                               Pay with Cash or Other Method
                             </h4>
                             <p className="text-sm text-muted-foreground mb-4">
-                              Pay {expense.payer_name} directly using cash, bank
-                              transfer, or any other method.
+                              Pay {expense.payer.full_name} directly using cash,
+                              bank transfer, or any other method.
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Click "Mark as Paid" below once you've completed

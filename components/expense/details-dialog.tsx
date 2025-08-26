@@ -314,7 +314,7 @@ export default function ExpenseDetailsDialog({
                           Split Between
                         </p>
                         <p className="font-semibold text-sm">
-                          {expense.splits.length} people
+                          {expense.splits.length + 1} people
                         </p>
                       </div>
                     </div>
@@ -327,17 +327,14 @@ export default function ExpenseDetailsDialog({
                     <h3 className="text-base sm:text-lg font-semibold">
                       Paid By
                     </h3>
-                    <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
+                    <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
                       <UserAvatar
                         className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0"
-                        user={currentUser}
+                        user={expense.payer}
+                        showAsYou={expense.payer.id === currentUser.id}
                         shouldShowName={true}
                       />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-muted-foreground">
-                          {formatFullDate(expense.date)}
-                        </p>
-                      </div>
+
                       <div className="text-right">
                         <p className="font-bold text-lg text-primary">
                           ${expense.amount.toFixed(2)}

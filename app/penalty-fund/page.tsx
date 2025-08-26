@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import UserAvatar from '@/components/user-avatar';
 import { useHouseholdMembers, useProfile } from '@/hooks/use-supabase-data';
 import { createClient } from '@/lib/supabase/client';
 import { ChoreStatus, FundPenalty } from '@/lib/supabase/schema.alias';
@@ -32,6 +33,7 @@ interface FundPenaltyWithRelations extends FundPenalty {
     id: string;
     full_name: string | null;
     email: string;
+    avatar_url: string | null;
   };
   chores?: {
     id: string;
@@ -78,7 +80,8 @@ export default function HouseholdFundPage() {
           profiles!fund_penalties_user_id_fkey(
             id,
             full_name,
-            email
+            email,
+            avatar_url
           ),
           chores(
             id,
@@ -414,23 +417,10 @@ export default function HouseholdFundPage() {
                 ) : recentPenalties.length > 0 ? (
                   <div className="space-y-2 sm:space-y-3">
                     {recentPenalties.map((penalty, index) => {
-                      const userInitials = getUserInitials(
-                        penalty.profiles.full_name,
-                        penalty.profiles.email
-                      );
                       const userName = getUserDisplayName(
                         penalty.profiles.full_name,
                         penalty.profiles.email
                       );
-                      const colorClasses = [
-                        'bg-red-100 text-red-600',
-                        'bg-orange-100 text-orange-600',
-                        'bg-yellow-100 text-yellow-600',
-                        'bg-blue-100 text-blue-600',
-                        'bg-purple-100 text-purple-600',
-                      ];
-                      const colorClass =
-                        colorClasses[index % colorClasses.length];
 
                       return (
                         <motion.div
@@ -442,13 +432,11 @@ export default function HouseholdFundPage() {
                           whileHover={{ scale: 1.02 }}
                         >
                           <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                            <div
-                              className={`h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}
-                            >
-                              <span className="font-medium text-xs sm:text-sm">
-                                {userInitials}
-                              </span>
-                            </div>
+                            <UserAvatar
+                              user={penalty.profiles}
+                              shouldShowName={false}
+                              showAsYou={penalty.profiles.id === profile.id}
+                            />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                                 {userName}

@@ -48,8 +48,7 @@ export interface ChoreWithProfiles extends Chore {
 }
 
 export interface ExpenseWithDetails extends Expense {
-  payer_name: string;
-  payer_payment_link: string;
+  payer: Profile;
   splits: ExpenseSplit[];
   your_share: number;
   status: 'pending' | 'settled';
@@ -130,7 +129,6 @@ export interface NotificationData {
 
 export interface ExpenseWithProfile extends Expense {
   payer?: Profile;
-  payer_name: string;
 }
 
 // export interface ExpenseSplit {

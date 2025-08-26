@@ -384,6 +384,7 @@ const PaymentSidebar = ({
                       user={member}
                       className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
                       shouldShowName={false}
+                      showAsYou={member.id === currentUserId}
                     />
                   </motion.div>
                   <div className="flex-1 min-w-0">

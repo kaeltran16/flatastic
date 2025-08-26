@@ -192,6 +192,7 @@ const BalanceCard = ({
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <motion.div variants={avatarVariants}>
                       <UserAvatar
+                        showAsYou={balance.fromUser.id === currentUserId}
                         user={balance.fromUser}
                         className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
                       />
@@ -215,6 +216,7 @@ const BalanceCard = ({
 
                       <UserAvatar
                         user={balance.toUser}
+                        showAsYou={balance.toUser.id === currentUserId}
                         className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
                         shouldShowName={false}
                       />
@@ -355,6 +357,7 @@ const BalanceCard = ({
                       <motion.div variants={avatarVariants}>
                         <UserAvatar
                           user={balance.fromUser}
+                          showAsYou={balance.fromUser.id === currentUserId}
                           className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
                           shouldShowName={false}
                         />
@@ -367,6 +370,7 @@ const BalanceCard = ({
                       <motion.div variants={avatarVariants}>
                         <UserAvatar
                           user={balance.toUser}
+                          showAsYou={balance.toUser.id === currentUserId}
                           className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
                           shouldShowName={false}
                         />
@@ -572,6 +576,7 @@ const BalanceCard = ({
                         <motion.div variants={avatarVariants}>
                           <UserAvatar
                             user={balance.fromUser}
+                            showAsYou={balance.fromUser.id === currentUserId}
                             className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm"
                             shouldShowName={false}
                           />
@@ -584,6 +589,7 @@ const BalanceCard = ({
                         <motion.div variants={avatarVariants}>
                           <UserAvatar
                             user={balance.toUser}
+                            showAsYou={balance.toUser.id === currentUserId}
                             className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-white shadow-sm"
                             shouldShowName={false}
                           />

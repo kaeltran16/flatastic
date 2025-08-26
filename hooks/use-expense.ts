@@ -119,8 +119,7 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
 
         return {
           ...expense,
-          payer_name: payer?.full_name || 'Unknown',
-          payer_payment_link: payer?.payment_link,
+          payer: payer,
           splits: expense.expense_splits,
           your_share: userSplit?.amount_owed || 0,
           status: allSettled ? 'settled' : 'pending',
@@ -189,8 +188,7 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
       split_type: expenseData.split_type,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      payer_name: currentUser.full_name || 'Unknown',
-      payer_payment_link: currentUser.payment_link || 'Unknown',
+      payer: currentUser,
       splits: optimisticSplits,
       your_share:
         optimisticSplits.find((s) => s.user_id === currentUser.id)

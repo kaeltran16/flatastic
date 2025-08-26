@@ -143,7 +143,11 @@ export default function ExpenseCard({
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center gap-1">
-                        <UserAvatar user={currentUser} shouldShowName={true} />
+                        <UserAvatar
+                          user={expense.payer}
+                          shouldShowName={true}
+                          showAsYou={expense.payer.id === currentUser.id}
+                        />
                       </div>
                       <span className="text-gray-400">•</span>
                       <span>{formatDate(expense.date)}</span>

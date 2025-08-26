@@ -7,10 +7,15 @@ import UserAvatar from '../user-avatar';
 
 interface SettlementCardProps {
   settlement: Settlement;
+  currentUserId?: string;
   index?: number; // For staggered animations
 }
 
-const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
+const SettlementCard = ({
+  settlement,
+  currentUserId,
+  index = 0,
+}: SettlementCardProps) => {
   const cardVariants = {
     hidden: {
       opacity: 0,
@@ -159,6 +164,7 @@ const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
                       user={settlement.fromUser}
                       className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
                       shouldShowName={false}
+                      showAsYou={settlement.fromUser.id === currentUserId}
                     />
                   </motion.div>
 
@@ -171,6 +177,7 @@ const SettlementCard = ({ settlement, index = 0 }: SettlementCardProps) => {
                       user={settlement.toUser}
                       className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-white shadow-sm"
                       shouldShowName={false}
+                      showAsYou={settlement.toUser.id === currentUserId}
                     />
                   </motion.div>
                 </motion.div>

@@ -161,7 +161,7 @@ const RecentExpenses = ({ expenses }: RecentExpensesProps) => {
                             duration: 0.2,
                           }}
                         >
-                          Paid by {expense.payer_name} •{' '}
+                          Paid by {expense.payer?.full_name} •{' '}
                           {formatDate(expense.date)}
                         </motion.p>
                       </motion.div>

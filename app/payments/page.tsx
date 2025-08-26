@@ -221,6 +221,7 @@ export default function PaymentsPage() {
                     <SettlementCard
                       key={settlement.id}
                       settlement={settlement}
+                      currentUserId={currentUser?.id}
                     />
                   ))
                 )}
@@ -258,6 +259,7 @@ export default function PaymentsPage() {
                       <SettlementCard
                         key={settlement.id}
                         settlement={settlement}
+                        currentUserId={currentUser?.id}
                       />
                     ))}
                   </div>

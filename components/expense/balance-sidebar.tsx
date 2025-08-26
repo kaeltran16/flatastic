@@ -30,14 +30,10 @@ export default function BalancesSidebar({
 }: BalancesSidebarProps) {
   const getBalanceDisplay = (balance: Balance) => {
     const isYouOwing = balance.fromUser.id === currentUser?.id;
-    const otherUserName = isYouOwing
-      ? balance.toUser.full_name
-      : balance.fromUser.full_name;
-    const otherUserId = isYouOwing ? balance.toUser.id : balance.fromUser.id;
 
+    const user = isYouOwing ? balance.toUser : balance.fromUser;
     return {
-      name: otherUserName,
-      userId: otherUserId,
+      ...user,
       type: isYouOwing ? ('owes' as const) : ('owed' as const),
       amount: balance.amount,
       relatedSplits: balance.related_splits.length,
@@ -107,12 +103,11 @@ export default function BalancesSidebar({
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <UserAvatar
-                          user={currentUser || undefined}
-                          shouldShowName={false}
-                        />
+                        <UserAvatar user={display} shouldShowName={false} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{display.name}</p>
+                          <p className="font-medium truncate">
+                            {display.full_name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {display.type === 'owed' ? 'Owes you' : 'You owe'}
                             {display.relatedSplits > 0 &&
