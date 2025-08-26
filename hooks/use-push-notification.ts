@@ -54,7 +54,7 @@ export function useNotifications(userId: string) {
 
   // Check if we should attempt subscription for this user
   const shouldAttemptSubscription = (userId: string): boolean => {
-    if (!userId) return false;
+    if (!userId || userId.trim() === '') return false; // Don't attempt for empty/whitespace strings
 
     const stored = getStoredSubscriptionState();
     if (!stored) return true; // No stored state, should attempt
@@ -106,7 +106,7 @@ export function useNotifications(userId: string) {
       }
     }
 
-    if (userId) {
+    if (userId && userId.trim() !== '') {
       getNotifications();
     }
   }, [supabase, userId]);
@@ -114,7 +114,7 @@ export function useNotifications(userId: string) {
   // Initialize subscription state from storage and service worker
   useEffect(() => {
     const initializeSubscriptionState = async () => {
-      if (!userId) return;
+      if (!userId || userId.trim() === '') return;
 
       try {
         // Check storage first
