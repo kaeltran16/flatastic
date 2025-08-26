@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 
+import { useProfile } from '@/hooks/use-supabase-data';
 import { useEffect, useState } from 'react';
 import { PushSubscription } from 'web-push';
 import { sendNotification, subscribeUser, unsubscribeUser } from './actions';
@@ -18,7 +19,7 @@ export function PushNotificationManager() {
     type: 'success' | 'error' | 'info' | null;
     message: string;
   }>({ type: null, message: '' });
-
+  const { profile } = useProfile();
   // Debug state
   const [debugInfo, setDebugInfo] = useState({
     browser: '',
@@ -321,7 +322,11 @@ export function PushNotificationManager() {
       addDebugLog('info', 'Sending subscription to server');
       const startTime = Date.now();
 
-      const result = await subscribeUser(serializedSub, navigator.userAgent);
+      const result = await subscribeUser(
+        serializedSub,
+        navigator.userAgent,
+        profile?.id
+      );
       const endTime = Date.now();
 
       addDebugLog('info', 'Server response received', {
