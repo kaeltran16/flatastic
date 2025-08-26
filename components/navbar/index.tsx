@@ -53,7 +53,7 @@ export function Navbar() {
     notifications,
     loading: notificationsLoading,
     isSubscribed,
-  } = useNotifications();
+  } = useNotifications(profile?.id || '');
 
   console.log('notifications', notifications);
 
