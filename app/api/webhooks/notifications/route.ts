@@ -4,6 +4,7 @@ import {
   sendNotificationToUser,
 } from '@/app/pwa-nextjs/actions';
 import { createClient } from '@/lib/supabase/server';
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Use service role key for server-side operations
@@ -29,12 +30,22 @@ export async function POST(request: NextRequest) {
     // Verify webhook secret to ensure request is from Supabase
     const webhookSecret = request.headers.get('x-webhook-secret');
 
-    if (webhookSecret !== process.env.SUPABASE_WEBHOOK_SECRET) {
+    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use timing-safe comparison to prevent timing attacks
+    const isValidSecret = crypto.timingSafeEqual(
+      Buffer.from(webhookSecret),
+      Buffer.from(process.env.SUPABASE_WEBHOOK_SECRET)
+    );
+
+    if (!isValidSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const payload = await request.json();
-    console.log('Webhook payload:', payload);
+    console.log('Webhook payload received');
 
     // Extract notification data from webhook payload
     const { type, table, record, old_record } = payload;
@@ -48,6 +59,16 @@ export async function POST(request: NextRequest) {
     }
 
     const notification = record;
+
+    // Validate required notification fields
+    if (!notification?.id || !notification?.title || !notification?.message) {
+      console.error('Invalid notification data:', notification);
+      return NextResponse.json(
+        { error: 'Invalid notification data' },
+        { status: 400 }
+      );
+    }
+
     const {
       id,
       user_id,
@@ -61,8 +82,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Processing notification:', {
       id,
-      user_id,
-      household_id,
+      user_id: user_id ? 'present' : 'null',
+      household_id: household_id ? 'present' : 'null',
       title,
       notificationType,
     });
@@ -71,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Send push notification to specific user
     if (user_id) {
-      console.log('Sending notification to user:', user_id);
+      console.log('Sending notification to user');
       result = await sendNotificationToUser(user_id, title, message, {
         type: notificationType,
         is_urgent,
@@ -81,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
     // Send push notification to entire household
     else if (household_id) {
-      console.log('Sending notification to household:', household_id);
+      console.log('Sending notification to household');
       result = await sendNotificationToHousehold(household_id, title, message, {
         type: notificationType,
         is_urgent,
@@ -98,47 +119,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Result:', result);
-
     if (result?.success) {
       console.log(
         `Push notification sent successfully: ${result.sent}/${result.total}`
       );
 
-      console.log('Notification ID:', id);
+      // Update notification record to mark as pushed (async, don't wait)
+      try {
+        const { error: updateError } = await supabase
+          .from('notifications')
+          .update({
+            push_sent: true,
+            push_sent_at: new Date().toISOString(),
+          })
+          .eq('id', id);
 
-      // Add this before the update
-      const { data: existingRecord, error: fetchError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      console.log('Existing record:', existingRecord);
-      console.log('Fetch error:', fetchError);
-
-      if (!existingRecord) {
-        console.log('No record found with ID:', id);
-        return NextResponse.json(
-          { error: 'Notification record not found' },
-          { status: 404 }
-        );
-      }
-
-      // Optionally update the notification record to mark as pushed
-      const { data: updateData, error: updateError } = await supabase
-        .from('notifications')
-        .update({
-          push_sent: true,
-          push_sent_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select();
-
-      console.log('Update data:', updateData);
-
-      if (updateError) {
-        console.error('Error updating notification:', updateError);
+        if (updateError) {
+          console.error('Error updating notification:', updateError);
+          // Don't fail the webhook for this
+        }
+      } catch (dbError) {
+        console.error('Database update failed:', dbError);
+        // Don't fail the webhook for this
       }
 
       return NextResponse.json({

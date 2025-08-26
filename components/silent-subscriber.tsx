@@ -5,7 +5,7 @@ import { urlBase64ToUint8Array } from '@/app/pwa-nextjs/utils';
 import { useEffect, useState } from 'react';
 
 interface SilentSubscriberProps {
-  userId?: string;
+  userId: string;
   onSubscriptionChange?: (subscribed: boolean) => void;
   onError?: (error: string) => void;
 }
@@ -18,6 +18,7 @@ export function SilentSubscriber({
   const [hasAttempted, setHasAttempted] = useState(false);
 
   useEffect(() => {
+    console.log('SilentSubscriber', userId);
     // Only attempt once per session
     if (hasAttempted) return;
 

@@ -1,6 +1,5 @@
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
 import { Navbar } from '@/components/navbar';
-import { SilentSubscriber } from '@/components/silent-subscriber';
 import { Toaster } from '@/components/ui/sonner';
 import QueryProvider from '@/lib/query-provider';
 import { Analytics } from '@vercel/analytics/next';
@@ -60,7 +59,6 @@ export default function RootLayout({
       >
         <QueryProvider>
           {/* Auto-subscribe to push notifications silently on app load */}
-          <SilentSubscriber />
           <Navbar />
           <AppBreadcrumb />
           <main>{children}</main>
