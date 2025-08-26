@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Notifications } from '@/lib/supabase/schema.alias';
 import { useEffect, useState } from 'react';
 
-export function useNotifications(userId?: string) {
+export function useNotifications(userId: string) {
   // Notifications data state
   const [notifications, setNotifications] = useState<Notifications[]>([]);
   const [loading, setLoading] = useState(true);

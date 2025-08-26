@@ -33,7 +33,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { SilentSubscriber } from './silent-subscriber';
 import UserAvatar from './user-avatar';
 
 const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
@@ -58,11 +57,6 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
-  const {
-    notifications,
-    loading: notificationsLoading,
-    isSubscribed,
-  } = useNotifications();
 
   // Handle scroll effect
   useEffect(() => {
@@ -73,6 +67,12 @@ export function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const {
+    notifications,
+    loading: notificationsLoading,
+    isSubscribed,
+  } = useNotifications(profile?.id || '');
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -206,7 +206,6 @@ export function Navbar() {
 
   return (
     <>
-      {profile.id && <SilentSubscriber userId={profile.id} />}
       <motion.nav
         className={`fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur-md transition-all duration-300 ${
           isScrolled ? 'shadow-lg' : 'shadow-sm'
