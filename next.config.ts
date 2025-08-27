@@ -127,6 +127,7 @@ const nextConfig = {
   // Enable experimental features if needed
   experimental: {
     // Add any experimental features you need
+    optimizePackageImports: ['@/components', 'lucide-react'],
   },
 
   images: {
