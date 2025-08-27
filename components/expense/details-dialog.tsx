@@ -423,6 +423,8 @@ export default function ExpenseDetailsDialog({
           onSubmit={async (formData) => {
             await onEditExpense?.(expense.id, formData);
           }}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
         />
       )}
 

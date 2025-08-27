@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { HouseholdStats } from '@/lib/actions/household';
 import { Calendar, DollarSign, Users } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface StatsCardsProps {
@@ -68,6 +69,7 @@ const AnimatedCounter = ({
 };
 
 const StatsCards = ({ stats }: StatsCardsProps) => {
+  const router = useRouter();
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -140,7 +142,12 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       animate="visible"
     >
       <motion.div variants={cardVariants}>
-        <Card className="hover:shadow-lg transition-shadow duration-300">
+        <Card
+          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          onClick={() => {
+            router.push('/chores');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <motion.div variants={itemVariants}>
               <CardTitle className="text-sm font-medium">
@@ -174,9 +181,19 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       </motion.div>
 
       <motion.div variants={cardVariants}>
-        <Card className="hover:shadow-lg transition-shadow duration-300">
+        <Card
+          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          onClick={() => {
+            router.push('/payments');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div variants={itemVariants}>
+            <motion.div
+              variants={itemVariants}
+              onClick={() => {
+                router.push('/payments');
+              }}
+            >
               <CardTitle className="text-sm font-medium">
                 Your Balance
               </CardTitle>
@@ -211,9 +228,19 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       </motion.div>
 
       <motion.div variants={cardVariants}>
-        <Card className="hover:shadow-lg transition-shadow duration-300">
+        <Card
+          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          onClick={() => {
+            router.push('/household');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div variants={itemVariants}>
+            <motion.div
+              variants={itemVariants}
+              onClick={() => {
+                router.push('/household');
+              }}
+            >
               <CardTitle className="text-sm font-medium">
                 Household Members
               </CardTitle>
@@ -242,9 +269,19 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       </motion.div>
 
       <motion.div variants={cardVariants}>
-        <Card className="hover:shadow-lg transition-shadow duration-300">
+        <Card
+          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          onClick={() => {
+            router.push('/expenses');
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div variants={itemVariants}>
+            <motion.div
+              variants={itemVariants}
+              onClick={() => {
+                router.push('/expenses');
+              }}
+            >
               <CardTitle className="text-sm font-medium">This Month</CardTitle>
             </motion.div>
             <motion.div variants={iconVariants}>

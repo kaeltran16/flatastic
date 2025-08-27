@@ -2,33 +2,34 @@
 'use client';
 
 import {
-  createChoreAction,
-  deleteChoreAction,
-  markChoreCompleteAction,
-  updateChoreAction,
+  createChore,
+  deleteChore,
+  markChoreComplete,
+  updateChore,
 } from '@/lib/actions/chore';
 import { createClient } from '@/lib/supabase/client';
 import {
-  ChoreStatus,
+  ChoreInsert,
   ChoreWithProfile,
   Household,
   Profile,
-  RecurringType,
 } from '@/lib/supabase/schema.alias';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 // Types
 
-export type ChoreFormData = {
-  name: string;
-  description: string | null;
-  assigned_to: string | null;
-  due_date: string | null;
-  recurring_type: RecurringType;
-  recurring_interval: number | null;
-  status: ChoreStatus;
-  household_id: string;
-};
+// export type ChoreFormData = {
+//   name: string;
+//   description: string;
+//   assigned_to: string;
+//   due_date: string;
+//   recurring_type: RecurringType;
+//   recurring_interval: number;
+//   status: ChoreStatus;
+//   household_id: string;
+// };
+
+export type ChoreFormData = Omit<ChoreInsert, 'created_by'>;
 
 // Query keys
 export const choreKeys = {
@@ -187,7 +188,14 @@ export function useChores(householdId?: string) {
         };
       });
 
-      return formattedChores;
+      return formattedChores.sort((a, b) => {
+        if (a.status !== 'completed' && b.status === 'completed') return -1;
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
     },
     enabled: !!householdId,
     staleTime: 1 * 60 * 1000, // 1 minute
@@ -200,7 +208,7 @@ export function useCreateChore() {
 
   return useMutation({
     mutationFn: async (formData: ChoreFormData) => {
-      const result = await createChoreAction(formData);
+      const result = await createChore(formData);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -229,7 +237,7 @@ export function useUpdateChore() {
       choreId: string;
       formData: ChoreFormData;
     }) => {
-      const result = await updateChoreAction(choreId, formData);
+      const result = await updateChore(choreId, formData);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -252,7 +260,7 @@ export function useDeleteChore() {
 
   return useMutation({
     mutationFn: async (choreId: string) => {
-      const result = await deleteChoreAction(choreId);
+      const result = await deleteChore(choreId);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -274,7 +282,7 @@ export function useMarkChoreComplete() {
 
   return useMutation({
     mutationFn: async (choreId: string) => {
-      const result = await markChoreCompleteAction(choreId);
+      const result = await markChoreComplete(choreId);
       if (!result.success) {
         throw new Error(result.error);
       }

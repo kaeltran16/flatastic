@@ -125,7 +125,7 @@ export default function ActionCard({
           )}
 
           {/* Content */}
-          <div className={hasActions ? 'pr-8' : ''}>{children}</div>
+          <div>{children}</div>
         </CardContent>
       </Card>
     </motion.div>

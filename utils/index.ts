@@ -1,3 +1,5 @@
+import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
+
 export const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -7,11 +9,47 @@ export const getInitials = (name: string): string => {
     .toUpperCase();
 };
 
-export const formatDate = (dateString: string) => {
+export const formatDate = (
+  dateString: string,
+  option: { format: string } = { format: 'dd MMM yyyy' }
+) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return format(date, option.format);
+};
+
+export const formatDateRelatively = (
+  dateString: string,
+  option: { addSuffix?: boolean } = { addSuffix: true }
+) => {
+  const LARGE_DATE_THRESHOLD = 14;
+  const date = new Date(dateString);
+  const now = new Date();
+
+  const diffInDays = Math.abs(differenceInDays(date, now));
+
+  if (diffInDays > LARGE_DATE_THRESHOLD) {
+    return formatDate(dateString);
+  }
+
+  return formatDistanceToNow(date, option);
+};
+
+export const getChoreStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-500';
+    case 'completed':
+      return 'bg-green-500';
+  }
+};
+
+export const getChoreRecurringTypeColor = (recurringType: string) => {
+  switch (recurringType) {
+    case 'daily':
+      return 'bg-[#3b82f6]'; // green-500 → repeat often
+    case 'weekly':
+      return 'bg-[#a855f7]'; // blue-500 → stable rhythm
+    case 'monthly':
+      return 'bg-[#f59e0b]'; // purple-500 → more spaced out
+  }
 };

@@ -12,9 +12,6 @@ import SetupRequiredState from '@/components/chore/requirements';
 import ChoreStatsCards from '@/components/chore/stats-card';
 import ChoreTabs from '@/components/chore/tabs';
 import { LoadingSpinner } from '@/components/household/loading';
-import { addChore } from '@/lib/actions/chore';
-import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
-import { toast } from 'sonner';
 
 // Hooks and utilities
 import {
@@ -127,7 +124,10 @@ export default function ChoresPage() {
     }
   };
 
-  const handleUpdateChore = async (choreId: string, formData: ChoreFormData) => {
+  const handleUpdateChore = async (
+    choreId: string,
+    formData: ChoreFormData
+  ) => {
     try {
       await updateChoreMutation.mutateAsync({ choreId, formData });
     } catch (error) {
@@ -199,16 +199,15 @@ export default function ChoresPage() {
         </motion.div>
 
         {/* Add Chore Button */}
-        <div className="flex justify-end mb-4">
-          <ChoreDialog
-            mode="create"
-            householdId={household.id}
-            currentUserId={currentUser.id}
-            householdMembers={householdMembers}
-            onSubmit={handleNewChore}
-            isLoading={createChoreMutation.isPending}
-          />
-        </div>
+        <ChoreDialog
+          className="w-full mb-4"
+          mode="create"
+          householdId={household.id}
+          currentUserId={currentUser.id}
+          householdMembers={householdMembers}
+          onSubmit={handleNewChore}
+          isLoading={createChoreMutation.isPending}
+        />
 
         {/* Stats Cards */}
         <motion.div

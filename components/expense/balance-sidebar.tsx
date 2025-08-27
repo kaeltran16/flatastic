@@ -1,4 +1,3 @@
-import { ExpenseFormData } from '@/components/expense/add-expense-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,

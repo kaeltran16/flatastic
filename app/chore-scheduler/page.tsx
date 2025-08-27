@@ -43,7 +43,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useHouseholdMembers, useProfile } from '@/hooks/use-supabase-data';
-import { addChore } from '@/lib/actions/chore';
+import { createChore } from '@/lib/actions/chore';
 import { createChoreTemplate } from '@/lib/actions/chore-template';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -341,7 +341,7 @@ export default function ChoreRotationPage() {
       for (const assignment of choresToCreate) {
         const choreData: ChoreInsert = {
           name: assignment.chore.name,
-          description: assignment.chore.description || null,
+          description: assignment.chore.description,
           assigned_to: assignment.assignedUser.id,
           due_date: assignment.dueDate.toISOString().split('T')[0],
           recurring_type: rotationSettings.recurringType,
@@ -351,7 +351,7 @@ export default function ChoreRotationPage() {
           status: 'pending',
         };
 
-        const newChore = await addChore(choreData);
+        const newChore = await createChore(choreData);
         createdChores.push(newChore);
       }
 
@@ -788,7 +788,7 @@ function ChoreSelectionContent({
         <Label className="text-sm font-medium mb-3 block">
           Available Chores
         </Label>
-        <ScrollArea className="h-40 pr-2 ">
+        <ScrollArea className="h-40">
           <div className="space-y-2">
             {choreTemplates.map((chore) => (
               <motion.div
@@ -799,7 +799,7 @@ function ChoreSelectionContent({
                   selectedChores.includes(chore.id) ? 'selected' : 'visible'
                 }
                 whileTap={{ scale: 0.98 }}
-                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                className={`p-3 border rounded-lg cursor-pointer transition-colors w-[98%] ${
                   selectedChores.includes(chore.id)
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'

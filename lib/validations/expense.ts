@@ -69,10 +69,7 @@ export const CreateExpenseSchema = z
       .min(1, 'Amount is required')
       .refine((val) => val > 0, 'Amount must be greater than 0'),
     category: ExpenseCategoryEnum,
-    date: z
-      .string()
-      .min(1, 'Date is required')
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Please enter a valid date'),
+    date: z.string(),
     split_type: SplitTypeEnum.default('equal'),
     custom_splits: z.array(CustomSplitSchema).optional(),
     selected_users: z.array(z.string().uuid()).optional(),

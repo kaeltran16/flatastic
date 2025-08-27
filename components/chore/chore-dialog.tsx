@@ -11,7 +11,6 @@ import {
 import { ChoreFormData } from '@/hooks/use-chore';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import { CreateChoreInput, UpdateChoreInput } from '@/lib/validations/chore';
-import { Edit, Plus } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import ChoreForm from './chore-form';
 
@@ -103,10 +102,8 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
     const displayButtonText = buttonText || defaultButtonText;
 
     // Dialog title based on mode
-    const dialogTitle = mode === 'create' ? 'Create New Chore' : 'Edit Chore';
-
+    const dialogTitle = mode === 'create' ? 'Add New Chore' : 'Edit Chore';
     // Default icon based on mode
-    const Icon = mode === 'create' ? Plus : Edit;
 
     // Prepare initial data for edit mode
     const initialData =
@@ -121,65 +118,47 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
           }
         : undefined;
 
-    const DialogComponent = (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent
-          className={`max-w-2xl overflow-y-auto border-none ${className}`}
-        >
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-          </DialogHeader>
-          <ChoreForm
-            mode={mode}
-            initialData={
-              initialData as Partial<CreateChoreInput | UpdateChoreInput>
-            }
-            householdId={mode === 'create' ? householdId! : chore!.household_id}
-            householdMembers={householdMembers}
-            currentUserId={currentUserId}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsOpen(false)}
-            isLoading={isLoading}
-          />
-        </DialogContent>
-      </Dialog>
+    // Single dialog content component to avoid duplication
+    const dialogContent = (
+      <DialogContent
+        className={`w-[90vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6`}
+      >
+        <DialogHeader>
+          <DialogTitle className={hideTitle ? 'sr-only' : ''}>
+            {dialogTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <ChoreForm
+          mode={mode}
+          initialData={
+            initialData as Partial<CreateChoreInput | UpdateChoreInput>
+          }
+          householdId={mode === 'create' ? householdId! : chore!.household_id}
+          householdMembers={householdMembers}
+          currentUserId={currentUserId}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsOpen(false)}
+          isLoading={isLoading}
+        />
+      </DialogContent>
     );
 
-    // If controlled externally, just return the dialog
-    if (isControlled) {
-      return DialogComponent;
-    }
-
-    // Otherwise, include trigger button
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            className="w-full"
-            variant={buttonVariant}
-            size={buttonSize}
-            disabled={isLoading}
-          >
-            <Icon className="h-4 w-4 mr-2" />
-            {displayButtonText}
-          </Button>
-        </DialogTrigger>
-        <DialogContent className={`p-0 m-0 ${className}`}>
-          <DialogHeader>
-            <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
-          </DialogHeader>
-          <ChoreForm
-            mode={mode}
-            initialData={
-              initialData as Partial<CreateChoreInput | UpdateChoreInput>
-            }
-            householdId={mode === 'create' ? householdId! : chore!.household_id}
-            householdMembers={householdMembers}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsOpen(false)}
-            isLoading={isLoading}
-          />
-        </DialogContent>
+        {/* Only render trigger if not controlled externally */}
+        {!isControlled && (
+          <DialogTrigger asChild>
+            <Button
+              className={`${className}`}
+              variant={buttonVariant}
+              size={buttonSize}
+              disabled={isLoading}
+            >
+              {displayButtonText}
+            </Button>
+          </DialogTrigger>
+        )}
+        {dialogContent}
       </Dialog>
     );
   }

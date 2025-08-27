@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
-import { CheckCircle2, Clock, Users } from 'lucide-react';
+import { formatDate } from '@/utils';
+import { Users } from 'lucide-react';
 import { useState } from 'react';
-import UserAvatar from '../user-avatar';
 import ActionCard from '../action-card';
+import UserAvatar from '../user-avatar';
 import DeleteExpenseDialog from './delete-expense-dialog';
 import ExpenseDetailsDialog from './details-dialog';
 import ExpenseDialog from './expense-dialog';
@@ -49,23 +50,6 @@ export default function ExpenseCard({
       default: '💰',
     };
     return icons[category as keyof typeof icons] || icons.default;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${Math.abs(diffInDays)}d ago`;
-
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   const isPayer = expense.paid_by === currentUser.id;
@@ -112,118 +96,89 @@ export default function ExpenseCard({
         canDelete={canModify}
         editLabel="Edit Expense"
         deleteLabel="Delete Expense"
-        className={`${getCardStyling()} shadow-sm overflow-hidden mb-3`}
+        className={`${getCardStyling()} shadow-sm overflow-hidden mb-3 rounded-2xl`}
         contentClassName="p-0"
         hoverAnimation={true}
       >
-        {/* Main Content */}
-        <div className="p-4">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              {/* Category Icon */}
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-lg flex-shrink-0">
-                {getCategoryIcon(expense.category || '')}
-              </div>
+        {/* Header with Category Dot and Expense Description */}
+        <div className="flex items-center gap-3 p-4 pb-2">
+          {/* Category Dot */}
 
-                  {/* Title & Meta */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base leading-tight mb-1 truncate">
-                      {expense.description}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <UserAvatar
-                          user={expense.payer}
-                          shouldShowName={true}
-                          showAsYou={expense.payer.id === currentUser.id}
-                        />
-                      </div>
-                      <span className="text-gray-400">•</span>
-                      <span>{formatDate(expense.date)}</span>
-                    </div>
-                  </div>
-                  <span className="text-gray-400">•</span>
-                  <span>{formatDate(expense.date)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Amount */}
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                ${expense.your_share.toFixed(2)}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-500">
-                ${expense.amount.toFixed(2)} total
-              </div>
-            </div>
+          {/* Expense Description as Header */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 truncate">
+              {expense.description}
+            </h3>
           </div>
+        </div>
 
-          {/* Status & Progress */}
-          <div className="flex items-center justify-between mb-3">
+        {/* Payer Info and Date */}
+        <div className="px-4 pb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {isSettled ? (
-                <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">Settled</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    {settledCount}/{expense.splits.length} paid
-                  </span>
-                </div>
-              )}
-
-              {expense.category && (
-                <Badge
-                  variant="secondary"
-                  className="text-xs px-2 py-1 bg-white/60 dark:bg-gray-800/60"
-                >
-                  {expense.category}
-                </Badge>
-              )}
+              <UserAvatar
+                user={expense.payer}
+                shouldShowName={true}
+                showAsYou={expense.paid_by === currentUser.id}
+              />
             </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {formatDate(expense.date)}
+            </p>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-              <Users className="w-4 h-4" />
+        {/* Amount Display */}
+        <div className="mx-4 mb-4 bg-gray-100/80 dark:bg-gray-800 rounded-2xl p-6 text-center">
+          <div className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            ${expense.your_share.toFixed(2)}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            of ${expense.amount.toFixed(2)} total
+          </div>
+        </div>
+
+        {/* Status Badges */}
+        <div className="px-4 mb-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Payment Status Badge */}
+            <Badge
+              className={`text-xs px-3 py-1 rounded-full font-medium ${
+                isSettled
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+              }`}
+            >
+              {isSettled
+                ? 'settled'
+                : `${settledCount}/${expense.splits.length} paid`}
+            </Badge>
+
+            {/* Category Badge */}
+            {expense.category && (
+              <Badge
+                variant="secondary"
+                className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
+              >
+                {expense.category}
+              </Badge>
+            )}
+
+            {/* Participants Count */}
+            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 ml-auto">
+              <Users className="w-3 h-3" />
               <span>{expense.splits.length}</span>
             </div>
           </div>
         </div>
 
-        {/* Actions Footer */}
-        {expense.status === 'pending' && !isCurrentUserSettled && (
-          <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-gray-800/30 p-3">
-            <div className="flex gap-2">
-              <ExpenseDetailsDialog
-                expense={expense}
-                currentUser={currentUser}
-                householdMembers={householdMembers}
-                onSettle={onSettle}
-                onEditExpense={onEditExpense}
-                onDeleteExpense={onDeleteExpense}
-                onExpenseUpdated={onExpenseUpdated}
-                trigger={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 w-full"
-                  >
-                    Details
-                  </Button>
-                }
-              />
-
+        {/* Action Button */}
+        <div className="px-4 pb-4">
+          {expense.status === 'pending' && !isCurrentUserSettled ? (
+            <div className="space-y-2">
               {isPayer ? (
-                <Button
-                  size="sm"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm w-full"
-                  onClick={() => onSettle?.(expense)}
-                >
-                  Mark Paid
+                <Button className="w-full" onClick={() => onSettle?.(expense)}>
+                  Mark as Paid
                 </Button>
               ) : (
                 <ExpenseDetailsDialog
@@ -235,19 +190,25 @@ export default function ExpenseCard({
                   onDeleteExpense={onDeleteExpense}
                   onExpenseUpdated={onExpenseUpdated}
                   trigger={
-                    <Button size="sm" className="flex-1 w-full">
+                    <Button className="w-full ">
                       Pay ${expense.your_share.toFixed(2)}
                     </Button>
                   }
                 />
               )}
-            </div>
-          </div>
-        )}
 
-        {/* Just details button for settled expenses */}
-        {(expense.status === 'settled' || isCurrentUserSettled) && (
-          <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/30 dark:bg-gray-800/30 p-3">
+              <ExpenseDetailsDialog
+                expense={expense}
+                currentUser={currentUser}
+                householdMembers={householdMembers}
+                onSettle={onSettle}
+                onEditExpense={onEditExpense}
+                onDeleteExpense={onDeleteExpense}
+                onExpenseUpdated={onExpenseUpdated}
+                trigger={<Button className="w-full ">View Details</Button>}
+              />
+            </div>
+          ) : (
             <ExpenseDetailsDialog
               expense={expense}
               currentUser={currentUser}
@@ -256,21 +217,13 @@ export default function ExpenseCard({
               onEditExpense={onEditExpense}
               onDeleteExpense={onDeleteExpense}
               onExpenseUpdated={onExpenseUpdated}
-              trigger={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                >
-                  View Details
-                </Button>
-              }
+              trigger={<Button className="w-full ">View Details</Button>}
             />
-          </div>
-        )}
+          )}
+        </div>
       </ActionCard>
 
-      {/* Dialogs - Use controlled mode without trigger */}
+      {/* Dialogs */}
       {isEditDialogOpen && (
         <ExpenseDialog
           mode="edit"

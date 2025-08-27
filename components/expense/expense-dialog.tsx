@@ -15,7 +15,6 @@ import {
   CreateExpenseInput,
   UpdateExpenseInput,
 } from '@/lib/validations/expense';
-import { DollarSign, Edit, Plus } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import ExpenseForm from './expense-form';
 
@@ -34,6 +33,9 @@ interface ExpenseDialogProps {
   // External control
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  // New prop for hiding title visually
+  hideTitle?: boolean;
+  className?: string;
 }
 
 export interface ExpenseDialogRef {
@@ -56,6 +58,8 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
       buttonText,
       open: controlledOpen,
       onOpenChange: controlledOnOpenChange,
+      hideTitle = false,
+      className,
     },
     ref
   ) => {
@@ -103,9 +107,6 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
     // Dialog title based on mode
     const dialogTitle = mode === 'create' ? 'Add New Expense' : 'Edit Expense';
 
-    // Default icon based on mode
-    const Icon = mode === 'create' ? Plus : Edit;
-
     // Prepare initial data for edit mode
     const initialData =
       mode === 'edit' && expense
@@ -137,78 +138,49 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
           (split) => split.user_id !== expense.paid_by && split.is_settled
         ) === false);
 
-    const DialogComponent = (
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto border-none">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {mode === 'create' ? (
-                <DollarSign className="h-5 w-5" />
-              ) : (
-                <Edit className="h-5 w-5" />
-              )}
-              {dialogTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <ExpenseForm
-            mode={mode}
-            initialData={
-              initialData as Partial<CreateExpenseInput | UpdateExpenseInput>
-            }
-            householdId={
-              mode === 'create' ? householdId! : expense!.household_id
-            }
-            householdMembers={householdMembers}
-            currentUserId={currentUserId}
-            expense={mode === 'edit' ? expense : undefined}
-            canEdit={canEdit}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsOpen(false)}
-            isLoading={isLoading}
-          />
-        </DialogContent>
-      </Dialog>
+    // Single dialog content component to avoid duplication
+    const dialogContent = (
+      <DialogContent className="w-[90vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader>
+          <DialogTitle className={hideTitle ? 'sr-only' : ''}>
+            {dialogTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <ExpenseForm
+          mode={mode}
+          initialData={
+            initialData as Partial<CreateExpenseInput | UpdateExpenseInput>
+          }
+          householdId={mode === 'create' ? householdId! : expense!.household_id}
+          householdMembers={householdMembers}
+          currentUserId={currentUserId}
+          expense={mode === 'edit' ? expense : undefined}
+          canEdit={canEdit}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsOpen(false)}
+          isLoading={isLoading}
+        />
+      </DialogContent>
     );
 
-    // If controlled externally, just return the dialog
-    if (isControlled) {
-      return DialogComponent;
-    }
+    console.log('isControlled expense', isControlled);
 
-    // Otherwise, include trigger button
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant={buttonVariant}
-            size={buttonSize}
-            disabled={isLoading}
-          >
-            <Icon className="h-4 w-4 mr-2" />
-            {displayButtonText}
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0 m-0">
-          <DialogHeader>
-            <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
-          </DialogHeader>
-          <ExpenseForm
-            mode={mode}
-            initialData={
-              initialData as Partial<CreateExpenseInput | UpdateExpenseInput>
-            }
-            householdId={
-              mode === 'create' ? householdId! : expense!.household_id
-            }
-            householdMembers={householdMembers}
-            currentUserId={currentUserId}
-            expense={mode === 'edit' ? expense : undefined}
-            canEdit={canEdit}
-            onSubmit={handleSubmit}
-            onCancel={() => setIsOpen(false)}
-            isLoading={isLoading}
-          />
-        </DialogContent>
+        {/* Only render trigger if not controlled externally */}
+        {!isControlled && (
+          <DialogTrigger asChild>
+            <Button
+              className={`${className}`}
+              variant={buttonVariant}
+              size={buttonSize}
+              disabled={isLoading}
+            >
+              {displayButtonText}
+            </Button>
+          </DialogTrigger>
+        )}
+        {dialogContent}
       </Dialog>
     );
   }

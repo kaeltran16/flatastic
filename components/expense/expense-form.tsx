@@ -29,6 +29,7 @@ import {
   type CustomSplit,
   type UpdateExpenseInput,
 } from '@/lib/validations/expense';
+import { formatDate } from '@/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertCircle,
@@ -104,7 +105,7 @@ export default function ExpenseForm({
     mode === 'create'
       ? {
           description: '',
-          amount: 0,
+          amount: undefined,
           category: 'other' as const,
           date: new Date().toISOString().split('T')[0],
           split_type: 'equal' as const,
@@ -115,7 +116,7 @@ export default function ExpenseForm({
         }
       : {
           description: '',
-          amount: 0,
+          amount: undefined,
           category: 'other' as const,
           date: new Date().toISOString().split('T')[0],
           split_type: 'equal' as const,
@@ -304,15 +305,6 @@ export default function ExpenseForm({
     }
   };
 
-  const formatDate = (date: Date | null): string => {
-    if (!date) return 'Select date';
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
   const totalAmount =
     typeof amount === 'string' ? parseFloat(amount) || 0 : amount || 0;
   const assignedAmount = Object.values(customSplits).reduce(
@@ -352,28 +344,7 @@ export default function ExpenseForm({
   }
 
   return (
-    <Card className="w-full border-none shadow-none">
-      <CardHeader className="pb-4 sm:pb-6">
-        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-          {mode === 'create' ? (
-            <>
-              <Plus className="w-5 h-5" />
-              Add New Expense
-            </>
-          ) : (
-            <>
-              <Edit className="w-5 h-5" />
-              Edit Expense
-            </>
-          )}
-        </CardTitle>
-        {mode === 'edit' && (
-          <p className="text-sm text-muted-foreground">
-            Update the expense details. Note that changing the amount will reset
-            all payment statuses except yours.
-          </p>
-        )}
-      </CardHeader>
+    <Card className="w-full border-none shadow-none mt-2">
       <CardContent>
         <form
           onSubmit={handleSubmit(handleFormSubmit)}
@@ -410,7 +381,7 @@ export default function ExpenseForm({
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.15 }}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             <div className="space-y-2">
               <Label htmlFor="amount" className="text-sm font-medium">
@@ -432,40 +403,38 @@ export default function ExpenseForm({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="date"
-                className="text-sm font-medium flex items-center gap-2"
-              >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="space-y-2"
+            >
+              <Label className="text-sm font-medium flex items-center gap-2">
                 <CalendarDays className="w-4 h-4" />
-                Date *
+                Due Date
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full h-11 sm:h-10 justify-start text-left font-normal text-base sm:text-sm',
+                      'w-full h-11 justify-start text-left font-normal text-base sm:text-sm',
                       !selectedDate && 'text-muted-foreground',
                       errors.date && 'border-red-500'
                     )}
+                    disabled={isSubmitting || isLoading}
                   >
                     <CalendarDays className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span className="truncate">
-                      {formatDate(selectedDate || null)}
+                      {formatDate(selectedDate?.toISOString() || '')}
                     </span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto p-0"
-                  align="start"
-                  sideOffset={4}
-                >
+                <PopoverContent sideOffset={4}>
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
-                    initialFocus
                     className="scale-95 sm:scale-100"
                   />
                 </PopoverContent>
@@ -473,7 +442,7 @@ export default function ExpenseForm({
               {errors.date && (
                 <p className="text-sm text-red-500">{errors.date.message}</p>
               )}
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Category */}

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -15,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Household } from '@/lib/supabase/schema.alias';
 import { HouseholdInviteData } from '@/lib/supabase/types';
-import { Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { buttonHover, fadeInUp } from './animations';
@@ -54,10 +52,9 @@ export function InviteMemberDialog({
           variants={buttonHover}
           whileHover="hover"
           whileTap="tap"
-          className="flex items-center"
+          className="flex w-full sm:w-auto"
         >
-          <Button className="text-sm sm:text-base py-2 px-3 sm:py-2 sm:px-4">
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+          <Button className="w-full text-sm sm:text-base py-2 px-3 sm:py-2 sm:px-4">
             <span>Invite Member</span>
           </Button>
         </motion.div>
@@ -72,9 +69,6 @@ export function InviteMemberDialog({
             <DialogTitle className="text-lg sm:text-xl">
               Invite New Member
             </DialogTitle>
-            <DialogDescription className="text-sm">
-              Send an invitation to join your household
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <motion.div variants={fadeInUp} initial="initial" animate="animate">

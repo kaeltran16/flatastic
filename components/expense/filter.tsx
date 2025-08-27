@@ -22,7 +22,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ExpenseFiltersProps {
   onCategoryChange?: (category: string) => void;
@@ -54,22 +54,42 @@ export default function ExpenseFilters({
   const [categoryValue, setCategoryValue] = useState('all');
   const [statusValue, setStatusValue] = useState('all');
 
+  // Debounced search to avoid too many API calls
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  useEffect(() => {
+    onSearchChange?.(debouncedSearch);
+  }, [debouncedSearch, onSearchChange]);
+
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
-    onSearchChange?.(value);
   };
 
-  const handleCategoryChange = (value: string) => {
-    setCategoryValue(value);
-    onCategoryChange?.(value);
-  };
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setCategoryValue(value);
+      onCategoryChange?.(value);
+    },
+    [onCategoryChange]
+  );
 
-  const handleStatusChange = (value: string) => {
-    setStatusValue(value);
-    onStatusChange?.(value);
-  };
+  const handleStatusChange = useCallback(
+    (value: string) => {
+      setStatusValue(value);
+      onStatusChange?.(value);
+    },
+    [onStatusChange]
+  );
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearchValue('');
     setCategoryValue('all');
     setStatusValue('all');
@@ -77,22 +97,22 @@ export default function ExpenseFilters({
     onCategoryChange?.('all');
     onStatusChange?.('all');
     setIsFiltersOpen(false);
-  };
+  }, [onSearchChange, onCategoryChange, onStatusChange]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchValue('');
     onSearchChange?.('');
-  };
+  }, [onSearchChange]);
 
-  const clearCategory = () => {
+  const clearCategory = useCallback(() => {
     setCategoryValue('all');
     onCategoryChange?.('all');
-  };
+  }, [onCategoryChange]);
 
-  const clearStatus = () => {
+  const clearStatus = useCallback(() => {
     setStatusValue('all');
     onStatusChange?.('all');
-  };
+  }, [onStatusChange]);
 
   const hasActiveFilters =
     searchValue || categoryValue !== 'all' || statusValue !== 'all';
@@ -104,13 +124,19 @@ export default function ExpenseFilters({
     (status) => status.value === statusValue
   );
 
+  const activeFiltersCount = [
+    searchValue && 1,
+    categoryValue !== 'all' && 1,
+    statusValue !== 'all' && 1,
+  ].filter(Boolean).length;
+
   return (
     <div className="space-y-4">
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search expenses..."
+          placeholder="Search expenses by description, category, or amount..."
           value={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="pl-10 pr-10 h-12 text-base border-2 focus:border-primary/50 transition-colors"
@@ -124,6 +150,11 @@ export default function ExpenseFilters({
           >
             <X className="h-3.5 w-3.5" />
           </Button>
+        )}
+        {debouncedSearch !== searchValue && (
+          <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+            <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+          </div>
         )}
       </div>
 
@@ -143,13 +174,7 @@ export default function ExpenseFilters({
                 variant="secondary"
                 className="ml-auto bg-background/20 text-current text-xs px-1.5 py-0.5 h-5"
               >
-                {
-                  [
-                    searchValue && 1,
-                    categoryValue !== 'all' && 1,
-                    statusValue !== 'all' && 1,
-                  ].filter(Boolean).length
-                }
+                {activeFiltersCount}
               </Badge>
             )}
           </Button>
@@ -335,6 +360,7 @@ export default function ExpenseFilters({
               <button
                 onClick={clearSearch}
                 className="ml-1 hover:bg-primary/20 rounded p-0.5 transition-colors"
+                aria-label="Clear search"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -351,6 +377,7 @@ export default function ExpenseFilters({
               <button
                 onClick={clearCategory}
                 className="ml-1 hover:bg-blue-200/50 dark:hover:bg-blue-800/50 rounded p-0.5 transition-colors"
+                aria-label="Clear category filter"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -367,6 +394,7 @@ export default function ExpenseFilters({
               <button
                 onClick={clearStatus}
                 className="ml-1 hover:bg-green-200/50 dark:hover:bg-green-800/50 rounded p-0.5 transition-colors"
+                aria-label="Clear status filter"
               >
                 <X className="h-3 w-3" />
               </button>

@@ -194,6 +194,7 @@ const BalanceCard = ({
                       <UserAvatar
                         user={balance.fromUser}
                         className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
+                        shouldShowName={false}
                       />
                     </motion.div>
 
@@ -216,6 +217,7 @@ const BalanceCard = ({
                       <UserAvatar
                         user={balance.toUser}
                         className="h-7 w-7 sm:h-9 sm:w-9 ring-2 ring-white shadow-sm"
+                        shouldShowName={false}
                       />
                     </motion.div>
                   </div>

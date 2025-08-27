@@ -142,16 +142,16 @@ async function getAuthenticatedUserWithHousehold() {
 }
 
 // Server action to create a chore
-export async function createChoreAction(formData: ChoreFormData) {
+export async function createChore(formData: ChoreFormData) {
   try {
     // Extract and validate form data
     const rawData = {
       name: formData.name,
-      description: formData.description || null,
-      assigned_to: formData.assigned_to || null,
-      due_date: formData.due_date || null,
+      description: formData.description,
+      assigned_to: formData.assigned_to,
+      due_date: formData.due_date,
       recurring_type: formData.recurring_type || 'none',
-      recurring_interval: formData.recurring_interval || null,
+      recurring_interval: formData.recurring_interval,
       household_id: formData.household_id,
     };
 
@@ -211,10 +211,7 @@ export async function createChoreAction(formData: ChoreFormData) {
 }
 
 // Server action to update a chore
-export async function updateChoreAction(
-  choreId: string,
-  formData: ChoreFormData
-) {
+export async function updateChore(choreId: string, formData: ChoreFormData) {
   try {
     // Extract and validate form data
     const rawData = {
@@ -292,7 +289,7 @@ export async function updateChoreAction(
 }
 
 // Server action to delete a chore
-export async function deleteChoreAction(choreId: string) {
+export async function deleteChore(choreId: string) {
   try {
     const { user, userProfile, supabase } =
       await getAuthenticatedUserWithHousehold();
@@ -346,7 +343,7 @@ export async function deleteChoreAction(choreId: string) {
 }
 
 // Server action to mark chore as complete
-export async function markChoreCompleteAction(choreId: string) {
+export async function markChoreComplete(choreId: string) {
   try {
     const { user, userProfile, supabase } =
       await getAuthenticatedUserWithHousehold();

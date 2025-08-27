@@ -12,8 +12,14 @@ import { ExpenseFormData, useExpenses } from '@/hooks/use-expense';
 import { useHouseholdMembers } from '@/hooks/use-supabase-data';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
+import { useMemo, useState } from 'react';
 
 export default function ExpensesPage() {
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   // Initialize balances hook first
   const {
     balances,
@@ -49,9 +55,86 @@ export default function ExpensesPage() {
     currentUser?.household_id || null
   );
 
+  // Filter expenses based on current filters
+  const filteredExpenses = useMemo(() => {
+    if (!expenses) return [];
+
+    return expenses.filter((expense) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesDescription = expense.description
+          ?.toLowerCase()
+          .includes(query);
+        const matchesCategory = expense.category?.toLowerCase().includes(query);
+        const matchesAmount = expense.amount.toString().includes(query);
+
+        if (!matchesDescription && !matchesCategory && !matchesAmount) {
+          return false;
+        }
+      }
+
+      // Category filter
+      if (categoryFilter !== 'all' && expense.category !== categoryFilter) {
+        return false;
+      }
+
+      // Status filter
+      if (statusFilter !== 'all') {
+        const isSettled = expense.status === 'settled';
+        if (statusFilter === 'settled' && !isSettled) {
+          return false;
+        }
+        if (statusFilter === 'pending' && isSettled) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [expenses, searchQuery, categoryFilter, statusFilter]);
+
+  // Calculate filtered stats
+  const filteredStats = useMemo(() => {
+    const totalExpenses = filteredExpenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
+
+    const yourTotalShare = filteredExpenses.reduce((sum, expense) => {
+      const yourShare = expense.splits?.find(
+        (split) => split.user_id === currentUser?.id
+      );
+      return sum + (yourShare?.amount_owed || 0);
+    }, 0);
+
+    const pendingExpenses = filteredExpenses.filter(
+      (expense) => expense.status === 'pending'
+    );
+
+    return {
+      totalExpenses,
+      yourTotalShare,
+      pendingExpenses,
+    };
+  }, [filteredExpenses, currentUser?.id]);
+
   // Combine loading states
   const loading = expensesLoading || balancesLoading || !currentUser;
   const error = expensesError || balancesError;
+
+  // Filter handlers
+  const handleSearchChange = (search: string) => {
+    setSearchQuery(search);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setCategoryFilter(category);
+  };
+
+  const handleStatusChange = (status: string) => {
+    setStatusFilter(status);
+  };
 
   // These handlers now only call the expense functions - no manual refresh needed!
   const handleAddExpense = async (expenseData: ExpenseFormData) => {
@@ -228,33 +311,29 @@ export default function ExpensesPage() {
 
           {/* Add Expense Button */}
           <motion.div
-            className="flex justify-end mb-4 sm:mb-6"
-            variants={itemVariants}
+            variants={buttonVariants}
+            whileHover="hover"
+            whileTap="tap"
           >
-            <motion.div
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-            >
-              <ExpenseDialog
-                mode="create"
-                householdId={currentUser?.household_id || ''}
-                currentUserId={currentUser?.id}
-                householdMembers={householdMembers}
-                onSubmit={async (formData) => {
-                  await handleAddExpense(formData);
-                }}
-                isLoading={false}
-              />
-            </motion.div>
+            <ExpenseDialog
+              mode="create"
+              className="w-full mb-4"
+              householdId={currentUser?.household_id || ''}
+              currentUserId={currentUser?.id}
+              householdMembers={householdMembers}
+              onSubmit={async (formData) => {
+                await handleAddExpense(formData);
+              }}
+              isLoading={false}
+            />
           </motion.div>
 
           {/* Stats Cards */}
           <motion.div variants={itemVariants}>
             <ExpenseStatsCards
-              totalExpenses={stats.totalExpenses}
-              yourTotalShare={stats.yourTotalShare}
-              pendingCount={stats.pendingExpenses.length}
+              totalExpenses={filteredStats.totalExpenses}
+              yourTotalShare={filteredStats.yourTotalShare}
+              pendingCount={filteredStats.pendingExpenses.length}
               yourNetBalance={yourNetBalance}
               yourBalances={yourBalances}
             />
@@ -285,13 +364,35 @@ export default function ExpensesPage() {
             >
               {/* Filters */}
               <motion.div variants={itemVariants} className="w-full">
-                <ExpenseFilters />
+                <ExpenseFilters
+                  onSearchChange={handleSearchChange}
+                  onCategoryChange={handleCategoryChange}
+                  onStatusChange={handleStatusChange}
+                />
               </motion.div>
+
+              {/* Results Summary */}
+              {(searchQuery ||
+                categoryFilter !== 'all' ||
+                statusFilter !== 'all') && (
+                <motion.div
+                  variants={itemVariants}
+                  className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border"
+                >
+                  Showing {filteredExpenses.length} of {expenses?.length || 0}{' '}
+                  expenses
+                  {filteredStats.totalExpenses > 0 && (
+                    <span className="ml-2">
+                      (Total: ${filteredStats.totalExpenses.toFixed(2)})
+                    </span>
+                  )}
+                </motion.div>
+              )}
 
               {/* Expenses List */}
               <motion.div variants={itemVariants} className="w-full">
                 <ExpenseList
-                  expenses={expenses}
+                  expenses={filteredExpenses}
                   currentUser={currentUser}
                   householdMembers={householdMembers}
                   onAddExpense={handleAddExpense}
@@ -301,6 +402,23 @@ export default function ExpensesPage() {
                   onSettle={handleSettle}
                 />
               </motion.div>
+
+              {/* No Results Message */}
+              {filteredExpenses.length === 0 &&
+                expenses &&
+                expenses.length > 0 && (
+                  <motion.div
+                    variants={itemVariants}
+                    className="text-center py-12 text-muted-foreground"
+                  >
+                    <div className="text-lg font-medium mb-2">
+                      No expenses found
+                    </div>
+                    <div className="text-sm">
+                      Try adjusting your filters or search terms
+                    </div>
+                  </motion.div>
+                )}
             </motion.div>
           </motion.div>
         </div>
