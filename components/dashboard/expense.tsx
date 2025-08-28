@@ -2,31 +2,16 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExpenseWithProfile } from '@/lib/supabase/types';
+import { useExpensesList } from '@/hooks/use-expense-list';
+import { formatDate } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
+import { LoadingSpinner } from '../household/loading';
 
-interface RecentExpensesProps {
-  expenses: ExpenseWithProfile[];
-}
+const RecentExpenses = () => {
+  const { expenses, loading } = useExpensesList();
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return 'Tomorrow';
-  } else {
-    return date.toLocaleDateString();
-  }
-}
-
-const RecentExpenses = ({ expenses }: RecentExpensesProps) => {
-  if (expenses.length === 0) return null;
+  if (loading) return <LoadingSpinner />;
 
   const containerVariants = {
     hidden: { opacity: 0 },

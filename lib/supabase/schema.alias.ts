@@ -51,8 +51,8 @@ export type NotificationType =
   | 'system';
 
 export type ChoreWithProfile = Chore & {
-  assigned_user?: Profile;
-  creator?: Profile;
+  assignee?: Profile;
+  creator: Profile;
 };
 
 export type ExpenseWithSplits = Expense & {

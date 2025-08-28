@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useProfile } from '@/hooks/use-supabase-data';
+import { useProfile } from '@/hooks/use-profile';
 import { useEffect, useState } from 'react';
 import { PushSubscription } from 'web-push';
 import { sendNotification, subscribeUser, unsubscribeUser } from './actions';

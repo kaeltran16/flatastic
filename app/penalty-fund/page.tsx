@@ -13,7 +13,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import UserAvatar from '@/components/user-avatar';
-import { useHouseholdMembers, useProfile } from '@/hooks/use-supabase-data';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
+import { useProfile } from '@/hooks/use-profile';
 import { createClient } from '@/lib/supabase/client';
 import { ChoreStatus, FundPenalty } from '@/lib/supabase/schema.alias';
 import { formatDateRelatively } from '@/utils';
@@ -55,7 +56,9 @@ export default function HouseholdFundPage() {
     members: householdMembers = [],
     loading: membersLoading,
     error: membersError,
-  } = useHouseholdMembers(profile?.household_id || null);
+  } = useHouseholdMembers(profile?.household_id, {
+    enabled: !!profile?.household_id,
+  });
 
   // Optimized queries with staleTime to reduce unnecessary refetches
   const {
@@ -162,7 +165,7 @@ export default function HouseholdFundPage() {
           )
         `
         )
-        .eq('household_id', profile?.household_id || null)
+        .eq('household_id', profile?.household_id || '')
         .in('status', EXPIRED_CHORE_STATUS)
         .order('due_date', { ascending: false })
         .limit(10);

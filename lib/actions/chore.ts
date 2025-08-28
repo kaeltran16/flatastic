@@ -3,7 +3,6 @@
 
 import { ChoreFormData } from '@/hooks/use-chore';
 import { createClient } from '@/lib/supabase/server';
-import { ChoreWithProfiles } from '@/lib/supabase/types';
 import { CreateChoreSchema, UpdateChoreSchema } from '@/lib/validations/chore';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,88 +13,6 @@ class ChoreActionError extends Error {
     super(message);
     this.name = 'ChoreActionError';
   }
-}
-
-export async function getChores(): Promise<ChoreWithProfiles[]> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return [];
-  }
-
-  // First, get the user's household_id
-  const { data: userProfile } = await supabase
-    .from('profiles')
-    .select('household_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!userProfile?.household_id) {
-    return [];
-  }
-
-  // Try PostgREST join syntax first
-  let { data, error } = await supabase
-    .from('chores')
-    .select(
-      `
-      *,
-      assignee:profiles!assigned_to(full_name, email),
-      creator:profiles!created_by(full_name, email)
-    `
-    )
-    .eq('household_id', userProfile.household_id)
-    .order('created_at', { ascending: false });
-
-  // Fallback to separate queries if joins not available
-  if (error && error.message.includes('relationship')) {
-    // Get chores for this household
-    const { data: choreData, error: choreError } = await supabase
-      .from('chores')
-      .select('*')
-      .eq('household_id', userProfile.household_id)
-      .order('created_at', { ascending: false });
-
-    if (choreError) {
-      throw new Error(`Failed to load chores: ${choreError.message}`);
-    }
-
-    // Get all profiles in the same household
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
-      .eq('household_id', userProfile.household_id);
-
-    if (profileError) {
-      throw new Error(`Failed to load profiles: ${profileError.message}`);
-    }
-
-    const profileMap = new Map(
-      profiles?.map((profile) => [profile.id, profile]) || []
-    );
-
-    data = choreData?.map((chore) => ({
-      ...chore,
-      assignee: chore.assigned_to ? profileMap.get(chore.assigned_to) : null,
-      creator: chore.created_by ? profileMap.get(chore.created_by) : null,
-    }));
-  } else if (error) {
-    throw new Error(`Failed to load chores: ${error.message}`);
-  }
-
-  return (
-    data?.map((chore) => ({
-      ...chore,
-      assignee_name: chore.assignee?.full_name || 'Unassigned',
-      assignee_email: chore.assignee?.email || '',
-      creator_name: chore.creator?.full_name || 'Unknown',
-      creator_email: chore.creator?.email || '',
-    })) || []
-  );
 }
 
 // Helper function to get authenticated user and household

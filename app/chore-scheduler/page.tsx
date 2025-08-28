@@ -42,7 +42,8 @@ import {
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { useHouseholdMembers, useProfile } from '@/hooks/use-supabase-data';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
+import { useProfile } from '@/hooks/use-profile';
 import { createChore } from '@/lib/actions/chore';
 import { createChoreTemplate } from '@/lib/actions/chore-template';
 import { createClient } from '@/lib/supabase/client';
@@ -411,7 +412,7 @@ export default function ChoreRotationPage() {
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Error loading household members: {membersError}
+            Error loading household members: {membersError.message}
           </AlertDescription>
         </Alert>
       </motion.div>

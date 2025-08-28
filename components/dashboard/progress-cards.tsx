@@ -1,29 +1,27 @@
 'use client';
 
+import { LoadingSpinner } from '@/components/household/loading';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { HouseholdStats } from '@/lib/actions/household';
+import { useHouseholdStats } from '@/hooks/use-household-stats';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-interface ProgressCardsProps {
-  stats: HouseholdStats;
-}
-
-const ProgressCards = ({ stats }: ProgressCardsProps) => {
+const ProgressCards = () => {
+  const { data: stats, isLoading } = useHouseholdStats();
   const [animatedChoreProgress, setAnimatedChoreProgress] = useState(0);
   const [animatedUserProgress, setAnimatedUserProgress] = useState(0);
 
   const hasProgress =
-    stats.choreProgress.total > 0 || stats.userProgress.total > 0;
+    stats && stats.choreProgress.total > 0 && stats.userProgress.total > 0;
 
   const choreProgressValue =
-    stats.choreProgress.total > 0
+    stats && stats.choreProgress.total > 0
       ? (stats.choreProgress.completed / stats.choreProgress.total) * 100
       : 0;
 
   const userProgressValue =
-    stats.userProgress.total > 0
+    stats && stats.userProgress.total > 0
       ? (stats.userProgress.completed / stats.userProgress.total) * 100
       : 0;
 
@@ -43,6 +41,8 @@ const ProgressCards = ({ stats }: ProgressCardsProps) => {
   }, [choreProgressValue, userProgressValue]);
 
   if (!hasProgress) return null;
+
+  if (isLoading) return <LoadingSpinner />;
 
   const cardVariants = {
     hidden: { opacity: 0, y: 16 },

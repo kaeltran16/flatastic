@@ -10,25 +10,14 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import {
   ChoreInsert,
+  ChoreStatus,
   ChoreWithProfile,
-  Household,
   Profile,
 } from '@/lib/supabase/schema.alias';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
 // Types
-
-// export type ChoreFormData = {
-//   name: string;
-//   description: string;
-//   assigned_to: string;
-//   due_date: string;
-//   recurring_type: RecurringType;
-//   recurring_interval: number;
-//   status: ChoreStatus;
-//   household_id: string;
-// };
-
 export type ChoreFormData = Omit<ChoreInsert, 'created_by'>;
 
 // Query keys
@@ -41,6 +30,93 @@ export const choreKeys = {
   profiles: ['profiles'] as const,
   household: ['household'] as const,
 };
+
+// Query function to fetch chores
+// Simplified and improved fetchChores function
+async function fetchChores(
+  householdId: string,
+  limit: number = 5
+): Promise<ChoreWithProfile[]> {
+  const supabase = createClient();
+
+  // Get chores and profiles in parallel for better performance
+  const [choreResponse, profileResponse] = await Promise.all([
+    supabase
+      .from('chores')
+      .select('*')
+      .eq('household_id', householdId)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase.from('profiles').select('*').eq('household_id', householdId),
+  ]);
+
+  if (choreResponse.error) {
+    throw new Error(`Failed to load chores: ${choreResponse.error.message}`);
+  }
+
+  if (profileResponse.error) {
+    throw new Error(
+      `Failed to load profiles: ${profileResponse.error.message}`
+    );
+  }
+
+  // Create profile lookup map for O(1) access
+  const profileMap = new Map(
+    profileResponse.data?.map((profile) => [profile.id, profile]) ?? []
+  );
+
+  const now = new Date();
+
+  // Transform and enrich chores with profile data and status updates
+  return (choreResponse.data ?? [])
+    .map((chore): ChoreWithProfile => {
+      // Calculate dynamic status for overdue chores
+      let status: ChoreStatus = chore.status as ChoreStatus;
+      if (status === 'pending' && chore.due_date) {
+        const dueDate = new Date(chore.due_date);
+        if (dueDate < now) {
+          status = 'overdue';
+        }
+      }
+
+      return {
+        ...chore,
+        status,
+        // Use consistent naming - choose either assignee or assigned_user
+        assignee: chore.assigned_to
+          ? profileMap.get(chore.assigned_to)
+          : undefined,
+        creator: profileMap.get(chore.created_by)!,
+      };
+    })
+    .sort((a, b) => {
+      // Sort: incomplete chores first, then by due date
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+
+      return a.due_date.localeCompare(b.due_date);
+    });
+}
+
+export function useCurrentUserChores() {
+  const { data: currentUser } = useCurrentUser();
+
+  return useQuery({
+    queryKey: choreKeys.list(currentUser?.household_id || ''),
+    queryFn: () => {
+      if (!currentUser?.household_id) {
+        throw new Error('No household found for current user');
+      }
+      return fetchChores(currentUser.household_id);
+    },
+    enabled: !!currentUser?.household_id,
+    staleTime: 1 * 60 * 1000,
+  });
+}
 
 // Fetch current user and household
 export function useCurrentUser() {
@@ -70,26 +146,6 @@ export function useCurrentUser() {
 }
 
 // Fetch household
-export function useHousehold(householdId?: string) {
-  const supabase = createClient();
-
-  return useQuery({
-    queryKey: choreKeys.household,
-    queryFn: async () => {
-      if (!householdId) throw new Error('No household ID provided');
-
-      const { data, error } = await supabase
-        .from('households')
-        .select('*')
-        .eq('id', householdId)
-        .single();
-
-      if (error) throw error;
-      return data as Household;
-    },
-    enabled: !!householdId,
-  });
-}
 
 // Fetch household members
 export function useHouseholdMembers(householdId?: string) {
@@ -115,87 +171,13 @@ export function useHouseholdMembers(householdId?: string) {
 
 // Fetch chores for household
 export function useChores(householdId?: string) {
-  const supabase = createClient();
-
   return useQuery({
     queryKey: choreKeys.list(householdId || ''),
-    queryFn: async () => {
-      if (!householdId) throw new Error('No household ID provided');
-
-      // Try PostgREST join syntax first
-      let { data, error } = await supabase
-        .from('chores')
-        .select(
-          `
-          *,
-          assignee:profiles!assigned_to(full_name, email),
-          creator:profiles!created_by(full_name, email)
-        `
-        )
-        .eq('household_id', householdId)
-        .order('created_at', { ascending: false });
-
-      // Fallback to separate queries if joins not available
-      if (error && error.message.includes('relationship')) {
-        const { data: choreData, error: choreError } = await supabase
-          .from('chores')
-          .select('*')
-          .eq('household_id', householdId)
-          .order('created_at', { ascending: false });
-
-        if (choreError) throw choreError;
-
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('household_id', householdId);
-
-        if (profileError) throw profileError;
-
-        const profileMap = new Map(
-          profiles?.map((profile) => [profile.id, profile]) || []
-        );
-
-        data = choreData?.map((chore) => ({
-          ...chore,
-          assignee: chore.assigned_to
-            ? profileMap.get(chore.assigned_to)
-            : null,
-          creator: chore.created_by ? profileMap.get(chore.created_by) : null,
-        }));
-      } else if (error) {
-        throw error;
+    queryFn: () => {
+      if (!householdId) {
+        throw new Error('Household ID is required');
       }
-
-      // Update overdue status and format response
-      const now = new Date();
-      const formattedChores = (data || []).map((chore): ChoreWithProfile => {
-        let status = chore.status;
-        if (status === 'pending' && chore.due_date) {
-          const dueDate = new Date(chore.due_date);
-          if (dueDate < now) {
-            status = 'overdue';
-          }
-        }
-
-        return {
-          ...chore,
-          status,
-          assignee_name: chore.assignee?.full_name || 'Unassigned',
-          assignee_email: chore.assignee?.email || '',
-          creator_name: chore.creator?.full_name || 'Unknown',
-          creator_email: chore.creator?.email || '',
-        };
-      });
-
-      return formattedChores.sort((a, b) => {
-        if (a.status !== 'completed' && b.status === 'completed') return -1;
-        if (a.status === 'completed' && b.status !== 'completed') return 1;
-
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return a.due_date.localeCompare(b.due_date);
-      });
+      return fetchChores(householdId);
     },
     enabled: !!householdId,
     staleTime: 1 * 60 * 1000, // 1 minute

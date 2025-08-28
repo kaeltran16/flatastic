@@ -3,37 +3,22 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { ChoreWithProfiles } from '@/lib/supabase/types';
+import { useCurrentUserChores } from '@/hooks/use-chore';
+import type { ChoreWithProfile } from '@/lib/supabase/types';
+import { formatDate } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
+import { LoadingSpinner } from '../household/loading';
 
-interface RecentChoresProps {
-  chores: ChoreWithProfiles[];
-}
-
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return 'Tomorrow';
-  } else {
-    return date.toLocaleDateString();
-  }
-}
-
-function getChoreStatus(chore: ChoreWithProfiles) {
+function getChoreStatus(chore: ChoreWithProfile) {
   if (chore.status === 'completed') return 'completed';
   if (chore.due_date && new Date(chore.due_date) < new Date()) return 'overdue';
   return 'pending';
 }
 
-const RecentChores = ({ chores }: RecentChoresProps) => {
-  if (chores.length === 0) return null;
+const RecentChores = () => {
+  const { data: chores, isLoading } = useCurrentUserChores();
+  if (!chores || isLoading) return <LoadingSpinner />;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -170,7 +155,7 @@ const RecentChores = ({ chores }: RecentChoresProps) => {
                               duration: 0.2,
                             }}
                           >
-                            Assigned to {chore.assignee_name}
+                            Assigned to {chore.assignee?.full_name}
                           </motion.p>
                         </motion.div>
                         <motion.div

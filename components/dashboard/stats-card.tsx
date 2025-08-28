@@ -1,15 +1,13 @@
 'use client';
 
+import { LoadingSpinner } from '@/components/household/loading';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { HouseholdStats } from '@/lib/actions/household';
-import { Calendar, DollarSign, Users } from 'lucide-react';
+import { useHouseholdStats } from '@/hooks/use-household-stats';
+import { AlertCircle, Calendar, DollarSign, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-interface StatsCardsProps {
-  stats: HouseholdStats;
-}
 
 const AnimatedCounter = ({
   value,
@@ -36,7 +34,6 @@ const AnimatedCounter = ({
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
 
-      // Use easeOut for smooth deceleration
       const easeOut = 1 - Math.pow(1 - progress, 3);
       setCount(value * easeOut);
 
@@ -47,7 +44,7 @@ const AnimatedCounter = ({
 
     const timer = setTimeout(() => {
       animationFrame = requestAnimationFrame(animate);
-    }, 200); // Small delay before starting counter
+    }, 200);
 
     return () => {
       clearTimeout(timer);
@@ -56,6 +53,7 @@ const AnimatedCounter = ({
       }
     };
   }, [value, duration]);
+
   const displayValue =
     decimals > 0 ? count.toFixed(decimals) : Math.round(count);
 
@@ -68,8 +66,10 @@ const AnimatedCounter = ({
   );
 };
 
-const StatsCards = ({ stats }: StatsCardsProps) => {
+const StatsCards = () => {
   const router = useRouter();
+  const { data: stats, isLoading, error, isRefetching } = useHouseholdStats();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -82,19 +82,12 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
   };
 
   const cardVariants = {
-    hidden: {
-      opacity: 0,
-      y: 20,
-      scale: 0.95,
-    },
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        duration: 0.4,
-        ease: 'easeOut' as const,
-      },
+      transition: { duration: 0.4, ease: 'easeOut' as const },
     },
   };
 
@@ -103,11 +96,7 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
     visible: {
       opacity: 1,
       scale: 1,
-      transition: {
-        duration: 0.3,
-        ease: 'easeOut' as const,
-        delay: 0.2,
-      },
+      transition: { duration: 0.3, ease: 'easeOut' as const, delay: 0.2 },
     },
   };
 
@@ -115,10 +104,7 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3,
-      },
+      transition: { staggerChildren: 0.1, delayChildren: 0.3 },
     },
   };
 
@@ -127,12 +113,41 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.25,
-        ease: 'easeOut' as const,
-      },
+      transition: { duration: 0.25, ease: 'easeOut' as const },
     },
   };
+
+  // Error state
+  if (error) {
+    return (
+      <Alert className="mb-8">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load household stats: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Loading state
+  if (isLoading || !stats) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="h-4 w-4 bg-gray-200 rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-20"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -141,12 +156,19 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       initial="hidden"
       animate="visible"
     >
+      {/* Refreshing indicator */}
+      {isRefetching && (
+        <div className="col-span-full flex justify-center">
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <LoadingSpinner />
+          </div>
+        </div>
+      )}
+
       <motion.div variants={cardVariants}>
         <Card
-          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          onClick={() => {
-            router.push('/chores');
-          }}
+          className="hover:shadow-lg transition-shadow duration-300 cursor-pointer relative"
+          onClick={() => router.push('/chores')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <motion.div variants={itemVariants}>
@@ -183,17 +205,10 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       <motion.div variants={cardVariants}>
         <Card
           className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          onClick={() => {
-            router.push('/payments');
-          }}
+          onClick={() => router.push('/payments')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div
-              variants={itemVariants}
-              onClick={() => {
-                router.push('/payments');
-              }}
-            >
+            <motion.div variants={itemVariants}>
               <CardTitle className="text-sm font-medium">
                 Your Balance
               </CardTitle>
@@ -230,17 +245,10 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       <motion.div variants={cardVariants}>
         <Card
           className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          onClick={() => {
-            router.push('/household');
-          }}
+          onClick={() => router.push('/household')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div
-              variants={itemVariants}
-              onClick={() => {
-                router.push('/household');
-              }}
-            >
+            <motion.div variants={itemVariants}>
               <CardTitle className="text-sm font-medium">
                 Household Members
               </CardTitle>
@@ -271,17 +279,10 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
       <motion.div variants={cardVariants}>
         <Card
           className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          onClick={() => {
-            router.push('/expenses');
-          }}
+          onClick={() => router.push('/expenses')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <motion.div
-              variants={itemVariants}
-              onClick={() => {
-                router.push('/expenses');
-              }}
-            >
+            <motion.div variants={itemVariants}>
               <CardTitle className="text-sm font-medium">This Month</CardTitle>
             </motion.div>
             <motion.div variants={iconVariants}>

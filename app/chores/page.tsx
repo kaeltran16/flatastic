@@ -20,11 +20,11 @@ import {
   useCreateChore,
   useCurrentUser,
   useDeleteChore,
-  useHousehold,
   useHouseholdMembers,
   useMarkChoreComplete,
   useUpdateChore,
 } from '@/hooks/use-chore';
+import { useHousehold } from '@/hooks/use-household';
 import { ChoreFilters as ChoreFiltersType } from '@/lib/validations/chore';
 
 export default function ChoresPage() {
@@ -42,10 +42,10 @@ export default function ChoresPage() {
     error: userError,
   } = useCurrentUser();
   const {
-    data: household,
-    isLoading: householdLoading,
+    household,
+    loading: householdLoading,
     error: householdError,
-  } = useHousehold(currentUser?.household_id ?? undefined);
+  } = useHousehold(currentUser?.household_id);
   const { data: householdMembers = [], isLoading: membersLoading } =
     useHouseholdMembers(currentUser?.household_id ?? undefined);
   const {

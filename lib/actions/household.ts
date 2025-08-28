@@ -125,7 +125,8 @@ export async function getHouseholdStats(): Promise<HouseholdStats> {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   const recentChores =
-    chores?.filter((c) => new Date(c.created_at) >= weekAgo) || [];
+    chores?.filter((c) => c.created_at && new Date(c.created_at) >= weekAgo) ||
+    [];
   const choreProgress = {
     completed: recentChores.filter((c) => c.status === 'completed').length,
     total: recentChores.length,

@@ -9,7 +9,7 @@ import ExpenseStatsCards from '@/components/expense/stats-card';
 import { LoadingSpinner } from '@/components/household/loading';
 import { useBalances } from '@/hooks/use-balance';
 import { ExpenseFormData, useExpenses } from '@/hooks/use-expense';
-import { useHouseholdMembers } from '@/hooks/use-supabase-data';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { AnimatePresence, motion } from 'motion/react';
 import { useMemo, useState } from 'react';

@@ -95,9 +95,12 @@ export function useSettlements() {
 
         return {
           ...note,
-          fromUser: fromUser,
-          toUser: toUser,
+          fromUser: fromUser || ({} as Profile),
+          toUser: toUser || ({} as Profile),
           amount: note.amount,
+          description: note.note || '',
+          status: 'completed',
+          date: note.created_at || new Date().toISOString(),
           note: note.note || '',
           settled_at: note.created_at || new Date().toISOString(),
           created_at: note.created_at || new Date().toISOString(),

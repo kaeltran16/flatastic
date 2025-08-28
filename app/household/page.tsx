@@ -15,11 +15,10 @@ import { LoadingSpinner } from '@/components/household/loading';
 import { MembersList } from '@/components/household/member-list';
 import { HouseholdSettings } from '@/components/household/settings';
 import { HouseholdSidebar } from '@/components/household/sidebar';
-import {
-  useHousehold,
-  useHouseholdMembers,
-  useProfile,
-} from '@/hooks/use-supabase-data';
+import { useHousehold } from '@/hooks/use-household';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
+import { useProfile } from '@/hooks/use-profile';
+
 import {
   inviteHouseholdMember,
   leaveHousehold,
@@ -49,7 +48,7 @@ export default function HouseholdPage() {
     household,
     loading: householdLoading,
     error: householdError,
-  } = useHousehold(profile?.household_id || null);
+  } = useHousehold(profile?.household_id);
 
   console.log('household', household);
 

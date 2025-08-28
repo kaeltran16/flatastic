@@ -40,7 +40,10 @@ interface AddPenaltyDialogProps {
   householdId: string;
   householdMembers: Profile[];
   recentChores: (Chore & {
-    profiles: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'>;
+    profiles?: Pick<
+      Profile,
+      'id' | 'full_name' | 'email' | 'avatar_url'
+    > | null;
   })[];
   currentUser: Profile;
   isLoading?: boolean;

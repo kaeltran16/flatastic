@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useProfile } from '@/hooks/use-profile';
 import { useNotifications } from '@/hooks/use-push-notification';
-import { useProfile } from '@/hooks/use-supabase-data';
 import { createClient } from '@/lib/supabase/client';
 import {
   AlertCircle,
