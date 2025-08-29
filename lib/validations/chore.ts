@@ -14,7 +14,7 @@ export const RecurringTypeEnum = z.enum(['daily', 'weekly', 'monthly', 'none']);
 
 // Schema for transforming Supabase data to app data
 export const ChoreSchema = z.object({
-  id: z.uuid(),
+  id: z.string().uuid(),
   name: z.string(),
   description: z.string().nullable(),
   assigned_to: z.string().nullable(),
@@ -38,8 +38,8 @@ export const ChoreSchema = z.object({
       return val as RecurringType;
     }),
   recurring_interval: z.number().int().nullable(),
-  household_id: z.uuid(),
-  created_by: z.uuid(),
+  household_id: z.string().uuid(),
+  created_by: z.string().uuid(),
   created_at: z.string().nullable(),
   updated_at: z.string().nullable(),
 }) satisfies z.ZodType<Chore>;
@@ -48,49 +48,61 @@ export const ChoreSchema = z.object({
 export const CreateChoreSchema = z
   .object({
     name: z
-      .string()
-      .min(1, { error: 'Chore name is required' })
-      .max(100, { error: 'Name too long' }),
+      .union([z.string(), z.undefined()])
+      .transform((val) => val || '')
+      .pipe(
+        z.string().min(1, 'Chore name is required').max(100, 'Name too long')
+      ),
     description: z
       .string()
-      .max(500, { error: 'Description too long' })
+      .max(500, 'Description too long')
       .optional()
       .nullable(),
     assigned_to: z
-      .string()
+      .union([z.string(), z.null(), z.undefined()])
       .optional()
       .nullable()
       .transform((val) => {
-        // Convert empty string to null for UUID validation
+        // Convert empty string or undefined to null
         if (!val || val === '') return null;
         return val;
       })
-      .pipe(z.uuid().nullable()),
+      .refine((val) => {
+        if (val === null) return true;
+        // If we have a value, it must be a valid UUID
+        return z.string().uuid().safeParse(val).success;
+      }, 'Invalid uuid'),
     due_date: z
-      .string()
+      .union([z.string(), z.null(), z.undefined()])
       .optional()
       .nullable()
       .transform((val) => {
-        // Convert empty string to null
+        // Convert empty string or undefined to null
         if (!val || val === '') return null;
         return val;
       })
-      .pipe(
-        z
-          .string()
-          .nullable()
-          .refine(
-            (val) => {
-              if (!val) return true; // Allow null values
-              // Allow ISO datetime strings (with or without timezone)
-              return !isNaN(Date.parse(val));
-            },
-            { error: 'Invalid date format' }
-          )
+      .refine((val) => {
+        if (val === null) return true;
+        // If we have a value, it must be a valid date
+        return !isNaN(Date.parse(val));
+      }, 'Invalid date format'),
+    recurring_type: z
+      .enum(['daily', 'weekly', 'monthly', 'none'])
+      .default('none'),
+    recurring_interval: z
+      .number()
+      .int()
+      .min(1, 'Number must be greater than or equal to 1')
+      .max(365, 'Number must be less than or equal to 365')
+      .optional()
+      .nullable(),
+    household_id: z
+      .union([z.string(), z.undefined()])
+      .refine((val) => val !== undefined && val !== '', 'Required')
+      .refine(
+        (val) => z.string().uuid().safeParse(val).success,
+        'Invalid uuid'
       ),
-    recurring_type: RecurringTypeEnum.default('none'),
-    recurring_interval: z.number().int().min(1).max(365).optional().nullable(),
-    household_id: z.uuid(),
   })
   .refine(
     (data) => {
@@ -100,7 +112,7 @@ export const CreateChoreSchema = z
       return true;
     },
     {
-      error: 'Recurring interval is required for recurring chores',
+      message: 'Recurring interval is required for recurring chores',
       path: ['recurring_interval'],
     }
   );
@@ -109,40 +121,57 @@ export const UpdateChoreSchema = z
   .object({
     name: z
       .string()
-      .min(1, { error: 'Chore name is required' })
-      .max(100, { error: 'Name too long' })
+      .min(1, 'Chore name is required')
+      .max(100, 'Name too long')
       .optional(),
     description: z
       .string()
-      .max(500, { error: 'Description too long' })
+      .max(500, 'Description too long')
       .nullable()
       .optional(),
-    assigned_to: z.uuid().nullable().optional(),
-    due_date: z
-      .string()
-      .nullable()
+    assigned_to: z
+      .union([z.string(), z.null(), z.undefined()])
       .optional()
-      .refine(
-        (val) => {
-          if (!val) return true; // Allow empty values
-          // Allow ISO datetime strings (with or without timezone)
-          return !isNaN(Date.parse(val));
-        },
-        { error: 'Invalid date format' }
-      ),
+      .nullable()
+      .refine((val) => {
+        if (val === null || val === undefined) return true;
+        // If we have a value, it must be a valid UUID
+        return z.string().uuid().safeParse(val).success;
+      }, 'Invalid uuid'),
+    due_date: z
+      .union([z.string(), z.null(), z.undefined()])
+      .optional()
+      .nullable()
+      .refine((val) => {
+        if (val === null || val === undefined) return true;
+        // If we have a value, it must be a valid date
+        return !isNaN(Date.parse(val));
+      }, 'Invalid date format'),
     status: ChoreStatusEnum.optional(),
-    recurring_type: RecurringTypeEnum.optional(),
-    recurring_interval: z.number().int().min(1).max(365).nullable().optional(),
+    recurring_type: z.enum(['daily', 'weekly', 'monthly', 'none']).optional(),
+    recurring_interval: z
+      .number()
+      .int()
+      .min(1, 'Number must be greater than or equal to 1')
+      .max(365, 'Number must be less than or equal to 365')
+      .nullable()
+      .optional(),
   })
   .refine(
     (data) => {
-      if (data.recurring_type && data.recurring_type !== 'none') {
-        return data.recurring_interval && data.recurring_interval > 0;
+      // For partial updates, only validate the relationship if both fields are present
+      if (
+        data.recurring_type !== undefined &&
+        data.recurring_interval !== undefined
+      ) {
+        if (data.recurring_type !== 'none') {
+          return data.recurring_interval && data.recurring_interval > 0;
+        }
       }
       return true;
     },
     {
-      error: 'Recurring interval is required for recurring chores',
+      message: 'Recurring interval is required for recurring chores',
       path: ['recurring_interval'],
     }
   );
@@ -176,7 +205,7 @@ export const prepareChoreForInsert = (
     status: 'pending',
     recurring_type: input.recurring_type,
     recurring_interval: input.recurring_interval || null,
-    household_id: input.household_id,
+    household_id: input.household_id || '',
     created_by: createdBy,
   };
 };
@@ -209,7 +238,7 @@ export const validateRecurringType = (type: string): type is RecurringType => {
 // Form data helpers for your React components
 export const parseChoreFormData = (formData: FormData): CreateChoreInput => {
   const data = {
-    name: formData.get('name') as string,
+    name: (formData.get('name') as string) || '',
     description: formData.get('description') as string | null,
     assigned_to: formData.get('assigned_to') as string | null,
     due_date: formData.get('due_date') as string | null,
@@ -228,7 +257,7 @@ export const parseChoreUpdateFormData = (
 ): UpdateChoreInput => {
   const data: Partial<UpdateChoreInput> = {};
 
-  const name = formData.get('name') as string;
+  const name = (formData.get('name') as string) || '';
   if (name) data.name = name;
 
   const description = formData.get('description') as string;

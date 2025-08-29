@@ -2,10 +2,10 @@
 'use server';
 
 import { ChoreFormData } from '@/hooks/use-chore';
+import { ChoreInsert, ChoreUpdate } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
 import { CreateChoreSchema, UpdateChoreSchema } from '@/lib/validations/chore';
 import { revalidatePath } from 'next/cache';
-import { v4 as uuidv4 } from 'uuid';
 
 // Custom error class for chore operations
 class ChoreActionError extends Error {
@@ -86,14 +86,13 @@ export async function createChore(formData: ChoreFormData) {
       );
     }
 
-    // Prepare chore data
-    const choreData = {
+    // Prepare chore data for insert (exclude auto-generated fields)
+    const choreData: ChoreInsert = {
       ...validatedData,
-      id: uuidv4(),
       created_by: user.id,
       status: 'pending' as const,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      household_id: validatedData.household_id,
+      // Don't include id, created_at, updated_at - let the database handle these
     };
 
     // Insert chore
@@ -171,12 +170,14 @@ export async function updateChore(choreId: string, formData: ChoreFormData) {
     }
 
     // Update chore
+    const updateData: Partial<ChoreUpdate> = {
+      ...validatedData,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data: updatedChore, error: updateError } = await supabase
       .from('chores')
-      .update({
-        ...validatedData,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', choreId)
       .select('*')
       .single();
@@ -291,12 +292,14 @@ export async function markChoreComplete(choreId: string) {
     }
 
     // Mark as complete
+    const updateData: Partial<ChoreUpdate> = {
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+    };
+
     const { data: updatedChore, error: updateError } = await supabase
       .from('chores')
-      .update({
-        status: 'completed',
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', choreId)
       .select('*')
       .single();

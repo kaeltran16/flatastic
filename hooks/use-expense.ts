@@ -207,6 +207,7 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
   };
 
   // Add expense with server action
+  // Add expense with server action
   const addExpense = useCallback(
     async (expenseData: ExpenseFormData) => {
       if (!currentUser?.household_id) throw new Error('No household found');
@@ -243,27 +244,29 @@ export function useExpenses(balanceUpdates?: BalanceUpdateFunctions) {
           throw new Error(result.error || 'Failed to add expense');
         }
 
+        // Create the real expense object with proper structure
+        const realExpense: ExpenseWithDetails = {
+          ...result.data!.expense,
+          payer: currentUser,
+          splits: result.data!.splits,
+          your_share:
+            result.data!.splits.find((s) => s.user_id === currentUser.id)
+              ?.amount_owed || 0,
+          status: 'pending' as const,
+        };
+
         // Replace optimistic expense with real data
+        // Remove the temp expense and add the real one
         queryClient.setQueryData(
           expenseKeys.household(currentUser.household_id),
-          (old: ExpenseWithDetails[] = []) =>
-            old.map((expense) =>
-              expense.id === tempId
-                ? {
-                    ...result.data!.expense,
-                    payer: currentUser,
-                    splits: result.data!.splits,
-                    your_share:
-                      result.data!.splits.find(
-                        (s) => s.user_id === currentUser.id
-                      )?.amount_owed || 0,
-                    status: 'pending' as const,
-                  }
-                : expense
-            )
+          (old: ExpenseWithDetails[] = []) => {
+            // Filter out the temporary expense and add the real one
+            const withoutTemp = old.filter((expense) => expense.id !== tempId);
+            return [realExpense, ...withoutTemp];
+          }
         );
 
-        // Update balances with real ID
+        // Update balances: remove temp and add real
         if (
           balanceUpdates?.removeOptimisticExpense &&
           balanceUpdates?.addOptimisticExpense

@@ -1,0 +1,283 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "Next.js 15",
+    "React 19",
+    "Supabase",
+    "Tailwind CSS",
+    "Radix UI",
+    "React Hook Form",
+    "Zod",
+    "Jest",
+    "Testing Library"
+  ],
+  "features": [
+    {
+      "name": "Authentication System",
+      "description": "Complete authentication system with login, signup, password reset, and user management using Supabase Auth",
+      "files": [
+        "app/auth/login/page.tsx",
+        "app/auth/sign-up/page.tsx",
+        "app/auth/forgot-password/page.tsx",
+        "app/auth/update-password/page.tsx",
+        "app/auth/confirm/page.tsx",
+        "app/auth/callback/page.tsx",
+        "app/auth/error/page.tsx",
+        "app/auth/sign-up-success/page.tsx",
+        "components/login-form.tsx",
+        "components/sign-up-form.tsx",
+        "components/forgot-password-form.tsx",
+        "components/update-password-form.tsx",
+        "components/auth-button.tsx",
+        "components/logout-button.tsx",
+        "components/user-avatar.tsx",
+        "middleware.ts"
+      ]
+    },
+    {
+      "name": "Household Management",
+      "description": "Household creation, member management, and household settings functionality",
+      "files": [
+        "app/household/page.tsx",
+        "components/household/household-form.tsx",
+        "components/household/household-settings.tsx",
+        "components/household/member-management.tsx",
+        "components/household/invite-member.tsx",
+        "components/household/leave-household.tsx",
+        "hooks/use-household.ts",
+        "hooks/use-household-member.ts",
+        "hooks/use-household-stats.ts"
+      ]
+    },
+    {
+      "name": "Expense Management",
+      "description": "Complete expense tracking system with splitting, categories, and expense history",
+      "files": [
+        "app/expenses/page.tsx",
+        "components/expense/expense-form.tsx",
+        "components/expense/expense-list.tsx",
+        "components/expense/expense-card.tsx",
+        "components/expense/expense-filters.tsx",
+        "components/expense/expense-stats.tsx",
+        "components/expense/expense-chart.tsx",
+        "components/expense/expense-dialog.tsx",
+        "components/expense/expense-split.tsx",
+        "components/expense/expense-categories.tsx",
+        "components/expense/expense-history.tsx",
+        "hooks/use-expense.ts",
+        "hooks/use-expense-list.ts"
+      ]
+    },
+    {
+      "name": "Payment & Settlement System",
+      "description": "Payment tracking, settlement management, and balance calculation between household members",
+      "files": [
+        "app/payments/page.tsx",
+        "components/payment/balance-card.tsx",
+        "components/payment/payment-sidebar.tsx",
+        "components/payment/settlement-card.tsx",
+        "components/payment/settlement-dialog.tsx",
+        "components/payment/stats-cards.tsx",
+        "hooks/use-settlement.ts",
+        "hooks/use-balance.ts"
+      ]
+    },
+    {
+      "name": "Chore Management",
+      "description": "Chore assignment, scheduling, completion tracking, and chore rotation system",
+      "files": [
+        "app/chores/page.tsx",
+        "app/chore-scheduler/page.tsx",
+        "components/chore/chore-form.tsx",
+        "components/chore/chore-card.tsx",
+        "components/chore/chore-dialog.tsx",
+        "components/chore/chore-filters.tsx",
+        "components/chore/chore-navigation.tsx",
+        "components/chore/chore-tabs.tsx",
+        "components/chore/chore-stats-card.tsx",
+        "components/chore/chore-requirements.tsx",
+        "components/chore/empty-state.tsx",
+        "components/chore/error.tsx",
+        "hooks/use-chore.ts"
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main dashboard with overview of expenses, chores, and household activity",
+      "files": [
+        "app/dashboard/page.tsx",
+        "app/dashboard/loading.tsx",
+        "components/dashboard/index.tsx",
+        "components/dashboard/header.tsx",
+        "components/dashboard/progress-cards.tsx",
+        "components/dashboard/stats-card.tsx",
+        "components/dashboard/chore.tsx",
+        "components/dashboard/expense.tsx"
+      ]
+    },
+    {
+      "name": "Penalty Fund",
+      "description": "Penalty fund management for missed chores and late payments",
+      "files": [
+        "app/penalty-fund/page.tsx",
+        "components/penalty-fund/add-penalty-fund-dialog.tsx"
+      ]
+    },
+    {
+      "name": "Profile Management",
+      "description": "User profile settings, preferences, and account management",
+      "files": ["app/profile/page.tsx", "hooks/use-profile.ts"]
+    },
+    {
+      "name": "PWA Features",
+      "description": "Progressive Web App functionality with offline support and push notifications",
+      "files": [
+        "app/pwa-nextjs/page.tsx",
+        "app/pwa-nextjs/actions.ts",
+        "app/pwa-nextjs/install-prompt.tsx",
+        "app/pwa-nextjs/push-notification-manager.tsx",
+        "app/pwa-nextjs/utils.ts",
+        "app/offline/page.tsx",
+        "hooks/use-push-notification.ts",
+        "public/manifest.json",
+        "public/sw.js",
+        "public/sw-custom.js",
+        "worker/index.js"
+      ]
+    },
+    {
+      "name": "UI Components",
+      "description": "Reusable UI components built with Radix UI and Tailwind CSS",
+      "files": [
+        "components/ui/button.tsx",
+        "components/ui/card.tsx",
+        "components/ui/dialog.tsx",
+        "components/ui/form.tsx",
+        "components/ui/input.tsx",
+        "components/ui/label.tsx",
+        "components/ui/tabs.tsx",
+        "components/ui/badge.tsx",
+        "components/ui/avatar.tsx",
+        "components/ui/dropdown-menu.tsx",
+        "components/ui/navigation-menu.tsx",
+        "components/ui/select.tsx",
+        "components/ui/textarea.tsx",
+        "components/ui/switch.tsx",
+        "components/ui/checkbox.tsx",
+        "components/ui/radio-group.tsx",
+        "components/ui/slider.tsx",
+        "components/ui/progress.tsx",
+        "components/ui/alert.tsx",
+        "components/ui/alert-dialog.tsx",
+        "components/ui/aspect-ratio.tsx",
+        "components/ui/collapsible.tsx",
+        "components/ui/context-menu.tsx",
+        "components/ui/hover-card.tsx",
+        "components/ui/menubar.tsx",
+        "components/ui/popover.tsx",
+        "components/ui/scroll-area.tsx",
+        "components/ui/separator.tsx",
+        "components/ui/slot.tsx",
+        "components/ui/toggle.tsx",
+        "components/ui/toggle-group.tsx",
+        "components/ui/tooltip.tsx",
+        "components/ui/calendar.tsx",
+        "components/ui/date-picker.tsx",
+        "components/ui/command.tsx",
+        "components/ui/resizable.tsx",
+        "components/ui/sheet.tsx",
+        "components/ui/table.tsx",
+        "components/ui/toast.tsx",
+        "components/ui/toaster.tsx",
+        "components/ui/use-toast.ts",
+        "components/ui/accordion.tsx",
+        "components/ui/calendar.tsx",
+        "components/ui/date-picker.tsx"
+      ]
+    },
+    {
+      "name": "Data Layer",
+      "description": "Supabase integration, database operations, and data validation",
+      "files": [
+        "lib/supabase/client.ts",
+        "lib/supabase/server.ts",
+        "lib/supabase/middleware.ts",
+        "lib/supabase/types.ts",
+        "lib/supabase/auth.ts",
+        "lib/supabase/database.ts",
+        "lib/validations/auth.ts",
+        "lib/validations/expense.ts",
+        "lib/actions/auth.ts",
+        "lib/actions/expense.ts",
+        "lib/actions/chore.ts",
+        "lib/actions/household.ts",
+        "lib/actions/payment.ts",
+        "lib/actions/profile.ts",
+        "lib/actions/notification.ts",
+        "lib/actions/settings.ts",
+        "lib/actions/webhook.ts"
+      ]
+    },
+    {
+      "name": "Testing Infrastructure",
+      "description": "Jest configuration, test setup, and existing test files",
+      "files": [
+        "jest.config.js",
+        "jest.setup.js",
+        "__tests__/components/auth/login-form.test.tsx",
+        "__tests__/hooks/use-household.test.ts",
+        "__tests__/lib/validations/auth.test.ts",
+        "__tests__/pages/chores.test.tsx",
+        "__tests__/pages/expenses.test.tsx"
+      ]
+    },
+    {
+      "name": "Utility Functions",
+      "description": "Helper functions, utilities, and common operations",
+      "files": [
+        "lib/utils.ts",
+        "utils/index.ts",
+        "lib/email/template.ts",
+        "lib/push-notification.ts"
+      ]
+    },
+    {
+      "name": "Theme and Styling",
+      "description": "Theme configuration, global styles, and dark mode support",
+      "files": [
+        "app/globals.css",
+        "components/theme-switcher.tsx",
+        "components.json"
+      ]
+    },
+    {
+      "name": "Error Handling",
+      "description": "Error boundaries, error pages, and error handling utilities",
+      "files": [
+        "app/global-error.tsx",
+        "components/chore/error.tsx",
+        "components/silent-subscriber.tsx"
+      ]
+    },
+    {
+      "name": "Loading States",
+      "description": "Loading components and loading state management",
+      "files": [
+        "app/dashboard/loading.tsx",
+        "components/loading-screen.tsx",
+        "components/household/loading.tsx",
+        "hooks/use-loading-screen.ts"
+      ]
+    },
+    {
+      "name": "Navigation",
+      "description": "Navigation components and routing",
+      "files": [
+        "components/navbar.tsx",
+        "components/app-breadcrumb.tsx",
+        "app/layout.tsx",
+        "app/protected/layout.tsx"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+{
+  "id": "flatastic-frontend-tests",
+  "title": "Flatastic Frontend Test Plan",
+  "description": "Comprehensive frontend testing for Flatastic household management application",
+  "steps": [
+    {
+      "id": "auth-001",
+      "title": "User Login",
+      "description": "Test user login with valid credentials",
+      "steps": [
+        "Navigate to login page",
+        "Enter valid email and password",
+        "Click login button",
+        "Verify redirect to dashboard"
+      ],
+      "expectedResult": "User successfully logs in and is redirected to dashboard"
+    },
+    {
+      "id": "auth-002",
+      "title": "User Registration",
+      "description": "Test new user registration",
+      "steps": [
+        "Navigate to signup page",
+        "Fill registration form with valid data",
+        "Submit form",
+        "Verify email confirmation"
+      ],
+      "expectedResult": "User account created and confirmation email sent"
+    },
+    {
+      "id": "auth-003",
+      "title": "Password Reset",
+      "description": "Test password reset functionality",
+      "steps": [
+        "Navigate to forgot password page",
+        "Enter email address",
+        "Submit form",
+        "Verify reset email sent"
+      ],
+      "expectedResult": "Password reset email sent to user"
+    },
+    {
+      "id": "auth-004",
+      "title": "Invalid Login",
+      "description": "Test login with invalid credentials",
+      "steps": [
+        "Navigate to login page",
+        "Enter invalid email/password",
+        "Submit form"
+      ],
+      "expectedResult": "Error message displayed"
+    },
+    {
+      "id": "dash-001",
+      "title": "Dashboard Load",
+      "description": "Test dashboard loads with user data",
+      "steps": ["Login to application", "Navigate to dashboard"],
+      "expectedResult": "Dashboard displays user profile, stats, and recent activities"
+    },
+    {
+      "id": "dash-002",
+      "title": "Stats Cards",
+      "description": "Test statistics cards display correctly",
+      "steps": ["View dashboard", "Check stats cards"],
+      "expectedResult": "All stats cards display correct data"
+    },
+    {
+      "id": "dash-003",
+      "title": "Progress Cards",
+      "description": "Test progress tracking cards",
+      "steps": ["View dashboard", "Check progress cards"],
+      "expectedResult": "Progress cards show accurate completion percentages"
+    },
+    {
+      "id": "dash-004",
+      "title": "Recent Activities",
+      "description": "Test recent chores and expenses display",
+      "steps": [
+        "View dashboard",
+        "Check recent chores section",
+        "Check recent expenses section"
+      ],
+      "expectedResult": "Recent activities display correctly"
+    },
+    {
+      "id": "hh-001",
+      "title": "Create Household",
+      "description": "Test creating a new household",
+      "steps": [
+        "Navigate to household page",
+        "Click create household",
+        "Fill household details",
+        "Submit form"
+      ],
+      "expectedResult": "Household created successfully"
+    },
+    {
+      "id": "hh-002",
+      "title": "Join Household",
+      "description": "Test joining existing household",
+      "steps": [
+        "Navigate to household page",
+        "Click join household",
+        "Enter invite code",
+        "Submit form"
+      ],
+      "expectedResult": "Successfully joined household"
+    },
+    {
+      "id": "chore-001",
+      "title": "Create Chore",
+      "description": "Test creating a new chore",
+      "steps": [
+        "Navigate to chores page",
+        "Click add chore",
+        "Fill chore details",
+        "Assign to member",
+        "Set due date",
+        "Submit form"
+      ],
+      "expectedResult": "Chore created successfully"
+    },
+    {
+      "id": "chore-002",
+      "title": "Edit Chore",
+      "description": "Test editing existing chore",
+      "steps": [
+        "Select existing chore",
+        "Click edit",
+        "Modify details",
+        "Save changes"
+      ],
+      "expectedResult": "Chore updated successfully"
+    },
+    {
+      "id": "chore-003",
+      "title": "Complete Chore",
+      "description": "Test marking chore as complete",
+      "steps": ["Select pending chore", "Click complete", "Confirm completion"],
+      "expectedResult": "Chore marked as complete"
+    },
+    {
+      "id": "exp-001",
+      "title": "Add Expense",
+      "description": "Test adding new expense",
+      "steps": [
+        "Navigate to expenses page",
+        "Click add expense",
+        "Fill expense details",
+        "Split between members",
+        "Submit form"
+      ],
+      "expectedResult": "Expense added successfully"
+    },
+    {
+      "id": "exp-002",
+      "title": "Edit Expense",
+      "description": "Test editing expense",
+      "steps": [
+        "Select existing expense",
+        "Click edit",
+        "Modify details",
+        "Save changes"
+      ],
+      "expectedResult": "Expense updated successfully"
+    },
+    {
+      "id": "form-001",
+      "title": "Required Fields",
+      "description": "Test required field validation",
+      "steps": [
+        "Submit form with empty required fields",
+        "Check error messages"
+      ],
+      "expectedResult": "Appropriate error messages displayed"
+    },
+    {
+      "id": "form-002",
+      "title": "Email Validation",
+      "description": "Test email format validation",
+      "steps": ["Enter invalid email format", "Submit form"],
+      "expectedResult": "Email validation error displayed"
+    },
+    {
+      "id": "resp-001",
+      "title": "Mobile Layout",
+      "description": "Test mobile responsive design",
+      "steps": [
+        "Resize browser to mobile width",
+        "Check layout adaptation",
+        "Test touch interactions"
+      ],
+      "expectedResult": "Layout adapts correctly for mobile"
+    },
+    {
+      "id": "nav-001",
+      "title": "Main Navigation",
+      "description": "Test main navigation menu",
+      "steps": ["Click navigation items", "Verify page changes"],
+      "expectedResult": "Navigation works correctly"
+    },
+    {
+      "id": "pwa-001",
+      "title": "App Installation",
+      "description": "Test PWA installation prompt",
+      "steps": [
+        "Check for install prompt",
+        "Install app",
+        "Verify installation"
+      ],
+      "expectedResult": "App installs successfully"
+    }
+  ],
+  "testEnvironment": {
+    "browsers": ["Chrome", "Firefox", "Safari", "Edge"],
+    "devices": ["Desktop", "Tablet", "Mobile"],
+    "screenSizes": ["1920x1080", "1366x768", "768x1024", "375x667"]
+  },
+  "priority": "high",
+  "estimatedDuration": "4-6 hours"
+}

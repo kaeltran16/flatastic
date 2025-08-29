@@ -1,11 +1,15 @@
 // hooks/useExpensesList.ts
+import { Profile } from '@/lib/supabase/schema.alias';
 import { useQuery } from '@tanstack/react-query';
 import { fetchExpenses } from './use-expense';
-import { useHouseholdMembers } from './use-household-member';
 
-export function useExpensesList(householdId?: string, userId?: string) {
-  const { members } = useHouseholdMembers(householdId);
-
+export function useExpensesList(
+  householdId: string,
+  userId: string,
+  members: Profile[],
+  limit?: number
+) {
+  console.log('members', members);
   const {
     data: expenses = [],
     isLoading,
@@ -13,7 +17,7 @@ export function useExpensesList(householdId?: string, userId?: string) {
     refetch,
   } = useQuery({
     queryKey: ['expenses', 'list', householdId, userId],
-    queryFn: () => fetchExpenses(householdId!, userId!, members, 5),
+    queryFn: () => fetchExpenses(householdId!, userId!, members, limit),
     enabled: !!householdId && !!userId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes

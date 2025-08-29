@@ -3,13 +3,25 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpensesList } from '@/hooks/use-expense-list';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { formatDate } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { LoadingSpinner } from '../household/loading';
 
-const RecentExpenses = () => {
-  const { expenses, loading } = useExpensesList();
+interface RecentExpensesProps {
+  userId: string;
+  householdId: string;
+}
+
+const RecentExpenses = ({ userId, householdId }: RecentExpensesProps) => {
+  const { members } = useHouseholdMembers(householdId);
+  const { expenses, loading } = useExpensesList(
+    householdId,
+    userId,
+    members,
+    5
+  );
 
   if (loading) return <LoadingSpinner />;
 
@@ -124,7 +136,7 @@ const RecentExpenses = () => {
                         scale: 0.98,
                         transition: { duration: 0.1 },
                       }}
-                      className="flex items-center justify-between p-4 rounded-xl hover:bg-accent/40 active:bg-accent/60 cursor-pointer transition-colors touch-manipulation"
+                      className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/40 active:bg-accent/60 cursor-pointer transition-colors touch-manipulation"
                     >
                       <motion.div
                         initial={{ opacity: 0, x: -6 }}
