@@ -175,11 +175,21 @@ export async function sendNotificationToHousehold(
       .select('id')
       .eq('household_id', householdId);
 
-    if (profilesError || !profiles) {
+    console.log('📋 Profiles query result:', { profiles, profilesError });
+
+    if (profilesError) {
+      console.error('❌ Error fetching profiles:', profilesError);
       return { success: false, error: 'Failed to fetch household members' };
     }
 
+    if (!profiles || profiles.length === 0) {
+      console.log('⚠️  No profiles found for household:', householdId);
+      return { success: false, error: 'No members found in household' };
+    }
+
     const userIds = profiles.map((p) => p.id);
+
+    console.log('👥 User IDs in household:', userIds);
 
     // Get subscriptions for all users in household
     const { data: subscriptions, error } = await supabase
@@ -187,13 +197,25 @@ export async function sendNotificationToHousehold(
       .select('endpoint, p256dh, auth, user_id')
       .in('user_id', userIds);
 
+    console.log('🔔 Subscriptions query result:', {
+      subscriptions,
+      error,
+      query: `user_id IN (${userIds.join(', ')})`,
+    });
+
     if (error) {
-      console.error('Error fetching household subscriptions:', error);
+      console.error('❌ Error fetching household subscriptions:', error);
       return { success: false, error: error.message };
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      return { success: false, error: 'No subscriptions found for household' };
+      console.log('⚠️  No push subscriptions found for household members');
+      console.log('🔍 Debug info:', {
+        householdId,
+        profilesFound: profiles.length,
+        userIds,
+        subscriptionsFound: 0,
+      });
     }
 
     const notificationPayload = JSON.stringify({
