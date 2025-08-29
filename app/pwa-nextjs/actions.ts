@@ -1,13 +1,9 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import webpush, { PushSubscription } from 'web-push';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!
-);
+const supabase = createClient();
 
 webpush.setVapidDetails(
   process.env.NEXT_PUBLIC_VAPID_EMAIL!,
