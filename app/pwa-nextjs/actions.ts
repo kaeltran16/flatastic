@@ -3,8 +3,6 @@
 import { createClient } from '@/lib/supabase/server';
 import webpush, { PushSubscription } from 'web-push';
 
-const supabase = await createClient();
-
 webpush.setVapidDetails(
   process.env.NEXT_PUBLIC_VAPID_EMAIL!,
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
@@ -16,6 +14,7 @@ export async function subscribeUser(
   userAgent?: string,
   userId?: string
 ) {
+  const supabase = await createClient();
   try {
     const { data, error } = await supabase
       .from('push_subscriptions')
@@ -48,6 +47,7 @@ export async function subscribeUser(
 }
 
 export async function unsubscribeUser(endpoint: string) {
+  const supabase = await createClient();
   try {
     const { error } = await supabase
       .from('push_subscriptions')
@@ -73,6 +73,7 @@ export async function sendNotificationToUser(
   message: string,
   data?: any
 ) {
+  const supabase = await createClient();
   try {
     // Fetch user's subscriptions
     const { data: subscriptions, error } = await supabase
@@ -164,6 +165,7 @@ export async function sendNotificationToHousehold(
   message: string,
   data?: any
 ) {
+  const supabase = await createClient();
   try {
     // Get all users in the household
     const { data: profiles, error: profilesError } = await supabase
@@ -271,6 +273,7 @@ export async function sendNotificationToHousehold(
 
 // Webhook handler for database notifications
 export async function handleDatabaseNotification(notificationData: any) {
+  const supabase = await createClient();
   try {
     const { user_id, household_id, title, message, type, is_urgent } =
       notificationData;
@@ -305,6 +308,7 @@ export async function sendNotification(
   message: string,
   title: string = 'Test Notification'
 ) {
+  const supabase = await createClient();
   try {
     const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')
