@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import webpush, { PushSubscription } from 'web-push';
 
-const supabase = createClient();
+const supabase = await createClient();
 
 webpush.setVapidDetails(
   process.env.NEXT_PUBLIC_VAPID_EMAIL!,
