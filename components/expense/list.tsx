@@ -117,8 +117,6 @@ export default function ExpenseList({
     return pages;
   };
 
-  console.log(expenses);
-
   if (expenses?.length === 0) {
     return (
       <Card>

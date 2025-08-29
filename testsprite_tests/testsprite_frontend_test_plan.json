@@ -1,221 +1,550 @@
-{
-  "id": "flatastic-frontend-tests",
-  "title": "Flatastic Frontend Test Plan",
-  "description": "Comprehensive frontend testing for Flatastic household management application",
-  "steps": [
-    {
-      "id": "auth-001",
-      "title": "User Login",
-      "description": "Test user login with valid credentials",
-      "steps": [
-        "Navigate to login page",
-        "Enter valid email and password",
-        "Click login button",
-        "Verify redirect to dashboard"
-      ],
-      "expectedResult": "User successfully logs in and is redirected to dashboard"
-    },
-    {
-      "id": "auth-002",
-      "title": "User Registration",
-      "description": "Test new user registration",
-      "steps": [
-        "Navigate to signup page",
-        "Fill registration form with valid data",
-        "Submit form",
-        "Verify email confirmation"
-      ],
-      "expectedResult": "User account created and confirmation email sent"
-    },
-    {
-      "id": "auth-003",
-      "title": "Password Reset",
-      "description": "Test password reset functionality",
-      "steps": [
-        "Navigate to forgot password page",
-        "Enter email address",
-        "Submit form",
-        "Verify reset email sent"
-      ],
-      "expectedResult": "Password reset email sent to user"
-    },
-    {
-      "id": "auth-004",
-      "title": "Invalid Login",
-      "description": "Test login with invalid credentials",
-      "steps": [
-        "Navigate to login page",
-        "Enter invalid email/password",
-        "Submit form"
-      ],
-      "expectedResult": "Error message displayed"
-    },
-    {
-      "id": "dash-001",
-      "title": "Dashboard Load",
-      "description": "Test dashboard loads with user data",
-      "steps": ["Login to application", "Navigate to dashboard"],
-      "expectedResult": "Dashboard displays user profile, stats, and recent activities"
-    },
-    {
-      "id": "dash-002",
-      "title": "Stats Cards",
-      "description": "Test statistics cards display correctly",
-      "steps": ["View dashboard", "Check stats cards"],
-      "expectedResult": "All stats cards display correct data"
-    },
-    {
-      "id": "dash-003",
-      "title": "Progress Cards",
-      "description": "Test progress tracking cards",
-      "steps": ["View dashboard", "Check progress cards"],
-      "expectedResult": "Progress cards show accurate completion percentages"
-    },
-    {
-      "id": "dash-004",
-      "title": "Recent Activities",
-      "description": "Test recent chores and expenses display",
-      "steps": [
-        "View dashboard",
-        "Check recent chores section",
-        "Check recent expenses section"
-      ],
-      "expectedResult": "Recent activities display correctly"
-    },
-    {
-      "id": "hh-001",
-      "title": "Create Household",
-      "description": "Test creating a new household",
-      "steps": [
-        "Navigate to household page",
-        "Click create household",
-        "Fill household details",
-        "Submit form"
-      ],
-      "expectedResult": "Household created successfully"
-    },
-    {
-      "id": "hh-002",
-      "title": "Join Household",
-      "description": "Test joining existing household",
-      "steps": [
-        "Navigate to household page",
-        "Click join household",
-        "Enter invite code",
-        "Submit form"
-      ],
-      "expectedResult": "Successfully joined household"
-    },
-    {
-      "id": "chore-001",
-      "title": "Create Chore",
-      "description": "Test creating a new chore",
-      "steps": [
-        "Navigate to chores page",
-        "Click add chore",
-        "Fill chore details",
-        "Assign to member",
-        "Set due date",
-        "Submit form"
-      ],
-      "expectedResult": "Chore created successfully"
-    },
-    {
-      "id": "chore-002",
-      "title": "Edit Chore",
-      "description": "Test editing existing chore",
-      "steps": [
-        "Select existing chore",
-        "Click edit",
-        "Modify details",
-        "Save changes"
-      ],
-      "expectedResult": "Chore updated successfully"
-    },
-    {
-      "id": "chore-003",
-      "title": "Complete Chore",
-      "description": "Test marking chore as complete",
-      "steps": ["Select pending chore", "Click complete", "Confirm completion"],
-      "expectedResult": "Chore marked as complete"
-    },
-    {
-      "id": "exp-001",
-      "title": "Add Expense",
-      "description": "Test adding new expense",
-      "steps": [
-        "Navigate to expenses page",
-        "Click add expense",
-        "Fill expense details",
-        "Split between members",
-        "Submit form"
-      ],
-      "expectedResult": "Expense added successfully"
-    },
-    {
-      "id": "exp-002",
-      "title": "Edit Expense",
-      "description": "Test editing expense",
-      "steps": [
-        "Select existing expense",
-        "Click edit",
-        "Modify details",
-        "Save changes"
-      ],
-      "expectedResult": "Expense updated successfully"
-    },
-    {
-      "id": "form-001",
-      "title": "Required Fields",
-      "description": "Test required field validation",
-      "steps": [
-        "Submit form with empty required fields",
-        "Check error messages"
-      ],
-      "expectedResult": "Appropriate error messages displayed"
-    },
-    {
-      "id": "form-002",
-      "title": "Email Validation",
-      "description": "Test email format validation",
-      "steps": ["Enter invalid email format", "Submit form"],
-      "expectedResult": "Email validation error displayed"
-    },
-    {
-      "id": "resp-001",
-      "title": "Mobile Layout",
-      "description": "Test mobile responsive design",
-      "steps": [
-        "Resize browser to mobile width",
-        "Check layout adaptation",
-        "Test touch interactions"
-      ],
-      "expectedResult": "Layout adapts correctly for mobile"
-    },
-    {
-      "id": "nav-001",
-      "title": "Main Navigation",
-      "description": "Test main navigation menu",
-      "steps": ["Click navigation items", "Verify page changes"],
-      "expectedResult": "Navigation works correctly"
-    },
-    {
-      "id": "pwa-001",
-      "title": "App Installation",
-      "description": "Test PWA installation prompt",
-      "steps": [
-        "Check for install prompt",
-        "Install app",
-        "Verify installation"
-      ],
-      "expectedResult": "App installs successfully"
-    }
-  ],
-  "testEnvironment": {
-    "browsers": ["Chrome", "Firefox", "Safari", "Edge"],
-    "devices": ["Desktop", "Tablet", "Mobile"],
-    "screenSizes": ["1920x1080", "1366x768", "768x1024", "375x667"]
+[
+  {
+    "id": "TC001",
+    "title": "User Signup Success Flow",
+    "description": "Verify that a new user can successfully sign up with valid details and receives an email confirmation link.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the signup page."
+      },
+      {
+        "type": "action",
+        "description": "Input valid user details (email, password, etc)."
+      },
+      {
+        "type": "action",
+        "description": "Submit the signup form."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify account is created and email confirmation prompt is shown."
+      },
+      {
+        "type": "action",
+        "description": "Open the email and click the confirmation link."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user account is confirmed and can log in."
+      }
+    ]
   },
-  "priority": "high",
-  "estimatedDuration": "4-6 hours"
-}
+  {
+    "id": "TC002",
+    "title": "User Login with Correct Credentials",
+    "description": "Check that a registered user can log in successfully with correct credentials.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter valid username/email and password."
+      },
+      {
+        "type": "action",
+        "description": "Click the login button."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify successful login redirects to the dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login with Incorrect Credentials",
+    "description": "Verify login fails when provided with incorrect username/email or password.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid username/email or password."
+      },
+      {
+        "type": "action",
+        "description": "Click the login button."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify error message is displayed and login is denied."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Password Reset Flow",
+    "description": "Verify the password reset flow including request, email receipt, and password update.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the forgot password page."
+      },
+      {
+        "type": "action",
+        "description": "Enter registered email and submit password reset request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that a password reset email is sent."
+      },
+      {
+        "type": "action",
+        "description": "Open the password reset email and click the reset link."
+      },
+      {
+        "type": "action",
+        "description": "Enter and confirm new valid password."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify password is updated and user can log in with new password."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Create and Join Household Group",
+    "description": "Validate that users can create new household groups and join existing ones successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in and navigate to the household management page."
+      },
+      {
+        "type": "action",
+        "description": "Create a new household by entering required details."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the household group is created and user is added as a member."
+      },
+      {
+        "type": "action",
+        "description": "Log out and log in as another user."
+      },
+      {
+        "type": "action",
+        "description": "Join the existing household by entering household invite or code."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is added to the household members list with appropriate permissions."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Add, Edit, and Delete Chores",
+    "description": "Verify chores can be added with all details, edited, and deleted correctly with UI reflecting changes.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to chores page."
+      },
+      {
+        "type": "action",
+        "description": "Add a new chore, providing all required fields and assigning to members."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new chore appears in the chore list with correct details."
+      },
+      {
+        "type": "action",
+        "description": "Edit the chore details and save."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify edited details are correctly saved and displayed."
+      },
+      {
+        "type": "action",
+        "description": "Delete the chore."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the chore is removed from the list."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Assign and Complete Chores with Notifications",
+    "description": "Check that chores can be assigned to household members, completed with optional photo/note, and notifications are sent.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a chore and assign to a specific household member."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the assigned member receives a notification."
+      },
+      {
+        "type": "action",
+        "description": "Assigned member marks the chore as completed with a photo and note."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify chore status updates to completed and notifications are sent to household members."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Add and Split Expense Equally",
+    "description": "Verify expenses can be logged and split equally among household members with payment status tracked.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to expenses page."
+      },
+      {
+        "type": "action",
+        "description": "Add a new expense with relevant details and select equal split option."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expense appears with equal shares assigned to members."
+      },
+      {
+        "type": "action",
+        "description": "Update payment status for one or more members."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment status updates are saved and reflected in balances."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Add and Split Expense with Custom Amounts",
+    "description": "Verify expenses can be split with custom amounts per member and reflected correctly in the dashboard balances.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Add a new expense and select custom split option."
+      },
+      {
+        "type": "action",
+        "description": "Input individual amounts for each member."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify total sum matches expense total and splits are saved."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify member balances update accordingly on the dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Expense Filtering and Detail Viewing",
+    "description": "Check expense list can be filtered by date, category, and payment status, and detailed expense info is accessible.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the expense list."
+      },
+      {
+        "type": "action",
+        "description": "Apply filters such as date range, categories, and payment status."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expense list updates accordingly."
+      },
+      {
+        "type": "action",
+        "description": "Select an expense to view detailed information in a dialog."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all relevant data (splits, notes, attachments) are displayed correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Dashboard Displays Accurate Summaries",
+    "description": "Verify that the dashboard shows correct and updated summaries of chores, expenses, member balances, and notifications.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform updates like adding chores and expenses."
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the dashboard page."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify chores, expenses, and balances displayed reflect the recent changes accurately."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify notification counts and recent activities are shown correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "In-App Communication on Chores and Expenses",
+    "description": "Validate that users can add comments on chores and expenses and receive timely in-app notifications.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open a chore or expense detail view."
+      },
+      {
+        "type": "action",
+        "description": "Add a comment to the item."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify comment is saved and visible to all household members."
+      },
+      {
+        "type": "action",
+        "description": "Open the app as another household member."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify in-app notification for the new comment is received."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Profile Management Update",
+    "description": "Check that users can update their profile settings and changes are synchronized across devices.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the user profile settings."
+      },
+      {
+        "type": "action",
+        "description": "Make updates to user settings such as display name, avatar, or preferences."
+      },
+      {
+        "type": "action",
+        "description": "Save the changes."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are saved and displayed correctly."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated profile is reflected on another logged-in device."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "PWA Offline Support Functional Test",
+    "description": "Ensure that the app supports offline functionality and data entered offline syncs correctly when back online.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load the app and go offline using network throttling tools."
+      },
+      {
+        "type": "action",
+        "description": "Try to add chores and expenses while offline."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify app accepts inputs without errors and provides feedback about offline mode."
+      },
+      {
+        "type": "action",
+        "description": "Reconnect network."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify offline data syncs properly to the backend and updates reflect on other devices."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Push Notifications Delivery",
+    "description": "Verify push notifications for chores and expenses updates are delivered properly and user interactions behave as expected.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Assign a chore or log an expense that triggers a notification."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify push notifications are received on user devices."
+      },
+      {
+        "type": "action",
+        "description": "Click on the notification."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify app opens to the relevant chore or expense detail."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Error Boundary Handling Test",
+    "description": "Check that the app gracefully catches runtime errors and displays error boundaries without crashing the page.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate runtime error in a component (e.g. chore list)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the app displays a user-friendly error boundary message."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify app remains responsive and no blank or broken UI is shown."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Payment Tracking and Settlement",
+    "description": "Verify that payments between household members can be tracked, marked as settled, and reflected in balances.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to payments page."
+      },
+      {
+        "type": "action",
+        "description": "Record a payment made by one member to another."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment record appears with correct details."
+      },
+      {
+        "type": "action",
+        "description": "Mark payment as settled."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify balances update accordingly on expense and dashboard views."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Household Member Permissions Enforcement",
+    "description": "Ensure that operations such as editing household settings and chores are restricted based on member permissions.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in as a member with limited permissions."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to perform admin-level actions like deleting household or assigning chores to others."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify such actions are blocked and appropriate error or warning messages are displayed."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Session Security and Timeout",
+    "description": "Verify that user sessions expire after a period of inactivity and require re-authentication.",
+    "category": "security",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in and remain idle beyond session timeout period."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to perform an action after timeout."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is logged out or prompted to log in again."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Form Validation and Error Handling",
+    "description": "Validate form inputs across the app enforce required fields, proper formats, and display meaningful error messages.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Try to submit signup, chore creation, expense entry, and profile update forms with missing or invalid data."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify errors are shown inline with clear messages and submission is blocked."
+      },
+      {
+        "type": "action",
+        "description": "Correct inputs and resubmit forms."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify forms submit successfully and no errors remain."
+      }
+    ]
+  }
+]

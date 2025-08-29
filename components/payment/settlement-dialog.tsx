@@ -37,8 +37,6 @@ const SettlementDialog = ({
   const [settlingPayment, setSettlingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('digital');
 
-  console.log(selectedBalance);
-
   const handleSettlePayment = async () => {
     if (!selectedBalance || !paymentAmount) return;
 

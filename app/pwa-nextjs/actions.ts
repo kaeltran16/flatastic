@@ -20,7 +20,6 @@ export async function subscribeUser(
   userAgent?: string,
   userId?: string
 ) {
-  console.log('subscribing user', sub, userAgent, userId);
   try {
     const { data, error } = await supabase
       .from('push_subscriptions')

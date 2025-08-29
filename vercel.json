@@ -3,6 +3,14 @@
     {
       "path": "/api/update-overdue-chore-status",
       "schedule": "0 1 * * *"
+    },
+    {
+      "crons": [
+        {
+          "path": "/api/chore-reminder",
+          "schedule": "0 20 * * *"
+        }
+      ]
     }
   ]
 }

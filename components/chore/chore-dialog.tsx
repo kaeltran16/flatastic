@@ -90,7 +90,6 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
 
     const handleSubmit = async (formData: ChoreFormData) => {
       try {
-        console.log('formData', formData);
         await onSubmit(formData);
         setIsOpen(false); // Close dialog on success
       } catch (error) {

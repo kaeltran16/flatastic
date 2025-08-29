@@ -42,15 +42,11 @@ export default function HouseholdPage() {
     error: profileError,
   } = useProfile();
 
-  console.log('profile', profile);
-
   const {
     household,
     loading: householdLoading,
     error: householdError,
   } = useHousehold(profile?.household_id);
-
-  console.log('household', household);
 
   const {
     members,

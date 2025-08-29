@@ -4,7 +4,12 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    const now = new Date().toISOString();
+    const now =
+      new Date()
+        .toLocaleString('sv-SE', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+        })
+        .replace(' ', 'T') + '.000Z';
 
     const { count, error } = await supabase
       .from('chores')
@@ -21,6 +26,7 @@ export async function GET() {
       success: true,
       updated: count || 0,
       timestamp: now,
+      timezone: 'GMT+7 (Asia/Ho_Chi_Minh)',
     });
   } catch (error: any) {
     console.error('Error updating overdue tasks:', error);

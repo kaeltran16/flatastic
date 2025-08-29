@@ -73,7 +73,6 @@ export function HouseholdSettings({
   onRegenerateCode,
   onLeaveHousehold,
 }: HouseholdSettingsProps) {
-  console.log('household in setting', household);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
