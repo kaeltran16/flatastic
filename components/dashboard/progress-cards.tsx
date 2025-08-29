@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 const ProgressCards = () => {
-  const { data: stats, isLoading } = useHouseholdStats();
+  const { stats, loading } = useHouseholdStats();
   const [animatedChoreProgress, setAnimatedChoreProgress] = useState(0);
   const [animatedUserProgress, setAnimatedUserProgress] = useState(0);
 
@@ -42,7 +42,7 @@ const ProgressCards = () => {
 
   if (!hasProgress) return null;
 
-  if (isLoading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner />;
 
   const cardVariants = {
     hidden: { opacity: 0, y: 16 },

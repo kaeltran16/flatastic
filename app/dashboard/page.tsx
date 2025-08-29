@@ -20,7 +20,7 @@ export default async function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <DashboardHeader profile={profile} />
 
-      {profile.household_id ? (
+      {profile.household_id && profile.id ? (
         <>
           <StatsCards />
           <QuickActions
@@ -32,10 +32,7 @@ export default async function Dashboard() {
               <RecentChores />
             </div>
             <div className="space-y-6">
-              <RecentExpenses
-                userId={profile.id}
-                householdId={profile.household_id!}
-              />
+              <RecentExpenses />
               <ProgressCards />
             </div>
           </div>

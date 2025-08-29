@@ -4,24 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpensesList } from '@/hooks/use-expense-list';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
+import { useProfile } from '@/hooks/use-profile';
 import { formatDate } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { LoadingSpinner } from '../household/loading';
 
-interface RecentExpensesProps {
-  userId: string;
-  householdId: string;
-}
+const RecentExpenses = () => {
+  const { profile: currentUser } = useProfile();
+  const { members } = useHouseholdMembers(currentUser?.household_id);
 
-const RecentExpenses = ({ userId, householdId }: RecentExpensesProps) => {
-  const { members } = useHouseholdMembers(householdId);
   const { expenses, loading } = useExpensesList(
-    householdId,
-    userId,
+    currentUser?.household_id ?? '',
+    currentUser?.id ?? '',
     members,
-    5
+    5 // limit to 5 for recent expenses
   );
+
+  if (!currentUser || !currentUser.household_id) return null;
 
   if (loading) return <LoadingSpinner />;
 

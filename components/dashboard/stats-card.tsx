@@ -68,7 +68,7 @@ const AnimatedCounter = ({
 
 const StatsCards = () => {
   const router = useRouter();
-  const { data: stats, isLoading, error, isRefetching } = useHouseholdStats();
+  const { stats, loading, error } = useHouseholdStats();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -130,7 +130,7 @@ const StatsCards = () => {
   }
 
   // Loading state
-  if (isLoading || !stats) {
+  if (loading || !stats) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {[...Array(4)].map((_, i) => (
@@ -157,7 +157,7 @@ const StatsCards = () => {
       animate="visible"
     >
       {/* Refreshing indicator */}
-      {isRefetching && (
+      {loading && (
         <div className="col-span-full flex justify-center">
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             <LoadingSpinner />

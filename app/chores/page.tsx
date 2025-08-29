@@ -18,13 +18,13 @@ import {
   ChoreFormData,
   useChores,
   useCreateChore,
-  useCurrentUser,
   useDeleteChore,
-  useHouseholdMembers,
   useMarkChoreComplete,
   useUpdateChore,
 } from '@/hooks/use-chore';
 import { useHousehold } from '@/hooks/use-household';
+import { useHouseholdMembers } from '@/hooks/use-household-member';
+import { useProfile } from '@/hooks/use-profile';
 import { ChoreFilters as ChoreFiltersType } from '@/lib/validations/chore';
 
 export default function ChoresPage() {
@@ -37,17 +37,17 @@ export default function ChoresPage() {
 
   // Data fetching
   const {
-    data: currentUser,
-    isLoading: userLoading,
+    profile: currentUser,
+    loading: userLoading,
     error: userError,
-  } = useCurrentUser();
+  } = useProfile();
   const {
     household,
     loading: householdLoading,
     error: householdError,
   } = useHousehold(currentUser?.household_id);
-  const { data: householdMembers = [], isLoading: membersLoading } =
-    useHouseholdMembers(currentUser?.household_id ?? undefined);
+  const { members: householdMembers, loading: membersLoading } =
+    useHouseholdMembers(currentUser?.household_id);
   const {
     data: chores = [],
     isLoading: choresLoading,

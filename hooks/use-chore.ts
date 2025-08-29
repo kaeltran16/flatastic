@@ -12,10 +12,10 @@ import {
   ChoreInsert,
   ChoreStatus,
   ChoreWithProfile,
-  Profile,
 } from '@/lib/supabase/schema.alias';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useProfile } from './use-profile';
 
 // Types
 export type ChoreFormData = Omit<ChoreInsert, 'created_by'>;
@@ -103,7 +103,7 @@ async function fetchChores(
 }
 
 export function useCurrentUserChores() {
-  const { data: currentUser } = useCurrentUser();
+  const { profile: currentUser } = useProfile();
 
   return useQuery({
     queryKey: choreKeys.list(currentUser?.household_id || ''),
@@ -115,57 +115,6 @@ export function useCurrentUserChores() {
     },
     enabled: !!currentUser?.household_id,
     staleTime: 1 * 60 * 1000,
-  });
-}
-
-// Fetch current user and household
-export function useCurrentUser() {
-  const supabase = createClient();
-
-  return useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!user) throw new Error('No authenticated user');
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      return profile as Profile;
-    },
-    retry: 1,
-  });
-}
-
-// Fetch household
-
-// Fetch household members
-export function useHouseholdMembers(householdId?: string) {
-  const supabase = createClient();
-
-  return useQuery({
-    queryKey: [...choreKeys.profiles, householdId],
-    queryFn: async () => {
-      if (!householdId) throw new Error('No household ID provided');
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('household_id', householdId);
-
-      if (error) throw error;
-      return (data || []) as Profile[];
-    },
-    enabled: !!householdId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

@@ -1,6 +1,8 @@
-// hooks/useExpensesList.ts
+// hooks/useExpensesList.ts - Refactored with best practices
+import { queryKeys } from '@/lib/query-keys';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { fetchExpenses } from './use-expense';
 
 export function useExpensesList(
@@ -9,29 +11,39 @@ export function useExpensesList(
   members: Profile[],
   limit?: number
 ) {
-  console.log('members', members);
+  // Use the same query key as useExpenses - this is key!
   const {
-    data: expenses = [],
+    data: allExpenses = [],
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['expenses', 'list', householdId, userId],
-    queryFn: () => fetchExpenses(householdId!, userId!, members, limit),
-    enabled: !!householdId && !!userId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: queryKeys.expenses.household(householdId),
+    queryFn: () => fetchExpenses(householdId, userId, members),
+    enabled: !!householdId && !!userId && members.length > 0,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
-  // Calculate basic stats
-  const stats = {
-    totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
-    yourTotalShare: expenses.reduce(
-      (sum, expense) => sum + expense.your_share,
-      0
-    ),
-    pendingExpenses: expenses.filter((expense) => expense.status === 'pending'),
-  };
+  // Apply limit on client side using useMemo for performance
+  const expenses = useMemo(() => {
+    return limit ? allExpenses.slice(0, limit) : allExpenses;
+  }, [allExpenses, limit]);
+
+  // Calculate stats from the limited expenses
+  const stats = useMemo(
+    () => ({
+      totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
+      yourTotalShare: expenses.reduce(
+        (sum, expense) => sum + expense.your_share,
+        0
+      ),
+      pendingExpenses: expenses.filter(
+        (expense) => expense.status === 'pending'
+      ),
+    }),
+    [expenses]
+  );
 
   return {
     expenses,

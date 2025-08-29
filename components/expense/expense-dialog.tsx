@@ -15,7 +15,7 @@ import {
   CreateExpenseInput,
   UpdateExpenseInput,
 } from '@/lib/validations/expense';
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, ReactNode, useImperativeHandle, useState } from 'react';
 import ExpenseForm from './expense-form';
 
 interface ExpenseDialogProps {
@@ -26,7 +26,7 @@ interface ExpenseDialogProps {
   householdMembers: Profile[];
   onSubmit: (formData: ExpenseFormData) => Promise<void>;
   isLoading?: boolean;
-  // Button customization (only used when not controlled externally)
+  // Button customization (only used when children is null and not controlled externally)
   buttonVariant?: 'default' | 'outline' | 'ghost' | 'secondary';
   buttonSize?: 'sm' | 'default' | 'lg';
   buttonText?: string;
@@ -36,6 +36,7 @@ interface ExpenseDialogProps {
   // New prop for hiding title visually
   hideTitle?: boolean;
   className?: string;
+  children?: ReactNode;
 }
 
 export interface ExpenseDialogRef {
@@ -60,6 +61,7 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
       onOpenChange: controlledOnOpenChange,
       hideTitle = false,
       className,
+      children,
     },
     ref
   ) => {
@@ -170,14 +172,18 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
         {/* Only render trigger if not controlled externally */}
         {!isControlled && (
           <DialogTrigger asChild>
-            <Button
-              className={`${className}`}
-              variant={buttonVariant}
-              size={buttonSize}
-              disabled={isLoading}
-            >
-              {displayButtonText}
-            </Button>
+            {children ? (
+              children
+            ) : (
+              <Button
+                className={className}
+                variant={buttonVariant}
+                size={buttonSize}
+                disabled={isLoading}
+              >
+                {displayButtonText}
+              </Button>
+            )}
           </DialogTrigger>
         )}
         {dialogContent}

@@ -27,10 +27,6 @@ export default function ExpensesPage() {
     yourNetBalance,
     loading: balancesLoading,
     error: balancesError,
-    addOptimisticExpense,
-    updateOptimisticExpense,
-    removeOptimisticExpense,
-    settleOptimisticExpense,
   } = useBalances();
 
   // Pass balance update functions to expenses hook
@@ -44,12 +40,7 @@ export default function ExpensesPage() {
     editExpense,
     deleteExpense,
     settleExpense,
-  } = useExpenses({
-    addOptimisticExpense,
-    updateOptimisticExpense,
-    removeOptimisticExpense,
-    settleOptimisticExpense,
-  });
+  } = useExpenses();
 
   const { members: householdMembers } = useHouseholdMembers(
     currentUser?.household_id || null

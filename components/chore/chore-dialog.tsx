@@ -11,7 +11,7 @@ import {
 import { ChoreFormData } from '@/hooks/use-chore';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import { CreateChoreInput, UpdateChoreInput } from '@/lib/validations/chore';
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, ReactNode, useImperativeHandle, useState } from 'react';
 import ChoreForm from './chore-form';
 
 interface ChoreDialogProps {
@@ -22,7 +22,7 @@ interface ChoreDialogProps {
   householdMembers: Profile[];
   onSubmit: (formData: ChoreFormData) => Promise<void>;
   isLoading?: boolean;
-  // Button customization (only used when not controlled externally)
+  // Button customization (only used when children is null and not controlled externally)
   buttonVariant?: 'default' | 'outline' | 'ghost' | 'secondary';
   buttonSize?: 'sm' | 'default' | 'lg';
   buttonText?: string;
@@ -32,6 +32,8 @@ interface ChoreDialogProps {
   // New prop for hiding title visually
   hideTitle?: boolean;
   className?: string;
+  // Children for custom button rendering
+  children?: ReactNode;
 }
 
 export interface ChoreDialogRef {
@@ -56,6 +58,7 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
       onOpenChange: controlledOnOpenChange,
       hideTitle = false,
       className,
+      children,
     },
     ref
   ) => {
@@ -103,7 +106,6 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
 
     // Dialog title based on mode
     const dialogTitle = mode === 'create' ? 'Add New Chore' : 'Edit Chore';
-    // Default icon based on mode
 
     // Prepare initial data for edit mode
     const initialData =
@@ -120,9 +122,7 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
 
     // Single dialog content component to avoid duplication
     const dialogContent = (
-      <DialogContent
-        className={`w-[90vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6`}
-      >
+      <DialogContent className="w-[90vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className={hideTitle ? 'sr-only' : ''}>
             {dialogTitle}
@@ -148,14 +148,18 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
         {/* Only render trigger if not controlled externally */}
         {!isControlled && (
           <DialogTrigger asChild>
-            <Button
-              className={`${className}`}
-              variant={buttonVariant}
-              size={buttonSize}
-              disabled={isLoading}
-            >
-              {displayButtonText}
-            </Button>
+            {children ? (
+              children
+            ) : (
+              <Button
+                className={className}
+                variant={buttonVariant}
+                size={buttonSize}
+                disabled={isLoading}
+              >
+                {displayButtonText}
+              </Button>
+            )}
           </DialogTrigger>
         )}
         {dialogContent}

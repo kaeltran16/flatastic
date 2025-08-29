@@ -1,56 +1,18 @@
-'use client';
+// hooks/useHouseholdStats.ts - Refactored with best practices
 import type { HouseholdStats } from '@/lib/actions/household';
+import { queryKeys } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useProfile } from './use-profile';
 
-// Query key factory
-export const householdKeys = {
-  all: ['household'] as const,
-  stats: () => [...householdKeys.all, 'stats'] as const,
-  chores: () => [...householdKeys.all, 'chores'] as const,
-  expenses: () => [...householdKeys.all, 'expenses'] as const,
-};
-
-// Fetch function using your exact server logic
-async function fetchHouseholdStats(): Promise<HouseholdStats> {
+// Fetch function for household stats
+async function fetchHouseholdStats(
+  householdId: string,
+  userId: string
+): Promise<HouseholdStats> {
   const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return {
-      pendingChores: 0,
-      overdueChores: 0,
-      balance: 0,
-      householdMembers: 1,
-      monthlyExpenses: 0,
-      choreProgress: { completed: 0, total: 0 },
-      userProgress: { completed: 0, total: 0 },
-    };
-  }
-
-  // Get user's household ID
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('household_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.household_id) {
-    return {
-      pendingChores: 0,
-      overdueChores: 0,
-      balance: 0,
-      householdMembers: 1,
-      monthlyExpenses: 0,
-      choreProgress: { completed: 0, total: 0 },
-      userProgress: { completed: 0, total: 0 },
-    };
-  }
-
-  // Get all stats in parallel (your exact implementation)
+  // Get all stats in parallel
   const [
     { data: chores },
     { data: expenses },
@@ -58,15 +20,12 @@ async function fetchHouseholdStats(): Promise<HouseholdStats> {
     { data: othersOweSplits },
     { data: members },
   ] = await Promise.all([
-    supabase
-      .from('chores')
-      .select('*')
-      .eq('household_id', profile.household_id),
+    supabase.from('chores').select('*').eq('household_id', householdId),
 
     supabase
       .from('expenses')
       .select('*')
-      .eq('household_id', profile.household_id)
+      .eq('household_id', householdId)
       .gte(
         'date',
         new Date(
@@ -80,24 +39,21 @@ async function fetchHouseholdStats(): Promise<HouseholdStats> {
     supabase
       .from('expense_splits')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('is_settled', false),
 
-    // What others owe to current user (splits for expenses they paid)
+    // What others owe to current user
     supabase
       .from('expense_splits')
       .select('*, expense:expenses!inner(paid_by)')
-      .eq('expense.paid_by', user.id)
-      .neq('user_id', user.id)
+      .eq('expense.paid_by', userId)
+      .neq('user_id', userId)
       .eq('is_settled', false),
 
-    supabase
-      .from('profiles')
-      .select('id')
-      .eq('household_id', profile.household_id),
+    supabase.from('profiles').select('id').eq('household_id', householdId),
   ]);
 
-  // Calculate stats (your exact logic)
+  // Calculate stats
   const pendingChores =
     chores?.filter((c) => c.status === 'pending').length || 0;
   const overdueChores =
@@ -111,7 +67,7 @@ async function fetchHouseholdStats(): Promise<HouseholdStats> {
   const monthlyExpenses =
     expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
 
-  // Calculate balance CORRECTLY
+  // Calculate balance correctly
   const userOwes =
     userOwedSplits?.reduce((sum, s) => sum + Number(s.amount_owed), 0) || 0;
 
@@ -126,12 +82,13 @@ async function fetchHouseholdStats(): Promise<HouseholdStats> {
   const recentChores =
     chores?.filter((c) => c.created_at && new Date(c.created_at) >= weekAgo) ||
     [];
+
   const choreProgress = {
     completed: recentChores.filter((c) => c.status === 'completed').length,
     total: recentChores.length,
   };
 
-  const userChores = recentChores.filter((c) => c.assigned_to === user.id);
+  const userChores = recentChores.filter((c) => c.assigned_to === userId);
   const userProgress = {
     completed: userChores.filter((c) => c.status === 'completed').length,
     total: userChores.length,
@@ -148,14 +105,42 @@ async function fetchHouseholdStats(): Promise<HouseholdStats> {
   };
 }
 
-// Custom hook
 export function useHouseholdStats() {
-  return useQuery({
-    queryKey: householdKeys.stats(),
-    queryFn: fetchHouseholdStats,
-    staleTime: 1000 * 60 * 2, // 2 minutes - stats change frequently
-    gcTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true, // Good for financial data
+  const {
+    profile: currentUser,
+    loading: profileLoading,
+    error: profileError,
+  } = useProfile();
+
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useQuery({
+    queryKey: queryKeys.stats.household(currentUser?.household_id!),
+    queryFn: () =>
+      fetchHouseholdStats(currentUser!.household_id!, currentUser!.id),
+    enabled: !!currentUser?.household_id,
+    staleTime: 1 * 60 * 1000, // 1 minute - stats change frequently
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
     retry: 3,
   });
+
+  const loading = profileLoading || statsLoading;
+  const error = profileError || statsError;
+
+  return {
+    stats: stats || {
+      pendingChores: 0,
+      overdueChores: 0,
+      balance: 0,
+      householdMembers: 1,
+      monthlyExpenses: 0,
+      choreProgress: { completed: 0, total: 0 },
+      userProgress: { completed: 0, total: 0 },
+    },
+    loading,
+    error: error?.message || null,
+  };
 }
