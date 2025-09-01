@@ -165,7 +165,6 @@ const ExpenseDialog = forwardRef<ExpenseDialogRef, ExpenseDialogProps>(
       </DialogContent>
     );
 
-    console.log('isControlled expense', isControlled);
 
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

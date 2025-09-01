@@ -78,7 +78,7 @@ export async function createChore(formData: ChoreFormData) {
     const { user, userProfile, supabase } =
       await getAuthenticatedUserWithHousehold();
 
-    // Verify user belongs to the household
+    // Verify user belongs to the housdehold
     if (userProfile.household_id !== validatedData.household_id) {
       throw new ChoreActionError(
         'User does not belong to this household',

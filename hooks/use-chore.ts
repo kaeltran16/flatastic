@@ -139,6 +139,7 @@ export function useCreateChore() {
 
   return useMutation({
     mutationFn: async (formData: ChoreFormData) => {
+      console.log('formData', formData);
       const result = await createChore(formData);
       if (!result.success) {
         throw new Error(result.error);
