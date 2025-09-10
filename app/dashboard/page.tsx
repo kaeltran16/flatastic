@@ -24,7 +24,7 @@ export default async function Dashboard() {
         <>
           <StatsCards />
           <QuickActions
-            userId={profile.id}
+            currentUser={profile}
             householdId={profile.household_id!}
           />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">

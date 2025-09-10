@@ -54,7 +54,7 @@ export default function EmptyChoresState({
           <ChoreDialog
             mode="create"
             householdId={household.id}
-            currentUserId={currentUser.id}
+            currentUser={currentUser}
             householdMembers={householdMembers}
             onSubmit={async (formData) => {
               await onChoreAdded(formData as unknown as Chore);

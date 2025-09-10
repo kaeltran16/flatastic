@@ -17,7 +17,7 @@ function getChoreStatus(chore: ChoreWithProfile) {
 }
 
 const RecentChores = () => {
-  const { data: chores, isLoading } = useCurrentUserChores();
+  const { data: chores, isLoading } = useCurrentUserChores(5);
   if (!chores || isLoading) return <LoadingSpinner />;
 
   const containerVariants = {

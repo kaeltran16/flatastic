@@ -1,24 +1,27 @@
 import { createClient } from '@/lib/supabase/server';
+import { TZDate } from '@date-fns/tz';
+import { endOfDay } from 'date-fns';
+import { NextResponse } from 'next/server';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const webhookSecret = request.headers.get('x-webhook-secret');
+
+    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = await createClient();
 
-    // Get current time in GMT+7 (Asia/Ho_Chi_Minh timezone)
-    const now =
-      new Date()
-        .toLocaleString('sv-SE', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-        })
-        .replace(' ', 'T') + '.000Z';
+    const now = new Date();
+    const nowISO = now.toISOString();
 
-    // Calculate end of today (11:59:59 PM GMT+7)
-    const nowGMT7 = new Date(now);
-    const endOfToday = new Date(nowGMT7);
-    endOfToday.setHours(23, 59, 59, 999);
-    const endOfTodayISO = endOfToday.toISOString();
+    // Create current time in Ho Chi Minh timezone and get end of day
+    const nowHCMC = new TZDate(now, 'Asia/Ho_Chi_Minh');
+    const endOfTodayHCMC = endOfDay(nowHCMC);
+    const endOfTodayISO = endOfTodayHCMC.toISOString();
 
-    // Find chores that expire today (due before end of today)
+    // Find chores that expire today (due before end of today, but not already overdue)
     const { data: choresExpiringToday, error: choreError } = await supabase
       .from('chores')
       .select(
@@ -34,7 +37,7 @@ export async function POST() {
       )
       .eq('status', 'pending')
       .lte('due_date', endOfTodayISO)
-      .gte('due_date', now) // Not already overdue
+      .gte('due_date', nowISO) // Not already overdue
       .not('assigned_to', 'is', null);
 
     if (choreError) throw choreError;
@@ -56,6 +59,7 @@ export async function POST() {
           console.log('No assigned to found for chore', chore.id);
           continue;
         }
+
         const { error: notifError } = await supabase.rpc(
           'create_notification_with_push',
           {
@@ -80,8 +84,9 @@ export async function POST() {
       success: true,
       notifications_sent: notificationsSent,
       chores_expiring_today: choresExpiringToday?.length || 0,
-      timestamp: now,
-      timezone: 'GMT+7 (Asia/Ho_Chi_Minh)',
+      timestamp: nowISO,
+      end_of_day_hcmc: endOfTodayISO,
+      timezone: 'Asia/Ho_Chi_Minh',
       scheduled_time: '8:00 PM GMT+7',
     });
   } catch (error: any) {

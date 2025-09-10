@@ -13,10 +13,10 @@ import {
   ChoreStatus,
   ChoreWithProfile,
 } from '@/lib/supabase/schema.alias';
+import { TZDate } from '@date-fns/tz';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useProfile } from './use-profile';
-
 // Types
 export type ChoreFormData = Omit<ChoreInsert, 'created_by'>;
 
@@ -35,18 +35,23 @@ export const choreKeys = {
 // Simplified and improved fetchChores function
 async function fetchChores(
   householdId: string,
-  limit: number = 5
+  limit?: number
 ): Promise<ChoreWithProfile[]> {
   const supabase = createClient();
 
+  const choreQuery = supabase
+    .from('chores')
+    .select('*')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false });
+
+  if (limit) {
+    choreQuery.limit(limit);
+  }
+
   // Get chores and profiles in parallel for better performance
   const [choreResponse, profileResponse] = await Promise.all([
-    supabase
-      .from('chores')
-      .select('*')
-      .eq('household_id', householdId)
-      .order('created_at', { ascending: false })
-      .limit(limit),
+    choreQuery,
     supabase.from('profiles').select('*').eq('household_id', householdId),
   ]);
 
@@ -66,6 +71,10 @@ async function fetchChores(
   );
 
   const now = new Date();
+
+  const timezone =
+    profileMap.get(choreResponse.data?.[0]?.created_by)?.timezone ||
+    'Asia/Ho_Chi_Minh';
 
   // Transform and enrich chores with profile data and status updates
   return (choreResponse.data ?? [])
@@ -97,12 +106,15 @@ async function fetchChores(
       if (!a.due_date && !b.due_date) return 0;
       if (!a.due_date) return 1;
       if (!b.due_date) return -1;
-
-      return a.due_date.localeCompare(b.due_date);
+      return (
+        TZDate.tz(timezone, a.due_date).getTime() -
+        TZDate.tz(timezone, b.due_date).getTime()
+      );
+      // return a.due_date.localeCompare(b.due_date);
     });
 }
 
-export function useCurrentUserChores() {
+export function useCurrentUserChores(limit?: number) {
   const { profile: currentUser } = useProfile();
 
   return useQuery({
@@ -111,7 +123,7 @@ export function useCurrentUserChores() {
       if (!currentUser?.household_id) {
         throw new Error('No household found for current user');
       }
-      return fetchChores(currentUser.household_id);
+      return fetchChores(currentUser.household_id, limit);
     },
     enabled: !!currentUser?.household_id,
     staleTime: 1 * 60 * 1000,
@@ -119,14 +131,14 @@ export function useCurrentUserChores() {
 }
 
 // Fetch chores for household
-export function useChores(householdId?: string) {
+export function useChores(householdId?: string, limit?: number) {
   return useQuery({
     queryKey: choreKeys.list(householdId || ''),
     queryFn: () => {
       if (!householdId) {
         throw new Error('Household ID is required');
       }
-      return fetchChores(householdId);
+      return fetchChores(householdId, limit);
     },
     enabled: !!householdId,
     staleTime: 1 * 60 * 1000, // 1 minute

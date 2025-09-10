@@ -7,8 +7,6 @@ import { createClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Use service role key for server-side operations
-
 const getDeeplinkUrl = (notificationType: string) => {
   switch (notificationType) {
     case 'chore_reminder':

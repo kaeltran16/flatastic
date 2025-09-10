@@ -42,6 +42,7 @@ export const ChoreSchema = z.object({
   created_by: z.string().uuid(),
   created_at: z.string().nullable(),
   updated_at: z.string().nullable(),
+  template_id: z.string().nullable(),
 }) satisfies z.ZodType<Chore>;
 
 // Form validation schemas

@@ -1,15 +1,17 @@
-import { createClient } from '@/lib/supabase/server';
+import { createSystemClient } from '@/lib/supabase/system';
+import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
+    const webhookSecret = request.headers.get('x-webhook-secret');
+    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const now =
-      new Date()
-        .toLocaleString('sv-SE', {
-          timeZone: 'Asia/Ho_Chi_Minh',
-        })
-        .replace(' ', 'T') + '.000Z';
+    const supabase = await createSystemClient();
+
+    // Simple UTC timestamp - no external dependencies needed
+    const now = new Date().toISOString();
 
     const { count, error } = await supabase
       .from('chores')
@@ -26,7 +28,7 @@ export async function GET() {
       success: true,
       updated: count || 0,
       timestamp: now,
-      timezone: 'GMT+7 (Asia/Ho_Chi_Minh)',
+      timezone: 'UTC',
     });
   } catch (error: any) {
     console.error('Error updating overdue tasks:', error);

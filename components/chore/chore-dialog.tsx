@@ -17,7 +17,7 @@ import ChoreForm from './chore-form';
 interface ChoreDialogProps {
   mode: 'create' | 'edit';
   householdId?: string;
-  currentUserId?: string;
+  currentUser: Profile;
   chore?: Chore;
   householdMembers: Profile[];
   onSubmit: (formData: ChoreFormData) => Promise<void>;
@@ -46,7 +46,7 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
     {
       mode,
       householdId,
-      currentUserId,
+      currentUser,
       chore,
       householdMembers,
       onSubmit,
@@ -76,7 +76,7 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
     }));
 
     // Validate required props based on mode
-    if (mode === 'create' && (!householdId || !currentUserId)) {
+    if (mode === 'create' && (!householdId || !currentUser.id)) {
       console.error(
         'ChoreDialog: householdId and currentUserId are required for create mode'
       );
@@ -134,7 +134,7 @@ const ChoreDialog = forwardRef<ChoreDialogRef, ChoreDialogProps>(
           }
           householdId={mode === 'create' ? householdId! : chore!.household_id}
           householdMembers={householdMembers}
-          currentUserId={currentUserId}
+          currentUser={currentUser}
           onSubmit={handleSubmit}
           onCancel={() => setIsOpen(false)}
           isLoading={isLoading}

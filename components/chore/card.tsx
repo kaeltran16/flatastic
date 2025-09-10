@@ -172,6 +172,7 @@ export default function ChoreCard({
       {isEditDialogOpen && (
         <ChoreDialog
           mode="edit"
+          currentUser={currentUser}
           chore={chore}
           householdMembers={householdMembers}
           onSubmit={async (formData) => {

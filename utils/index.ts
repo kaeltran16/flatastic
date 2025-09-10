@@ -1,5 +1,11 @@
-import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
-
+import { TZDate } from '@date-fns/tz';
+import {
+  differenceInDays,
+  endOfDay,
+  format,
+  formatDistanceToNow,
+  startOfDay,
+} from 'date-fns';
 export const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -52,4 +58,29 @@ export const getChoreRecurringTypeColor = (recurringType: string) => {
     case 'monthly':
       return 'bg-[#f59e0b]'; // purple-500 → more spaced out
   }
+};
+
+export const toISOStartOfDayInTZ = (
+  date: Date,
+  timeZone = 'Asia/Ho_Chi_Minh'
+) => {
+  console.log('date', date);
+  console.log('timeZone', timeZone);
+
+  // Convert to TZDate first
+  const tzDate = TZDate.tz(timeZone, date);
+
+  // Use startOfDay function - it will work with TZDate
+  const startOfDayTZ = startOfDay(tzDate);
+
+  return startOfDayTZ.toISOString();
+};
+
+export const toISOEndOfDayInTZ = (
+  date: Date,
+  timeZone = 'Asia/Ho_Chi_Minh'
+) => {
+  const tzDate = TZDate.tz(timeZone, date);
+  const endOfDayTZ = endOfDay(tzDate);
+  return endOfDayTZ.toISOString();
 };

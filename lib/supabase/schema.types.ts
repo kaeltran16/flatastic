@@ -78,6 +78,7 @@ export type Database = {
           recurring_interval: number | null;
           recurring_type: string | null;
           status: string | null;
+          template_id: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -92,6 +93,7 @@ export type Database = {
           recurring_interval?: number | null;
           recurring_type?: string | null;
           status?: string | null;
+          template_id?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -106,6 +108,7 @@ export type Database = {
           recurring_interval?: number | null;
           recurring_type?: string | null;
           status?: string | null;
+          template_id?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -121,6 +124,13 @@ export type Database = {
             columns: ['household_id'];
             isOneToOne: false;
             referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'chores_template_id_fkey';
+            columns: ['template_id'];
+            isOneToOne: false;
+            referencedRelation: 'chore_templates';
             referencedColumns: ['id'];
           }
         ];
@@ -306,7 +316,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string | null;
-          household_id: string;
+          household_id: string | null;
           id: string;
           is_read: boolean | null;
           is_urgent: boolean | null;
@@ -315,11 +325,11 @@ export type Database = {
           push_sent_at: string | null;
           title: string;
           type: string;
-          user_id: string;
+          user_id: string | null;
         };
         Insert: {
           created_at?: string | null;
-          household_id: string;
+          household_id?: string | null;
           id?: string;
           is_read?: boolean | null;
           is_urgent?: boolean | null;
@@ -328,11 +338,11 @@ export type Database = {
           push_sent_at?: string | null;
           title: string;
           type: string;
-          user_id: string;
+          user_id?: string | null;
         };
         Update: {
           created_at?: string | null;
-          household_id?: string;
+          household_id?: string | null;
           id?: string;
           is_read?: boolean | null;
           is_urgent?: boolean | null;
@@ -341,7 +351,7 @@ export type Database = {
           push_sent_at?: string | null;
           title?: string;
           type?: string;
-          user_id?: string;
+          user_id?: string | null;
         };
         Relationships: [
           {
@@ -436,7 +446,9 @@ export type Database = {
           full_name: string | null;
           household_id: string | null;
           id: string;
+          is_available: boolean | null;
           payment_link: string | null;
+          timezone: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -446,7 +458,9 @@ export type Database = {
           full_name?: string | null;
           household_id?: string | null;
           id: string;
+          is_available?: boolean | null;
           payment_link?: string | null;
+          timezone?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -456,7 +470,9 @@ export type Database = {
           full_name?: string | null;
           household_id?: string | null;
           id?: string;
+          is_available?: boolean | null;
           payment_link?: string | null;
+          timezone?: string | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -510,6 +526,58 @@ export type Database = {
           }
         ];
       };
+      template_assignment_tracker: {
+        Row: {
+          assignment_order: Json;
+          created_at: string | null;
+          household_id: string;
+          id: string;
+          last_assigned_user_id: string;
+          template_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          assignment_order?: Json;
+          created_at?: string | null;
+          household_id: string;
+          id?: string;
+          last_assigned_user_id: string;
+          template_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          assignment_order?: Json;
+          created_at?: string | null;
+          household_id?: string;
+          id?: string;
+          last_assigned_user_id?: string;
+          template_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'template_assignment_tracker_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'template_assignment_tracker_last_assigned_user_id_fkey';
+            columns: ['last_assigned_user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'template_assignment_tracker_template_id_fkey';
+            columns: ['template_id'];
+            isOneToOne: false;
+            referencedRelation: 'chore_templates';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       webhook_logs: {
         Row: {
           created_at: string | null;
@@ -546,16 +614,22 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
-      create_chore_reminder: {
-        Args: { p_assigned_user_id: string; p_chore_id: string };
-        Returns: string;
-      };
       create_chore_reminder_notification: {
         Args: { p_assigned_user_id: string; p_chore_id: string };
         Returns: string;
       };
       create_expense_notification: {
         Args: { p_expense_id: string; p_household_id: string };
+        Returns: string;
+      };
+      create_household_notification: {
+        Args: {
+          p_household_id: string;
+          p_is_urgent?: boolean;
+          p_message: string;
+          p_title: string;
+          p_type?: string;
+        };
         Returns: string;
       };
       create_notification_with_push: {
@@ -569,12 +643,26 @@ export type Database = {
         };
         Returns: string;
       };
+      create_user_notification: {
+        Args: {
+          p_is_urgent?: boolean;
+          p_message: string;
+          p_title: string;
+          p_type?: string;
+          p_user_id: string;
+        };
+        Returns: string;
+      };
       generate_invite_code: {
         Args: Record<PropertyKey, never>;
         Returns: string;
       };
       get_user_household_id: {
         Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      notify_expense_added: {
+        Args: { p_expense_id: string; p_household_id: string };
         Returns: string;
       };
     };

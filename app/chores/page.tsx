@@ -203,7 +203,7 @@ export default function ChoresPage() {
           className="w-full mb-4"
           mode="create"
           householdId={household.id}
-          currentUserId={currentUser.id}
+          currentUser={currentUser}
           householdMembers={householdMembers}
           onSubmit={handleNewChore}
           isLoading={createChoreMutation.isPending}

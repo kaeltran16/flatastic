@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateChore } from '@/hooks/use-chore';
 import { ExpenseFormData, useExpenses } from '@/hooks/use-expense';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
-import { ChoreFormData } from '@/lib/supabase/types';
+import { ChoreFormData, Profile } from '@/lib/supabase/types';
 import { ClipboardList, Receipt } from 'lucide-react';
 import { motion } from 'motion/react';
 import ChoreDialog from '../chore/chore-dialog';
@@ -12,11 +12,11 @@ import ExpenseDialog from '../expense/expense-dialog';
 import { Button } from '../ui/button';
 
 interface QuickActionsProps {
-  userId: string;
+  currentUser: Profile;
   householdId: string;
 }
 
-const QuickActions = ({ userId, householdId }: QuickActionsProps) => {
+const QuickActions = ({ currentUser, householdId }: QuickActionsProps) => {
   const createChoreMutation = useCreateChore();
   const { addExpense } = useExpenses();
   const { members: householdMembers } = useHouseholdMembers(householdId);
@@ -74,7 +74,7 @@ const QuickActions = ({ userId, householdId }: QuickActionsProps) => {
           <ChoreDialog
             mode="create"
             householdId={householdId}
-            currentUserId={userId}
+            currentUser={currentUser}
             onSubmit={handleNewChore}
             householdMembers={householdMembers}
           >
@@ -104,7 +104,7 @@ const QuickActions = ({ userId, householdId }: QuickActionsProps) => {
           <ExpenseDialog
             mode="create"
             householdId={householdId}
-            currentUserId={userId}
+            currentUserId={currentUser.id}
             onSubmit={handleAddExpense}
             householdMembers={householdMembers}
           >

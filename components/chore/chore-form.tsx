@@ -27,28 +27,22 @@ import {
   type UpdateChoreInput,
 } from '@/lib/validations/chore';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  CalendarDays,
-  Edit,
-  ListPlus,
-  Loader2,
-  Plus,
-  User,
-} from 'lucide-react';
+import { CalendarDays, Loader2, Plus, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import UserAvatar from '../user-avatar';
 
 import { ChoreFormData } from '@/hooks/use-chore';
-import { formatDate } from '@/utils';
-
+import { toISOEndOfDayInTZ, toISOStartOfDayInTZ } from '@/utils';
+import { tz, TZDate } from '@date-fns/tz';
+import { format } from 'date-fns';
 interface ChoreFormProps {
   mode: 'create' | 'edit';
   initialData?: Partial<CreateChoreInput | UpdateChoreInput>;
   householdId: string;
   householdMembers: Profile[];
-  currentUserId?: string;
+  currentUser?: Profile;
   onSubmit: (formData: ChoreFormData) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
@@ -71,7 +65,7 @@ export default function ChoreForm({
   initialData,
   householdId,
   householdMembers,
-  currentUserId,
+  currentUser,
   onSubmit,
   onCancel,
   isLoading = false,
@@ -79,7 +73,7 @@ export default function ChoreForm({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     initialData?.due_date ? new Date(initialData.due_date) : new Date()
   );
-
+  const timezone = currentUser?.timezone || 'Asia/Ho_Chi_Minh';
   const schema = mode === 'create' ? CreateChoreSchema : UpdateChoreSchema;
   const defaultValues =
     mode === 'create'
@@ -87,7 +81,9 @@ export default function ChoreForm({
           name: '',
           description: '',
           assigned_to: undefined,
-          due_date: selectedDate?.toISOString(),
+          due_date: selectedDate
+            ? toISOEndOfDayInTZ(selectedDate, timezone)
+            : '',
           recurring_type: 'none' as const,
           recurring_interval: 1,
           household_id: householdId,
@@ -97,7 +93,9 @@ export default function ChoreForm({
           name: '',
           description: '',
           assigned_to: undefined,
-          due_date: selectedDate?.toISOString(),
+          due_date: selectedDate
+            ? toISOEndOfDayInTZ(selectedDate, timezone)
+            : '',
           recurring_type: 'none' as const,
           recurring_interval: 1,
           ...initialData,
@@ -144,23 +142,15 @@ export default function ChoreForm({
   };
 
   const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date || new Date());
-    setValue('due_date', date ? date.toISOString() : '');
+    const picked = date && timezone ? TZDate.tz(timezone, date) : new Date();
+    setSelectedDate(picked);
+    setValue('due_date', toISOStartOfDayInTZ(picked, timezone));
   };
 
   const handleAssigneeChange = (value: string) => {
     // Convert "unassigned" back to undefined for the form
     setValue('assigned_to', value === 'unassigned' ? undefined : value);
   };
-
-  const handleRecurringIntervalChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ): void => {
-    const value = parseInt(e.target.value) || 1;
-    setValue('recurring_interval', Math.max(1, Math.min(365, value)));
-  };
-
-  const Icon = mode === 'create' ? ListPlus : Edit;
 
   return (
     <Card className="w-full border-none shadow-none mt-2">
@@ -271,7 +261,7 @@ export default function ChoreForm({
                         <UserAvatar
                           className="h-7 w-7"
                           user={member}
-                          showAsYou={member.id === currentUserId}
+                          showAsYou={member.id === currentUser?.id}
                           shouldShowName={true}
                         />
                       </SelectItem>
@@ -309,7 +299,11 @@ export default function ChoreForm({
                     >
                       <CalendarDays className="mr-2 h-4 w-4 flex-shrink-0" />
                       <span className="truncate">
-                        {formatDate(selectedDate?.toISOString() || '')}
+                        {format(
+                          selectedDate || new Date(),
+                          'MMM dd, yyyy', // "Mar 15, 2024"
+                          { in: tz(timezone) }
+                        )}
                       </span>
                     </Button>
                   </PopoverTrigger>
