@@ -52,6 +52,7 @@ import {
   ChoreTemplate,
   Profile,
 } from '@/lib/supabase/schema.alias';
+import { toISOEndOfDayInTZ } from '@/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
@@ -112,7 +113,7 @@ const choreCardVariants = {
 // Interfaces
 
 interface RotationSettings {
-  startDate: Date;
+  startDate: string;
   recurringType: 'daily' | 'weekly' | 'monthly';
   recurringInterval: number;
 }
@@ -120,8 +121,8 @@ interface RotationSettings {
 interface RotationAssignment {
   chore: ChoreTemplate;
   assignedUser: Profile;
-  assignmentDate: Date;
-  dueDate: Date;
+  assignmentDate: string;
+  dueDate: string;
   period: number;
 }
 
@@ -146,7 +147,7 @@ export default function ChoreRotationPage() {
   });
 
   const [rotationSettings, setRotationSettings] = useState<RotationSettings>({
-    startDate: new Date(),
+    startDate: new Date().toISOString(),
     recurringType: 'weekly',
     recurringInterval: 1,
   });
@@ -285,7 +286,7 @@ export default function ChoreRotationPage() {
 
     // Generate rotation assignments using the custom order
     const assignments: RotationAssignment[] = [];
-    const startDate = new Date(rotationSettings.startDate);
+    const startDate = rotationSettings.startDate;
     const intervalDays =
       rotationSettings.recurringType === 'daily'
         ? 1
@@ -301,15 +302,21 @@ export default function ChoreRotationPage() {
         const assignedUser = availableUsers[userIndex];
 
         const assignmentDate = new Date(startDate);
-        assignmentDate.setDate(startDate.getDate() + period * intervalDays);
+        assignmentDate.setDate(
+          new Date(startDate).getDate() + period * intervalDays
+        );
 
-        const dueDate = new Date(assignmentDate);
-        dueDate.setDate(assignmentDate.getDate() + (intervalDays - 1));
+        const dueDate = toISOEndOfDayInTZ(
+          assignmentDate,
+          profile?.timezone || 'Asia/Ho_Chi_Minh'
+        );
+        // const dueDate = new Date(assignmentDate);
+        // dueDate.setDate(assignmentDate.getDate() + (intervalDays - 1));
 
         assignments.push({
           chore: chore,
           assignedUser: assignedUser,
-          assignmentDate: assignmentDate,
+          assignmentDate: assignmentDate.toISOString(),
           dueDate: dueDate,
           period: period + 1,
         });
@@ -344,7 +351,7 @@ export default function ChoreRotationPage() {
           name: assignment.chore.name,
           description: assignment.chore.description,
           assigned_to: assignment.assignedUser.id,
-          due_date: assignment.dueDate.toISOString().split('T')[0],
+          due_date: assignment.dueDate,
           recurring_type: rotationSettings.recurringType,
           recurring_interval: rotationSettings.recurringInterval,
           household_id: profile.household_id,
@@ -1133,10 +1140,13 @@ function RotationSettingsContent({
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
-              selected={rotationSettings.startDate}
+              selected={new Date(rotationSettings.startDate)}
               onSelect={(date) => {
                 if (date) {
-                  setRotationSettings({ ...rotationSettings, startDate: date });
+                  setRotationSettings({
+                    ...rotationSettings,
+                    startDate: date.toISOString(),
+                  });
                   setShowDatePicker(false);
                 }
               }}
@@ -1246,12 +1256,6 @@ function RotationPreviewContent({
                       ?.assignmentDate || new Date(),
                     'MMM d'
                   )}{' '}
-                  -{' '}
-                  {format(
-                    rotationPreview.find((a) => a.period === period)?.dueDate ||
-                      new Date(),
-                    'MMM d'
-                  )}
                 </span>
               </h4>
               <div className="space-y-2">

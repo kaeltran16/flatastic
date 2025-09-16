@@ -60,13 +60,7 @@ export const getChoreRecurringTypeColor = (recurringType: string) => {
   }
 };
 
-export const toISOStartOfDayInTZ = (
-  date: Date,
-  timeZone = 'Asia/Ho_Chi_Minh'
-) => {
-  console.log('date', date);
-  console.log('timeZone', timeZone);
-
+export const toISOStartOfDayInTZ = (date: Date, timeZone = 'Asia/Ho_Chi_Minh') => {
   // Convert to TZDate first
   const tzDate = TZDate.tz(timeZone, date);
 

@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { createSystemClient } from '@/lib/supabase/system';
 import { TZDate } from '@date-fns/tz';
 import { endOfDay } from 'date-fns';
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
     const webhookSecret = request.headers.get('x-webhook-secret');
 
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createSystemClient();
 
     const now = new Date();
     const nowISO = now.toISOString();
