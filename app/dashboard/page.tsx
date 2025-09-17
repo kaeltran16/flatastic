@@ -9,6 +9,9 @@ import { getProfile } from '@/lib/actions/user';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+
+export const MAX_DASHBOARD_ITEMS = 5;
+
 export default async function Dashboard() {
   const profile = await getProfile();
 

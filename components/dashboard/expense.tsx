@@ -1,5 +1,6 @@
 'use client';
 
+import { MAX_DASHBOARD_ITEMS } from '@/app/dashboard/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpensesList } from '@/hooks/use-expense-list';
@@ -18,7 +19,7 @@ const RecentExpenses = () => {
     currentUser?.household_id ?? '',
     currentUser?.id ?? '',
     members,
-    5 // limit to 5 for recent expenses
+    MAX_DASHBOARD_ITEMS // limit to 5 for recent expenses
   );
 
   if (!currentUser || !currentUser.household_id) return null;
@@ -127,62 +128,64 @@ const RecentExpenses = () => {
                 className="space-y-4"
               >
                 <AnimatePresence>
-                  {expenses.map((expense, index) => (
-                    <motion.div
-                      key={expense.id}
-                      variants={itemVariants}
-                      layout
-                      whileTap={{
-                        scale: 0.98,
-                        transition: { duration: 0.1 },
-                      }}
-                      className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/40 active:bg-accent/60 cursor-pointer transition-colors touch-manipulation"
-                    >
+                  {expenses
+                    .slice(0, MAX_DASHBOARD_ITEMS)
+                    .map((expense, index) => (
                       <motion.div
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.03, duration: 0.25 }}
+                        key={expense.id}
+                        variants={itemVariants}
+                        layout
+                        whileTap={{
+                          scale: 0.98,
+                          transition: { duration: 0.1 },
+                        }}
+                        className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/40 active:bg-accent/60 cursor-pointer transition-colors touch-manipulation"
                       >
-                        <motion.h4
-                          className="font-medium"
-                          layoutId={`description-${expense.id}`}
+                        <motion.div
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03, duration: 0.25 }}
                         >
-                          {expense.description}
-                        </motion.h4>
-                        <motion.p
-                          className="text-sm text-muted-foreground"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
+                          <motion.h4
+                            className="font-medium"
+                            layoutId={`description-${expense.id}`}
+                          >
+                            {expense.description}
+                          </motion.h4>
+                          <motion.p
+                            className="text-sm text-muted-foreground"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{
+                              delay: 0.05 + index * 0.03,
+                              duration: 0.2,
+                            }}
+                          >
+                            Paid by {expense.payer?.full_name} •{' '}
+                            {formatDate(expense.date)}
+                          </motion.p>
+                        </motion.div>
+                        <motion.div
+                          className="text-right"
+                          initial={{ opacity: 0, x: 6 }}
+                          animate={{ opacity: 1, x: 0 }}
                           transition={{
-                            delay: 0.05 + index * 0.03,
-                            duration: 0.2,
+                            delay: 0.02 + index * 0.03,
+                            duration: 0.25,
                           }}
                         >
-                          Paid by {expense.payer?.full_name} •{' '}
-                          {formatDate(expense.date)}
-                        </motion.p>
+                          <motion.p
+                            variants={amountVariants}
+                            initial="initial"
+                            animate="animate"
+                            className="font-semibold text-lg"
+                            layoutId={`amount-${expense.id}`}
+                          >
+                            ${Number(expense.amount).toFixed(2)}
+                          </motion.p>
+                        </motion.div>
                       </motion.div>
-                      <motion.div
-                        className="text-right"
-                        initial={{ opacity: 0, x: 6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{
-                          delay: 0.02 + index * 0.03,
-                          duration: 0.25,
-                        }}
-                      >
-                        <motion.p
-                          variants={amountVariants}
-                          initial="initial"
-                          animate="animate"
-                          className="font-semibold text-lg"
-                          layoutId={`amount-${expense.id}`}
-                        >
-                          ${Number(expense.amount).toFixed(2)}
-                        </motion.p>
-                      </motion.div>
-                    </motion.div>
-                  ))}
+                    ))}
                 </AnimatePresence>
               </motion.div>
             )}

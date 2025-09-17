@@ -87,17 +87,28 @@ export default function ExpensesPage() {
 
   // Calculate filtered stats
   const filteredStats = useMemo(() => {
-    const totalExpenses = filteredExpenses.reduce(
-      (sum, expense) => sum + expense.amount,
-      0
-    );
+    const totalExpenses = filteredExpenses
+      .filter(
+        (e) =>
+          e.created_at &&
+          new Date(e.created_at) >=
+            new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      )
+      .reduce((sum, expense) => sum + expense.amount, 0);
 
-    const yourTotalShare = filteredExpenses.reduce((sum, expense) => {
-      const yourShare = expense.splits?.find(
-        (split) => split.user_id === currentUser?.id
-      );
-      return sum + (yourShare?.amount_owed || 0);
-    }, 0);
+    const yourTotalShare = filteredExpenses
+      .filter(
+        (e) =>
+          e.created_at &&
+          new Date(e.created_at) >=
+            new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      )
+      .reduce((sum, expense) => {
+        const yourShare = expense.splits?.find(
+          (split) => split.user_id === currentUser?.id
+        );
+        return sum + (yourShare?.amount_owed || 0);
+      }, 0);
 
     const pendingExpenses = filteredExpenses.filter(
       (expense) => expense.status === 'pending'

@@ -1,5 +1,6 @@
 'use client';
 
+import { MAX_DASHBOARD_ITEMS } from '@/app/dashboard/page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +18,7 @@ function getChoreStatus(chore: ChoreWithProfile) {
 }
 
 const RecentChores = () => {
-  const { data: chores, isLoading } = useCurrentUserChores(5);
+  const { data: chores, isLoading } = useCurrentUserChores(MAX_DASHBOARD_ITEMS);
   if (!chores || isLoading) return <LoadingSpinner />;
 
   const containerVariants = {
@@ -122,7 +123,7 @@ const RecentChores = () => {
                 className="space-y-4"
               >
                 <AnimatePresence>
-                  {chores.map((chore, index) => {
+                  {chores.slice(0, MAX_DASHBOARD_ITEMS).map((chore, index) => {
                     const status = getChoreStatus(chore);
                     return (
                       <motion.div
