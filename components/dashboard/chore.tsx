@@ -4,7 +4,8 @@ import { MAX_DASHBOARD_ITEMS } from '@/app/dashboard/page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCurrentUserChores } from '@/hooks/use-chore';
+import { useChores } from '@/hooks/use-chore';
+import { useProfile } from '@/hooks/use-profile';
 import type { ChoreWithProfile } from '@/lib/supabase/types';
 import { formatDate } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
@@ -18,7 +19,11 @@ function getChoreStatus(chore: ChoreWithProfile) {
 }
 
 const RecentChores = () => {
-  const { data: chores, isLoading } = useCurrentUserChores(MAX_DASHBOARD_ITEMS);
+  const { profile: currentUser } = useProfile();
+  const { data: chores, isLoading } = useChores(
+    currentUser?.household_id ?? undefined,
+    MAX_DASHBOARD_ITEMS
+  );
   if (!chores || isLoading) return <LoadingSpinner />;
 
   const containerVariants = {

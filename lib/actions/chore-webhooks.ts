@@ -213,16 +213,6 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
       .eq('id', assignedUserId)
       .single();
 
-    // Create notification for assigned user
-    await supabase.rpc('create_notification_with_push', {
-      p_user_id: assignedUserId,
-      p_household_id: household_id,
-      p_title: 'New Chore Assigned',
-      p_message: `You've been assigned: ${template.name}`,
-      p_type: 'chore_assigned',
-      p_is_urgent: false,
-    });
-
     revalidatePath('/chores');
     revalidatePath('/templates');
 

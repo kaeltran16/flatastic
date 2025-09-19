@@ -16,13 +16,13 @@ import {
 import { TZDate } from '@date-fns/tz';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useProfile } from './use-profile';
 // Types
 export type ChoreFormData = Omit<ChoreInsert, 'created_by'>;
 
 // Query keys
 export const choreKeys = {
   all: ['chores'] as const,
+  limit: (limit: number) => [...choreKeys.all, 'list', limit] as const,
   lists: () => [...choreKeys.all, 'list'] as const,
   list: (householdId: string) => [...choreKeys.lists(), householdId] as const,
   details: () => [...choreKeys.all, 'detail'] as const,
@@ -47,6 +47,8 @@ async function fetchChores(
 
   if (limit) {
     choreQuery.limit(limit);
+  } else {
+    choreQuery.limit(100);
   }
 
   // Get chores and profiles in parallel for better performance
@@ -114,26 +116,13 @@ async function fetchChores(
     });
 }
 
-export function useCurrentUserChores(limit?: number) {
-  const { profile: currentUser } = useProfile();
-
-  return useQuery({
-    queryKey: choreKeys.list(currentUser?.household_id || ''),
-    queryFn: () => {
-      if (!currentUser?.household_id) {
-        throw new Error('No household found for current user');
-      }
-      return fetchChores(currentUser.household_id, limit);
-    },
-    enabled: !!currentUser?.household_id,
-    staleTime: 1 * 60 * 1000,
-  });
-}
-
 // Fetch chores for household
 export function useChores(householdId?: string, limit?: number) {
+  const queryKey = limit
+    ? choreKeys.limit(limit)
+    : choreKeys.list(householdId || '');
   return useQuery({
-    queryKey: choreKeys.list(householdId || ''),
+    queryKey: queryKey,
     queryFn: () => {
       if (!householdId) {
         throw new Error('Household ID is required');
