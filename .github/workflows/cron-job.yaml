@@ -11,10 +11,10 @@ jobs:
     steps:
       - name: Call update-overdue-chore-status
         run: |
-          curl -X POST https://flatastic02.vercel.app/api/webhooks/update-overdue-chore-status \
+          curl -X GET https://flatastic02.vercel.app/api/webhooks/update-overdue-chore-status \
             -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
 
       - name: Call chore-reminder
         run: |
-          curl -X POST https://flatastic02.vercel.app/api/webhooks/chore-reminder \
+          curl -X GET https://flatastic02.vercel.app/api/webhooks/chore-reminder \
             -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
