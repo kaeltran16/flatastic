@@ -3,6 +3,7 @@ name: Call Flatastic02 API routes every 5 minutes
 on:
   schedule:
     - cron: '*/5 * * * *'   # Every 5 minutes (UTC)
+  workflow_dispatch:        # 👈 Adds a manual trigger button in the Actions tab
 
 jobs:
   trigger-webhooks:
