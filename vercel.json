@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/webhooks/update-overdue-chore-status",
-      "schedule": "0 17 * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/webhooks/chore-reminder",
-      "schedule": "0 13 * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }
