@@ -1,0 +1,19 @@
+name: Call Flatastic02 API routes every 5 minutes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # Every 5 minutes (UTC)
+
+jobs:
+  trigger-webhooks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call update-overdue-chore-status
+        run: |
+          curl -X POST https://flatastic02.vercel.app/api/webhooks/update-overdue-chore-status \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
+
+      - name: Call chore-reminder
+        run: |
+          curl -X POST https://flatastic02.vercel.app/api/webhooks/chore-reminder \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
