@@ -13,6 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import UserAvatar from '@/components/user-avatar';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { useProfile } from '@/hooks/use-profile';
@@ -23,12 +31,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Award,
-  CheckCircle,
   CircleSlash2,
   DollarSign,
   FileText,
+  Search,
+  Trash2,
   TrendingDown,
   TrendingUp,
+  X
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
@@ -51,6 +61,10 @@ const EXPIRED_CHORE_STATUS: ChoreStatus[] = ['overdue'];
 export default function HouseholdFundPage() {
   const [isPenaltyDialogOpen, setIsPenaltyDialogOpen] = useState(false);
   const [isRewardDialogOpen, setIsRewardDialogOpen] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const { profile } = useProfile();
@@ -64,7 +78,7 @@ export default function HouseholdFundPage() {
   });
 
   const {
-    data: recentPenalties = [],
+    data: allPenalties = [],
     isLoading: penaltiesLoading,
     error: penaltiesError,
   } = useQuery({
@@ -97,14 +111,26 @@ export default function HouseholdFundPage() {
         `
         )
         .eq('household_id', profile?.household_id || '')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data as unknown as FundPenaltyWithRelations[]) || [];
     },
     enabled: !!profile?.household_id,
     staleTime: 30000,
+  });
+
+  // Get recent penalties (limit to 10)
+  const recentPenalties = allPenalties.slice(0, 10);
+
+  // Filter penalties by search term
+  const filteredPenalties = allPenalties.filter((penalty) => {
+    const userName = penalty.profiles.full_name || penalty.profiles.email;
+    const searchTerm = searchFilter.toLowerCase();
+    return (
+      userName.toLowerCase().includes(searchTerm) ||
+      penalty.reason.toLowerCase().includes(searchTerm)
+    );
   });
 
   const { data: fundBalance = 0, isLoading: balanceLoading } = useQuery({
@@ -150,7 +176,6 @@ export default function HouseholdFundPage() {
     staleTime: 60000,
   });
 
-  // Current user's balance (penalties minus rewards)
   const { data: userBalance, isLoading: userBalanceLoading } = useQuery({
     queryKey: ['user_balance', profile?.household_id, profile?.id],
     queryFn: async () => {
@@ -221,9 +246,68 @@ export default function HouseholdFundPage() {
     queryClient.invalidateQueries({ queryKey: ['user_balance'] });
   };
 
+  const handleDeleteTransaction = async () => {
+    if (!deleteConfirmId) return;
+
+    setIsDeleting(true);
+    try {
+      const supabase = createClient();
+      
+      // Find the penalty to get description info
+      const penalty = allPenalties.find(p => p.id === deleteConfirmId);
+      if (!penalty) throw new Error('Penalty not found');
+      console.log(penalty);
+      // Delete the penalty record
+      const { error: penaltyError } = await supabase
+        .from('fund_penalties')
+        .delete()
+        .eq('id', deleteConfirmId);
+
+      if (penaltyError) throw penaltyError;
+
+      // Delete related expense splits first
+      const { error: splitsError } = await supabase
+        .from('expense_splits')
+        .delete()
+        .eq('expense_id', penalty.id); // This assumes expense_id matches penalty structure
+
+      // Delete related expense
+      const { error: expenseError } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('description', `Penalty: ${penalty.reason}${penalty.description ? ` - ${penalty.description}` : ''}`);
+
+      setDeleteConfirmId(null);
+      handleTransactionAdded();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getUserDisplayName = (fullName: string | null, email: string) => {
     return fullName || email.split('@')[0];
   };
+
+  const {data: adminId} = useQuery({
+    queryKey: ['household_admin', profile?.household_id],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('households')
+        .select('admin_id')
+        .eq('id', profile?.household_id || '')
+        .single();
+
+      if (error) throw error;
+      return data?.admin_id || null;
+    },
+    enabled: !!profile?.household_id,
+    staleTime: 30000,
+  });
+
+  const isAdmin = profile?.id === adminId;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -267,6 +351,8 @@ export default function HouseholdFundPage() {
       </div>
     );
   }
+
+  const transactionsToDisplay = showAllTransactions ? filteredPenalties : recentPenalties;
 
   return (
     <motion.div
@@ -312,9 +398,7 @@ export default function HouseholdFundPage() {
                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full"></div>
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full"></div>
               </div>
-
               <div className="absolute inset-0 bg-black/10 rounded-lg"></div>
-
               <CardContent className="relative p-6 sm:p-8">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -325,31 +409,22 @@ export default function HouseholdFundPage() {
                       {balanceLoading ? (
                         <LoadingSpinner />
                       ) : (
-                        <span
-                          className="text-white drop-shadow-xl font-extrabold"
-                          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-                        >
+                        <span style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                           ${fundBalance.toFixed(2)}
                         </span>
                       )}
                     </div>
-
                     <div className="flex items-center gap-3 mt-4 sm:mt-6">
                       <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-sm" />
+                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {monthlyLoading ? (
-                            <div className="h-4 bg-white/20 rounded w-24 animate-pulse"></div>
-                          ) : (
-                            `${
-                              monthlyAdditions >= 0 ? '+' : ''
-                            }${monthlyAdditions.toFixed(2)} this month`
-                          )}
+                          {monthlyLoading
+                            ? '...'
+                            : `${monthlyAdditions >= 0 ? '+' : ''}${monthlyAdditions.toFixed(2)} this month`}
                         </span>
                       </div>
                     </div>
                   </div>
-
                   <div className="relative flex-shrink-0 ml-4">
                     <div className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 bg-yellow-500 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 hover:bg-yellow-400 transition-colors shadow-lg">
                       <DollarSign className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-white drop-shadow-lg" />
@@ -367,9 +442,7 @@ export default function HouseholdFundPage() {
                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full"></div>
                 <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full"></div>
               </div>
-
               <div className="absolute inset-0 bg-black/10 rounded-lg"></div>
-
               <CardContent className="relative p-6 sm:p-8">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
@@ -380,41 +453,30 @@ export default function HouseholdFundPage() {
                       {userBalanceLoading ? (
                         <LoadingSpinner />
                       ) : (
-                        <span
-                          className={`drop-shadow-xl font-extrabold text-white`}
-                          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
-                        >
+                        <span style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
                           ${(userBalance?.net || 0).toFixed(2)}
                         </span>
                       )}
                     </div>
-
                     <div className="flex items-start gap-3 mt-4 sm:mt-6 flex-col md:flex-row">
                       <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <CircleSlash2 className="h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-sm" />
+                        <CircleSlash2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {userBalanceLoading ? (
-                            <div className="h-4 bg-white/20 rounded w-24 animate-pulse"></div>
-                          ) : (
-                            `${(userBalance?.penalties || 0).toFixed(
-                              2
-                            )} penalties`
-                          )}
+                          {userBalanceLoading
+                            ? '...'
+                            : `${(userBalance?.penalties || 0).toFixed(2)} penalties`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-sm" />
+                        <Award className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {userBalanceLoading ? (
-                            <div className="h-4 bg-white/20 rounded w-24 animate-pulse"></div>
-                          ) : (
-                            `${(userBalance?.rewards || 0).toFixed(2)} rewards`
-                          )}
+                          {userBalanceLoading
+                            ? '...'
+                            : `${(userBalance?.rewards || 0).toFixed(2)} rewards`}
                         </span>
                       </div>
                     </div>
                   </div>
-
                   <div className="relative flex-shrink-0 ml-4">
                     <div
                       className={`h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 transition-colors shadow-lg ${
@@ -436,91 +498,128 @@ export default function HouseholdFundPage() {
           </motion.div>
         </div>
 
-        {/* Recent Activity and Issues */}
-        <div className="space-y-4 sm:space-y-6 w-full">
-          {/* Recent Transactions */}
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="shadow-lg w-full">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                  Recent Transactions
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Latest penalties and rewards
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {penaltiesLoading ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="p-3 sm:p-4 border rounded-lg animate-pulse"
+        {/* Recent Transactions */}
+        <motion.div variants={itemVariants} className="w-full">
+          <Card className="shadow-lg w-full">
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    {showAllTransactions ? 'All Transactions' : 'Recent Transactions'}
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {showAllTransactions
+                      ? `Showing ${filteredPenalties.length} transactions`
+                      : 'Latest penalties and rewards'}
+                  </CardDescription>
+                </div>
+                {!showAllTransactions && allPenalties.length > 10 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllTransactions(true)}
+                    className="text-xs sm:text-sm"
+                  >
+                    View All
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAllTransactions && (
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search by name or reason..."
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="pl-9 text-sm"
+                    />
+                    {searchFilter && (
+                      <button
+                        onClick={() => setSearchFilter('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
-                            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-gray-200 rounded-full"></div>
-                            <div className="space-y-2 flex-1">
-                              <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
-                              <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2"></div>
-                            </div>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <div className="h-3 sm:h-4 bg-gray-200 rounded w-16"></div>
-                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-12"></div>
+                        <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {penaltiesLoading ? (
+                <div className="space-y-2 sm:space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3 sm:p-4 border rounded-lg animate-pulse"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
+                          <div className="h-6 w-6 sm:h-8 sm:w-8 bg-gray-200 rounded-full"></div>
+                          <div className="space-y-2 flex-1">
+                            <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2"></div>
                           </div>
                         </div>
+                        <div className="text-right space-y-1">
+                          <div className="h-3 sm:h-4 bg-gray-200 rounded w-16"></div>
+                          <div className="h-2 sm:h-3 bg-gray-200 rounded w-12"></div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                ) : recentPenalties.length > 0 ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    {recentPenalties.map((penalty) => {
-                      const userName = getUserDisplayName(
-                        penalty.profiles.full_name,
-                        penalty.profiles.email
-                      );
-                      const isReward = Number(penalty.amount) < 0;
-                      const amount = Math.abs(Number(penalty.amount));
+                    </div>
+                  ))}
+                </div>
+              ) : transactionsToDisplay.length > 0 ? (
+                <div className="space-y-2 sm:space-y-3">
+                  {transactionsToDisplay.map((penalty) => {
+                    const userName = getUserDisplayName(
+                      penalty.profiles.full_name,
+                      penalty.profiles.email
+                    );
+                    const isReward = Number(penalty.amount) < 0;
+                    const amount = Math.abs(Number(penalty.amount));
 
-                      return (
-                        <div
-                          key={penalty.id}
-                          className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors w-full cursor-pointer"
-                        >
-                          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                            <UserAvatar
-                              user={penalty.profiles}
-                              shouldShowName={false}
-                              showAsYou={penalty.profiles.id === profile.id}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                                  {userName}
-                                </p>
-                                {isReward && (
-                                  <Badge
-                                    variant="outline"
-                                    className="bg-green-50 text-green-700 border-green-200"
-                                  >
-                                    <Award className="h-3 w-3 mr-1" />
-                                    Reward
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-gray-500 truncate">
-                                {penalty.reason}
+                    return (
+                      <div
+                        key={penalty.id}
+                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors w-full group"
+                      >
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                          <UserAvatar
+                            user={penalty.profiles}
+                            shouldShowName={false}
+                            showAsYou={penalty.profiles.id === profile.id}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                                {userName}
                               </p>
-                              {penalty.chores && (
-                                <p className="text-xs text-gray-400 truncate">
-                                  Chore: {penalty.chores.name}
-                                </p>
+                              {isReward && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 border-green-200 text-xs"
+                                >
+                                  <Award className="h-3 w-3 mr-1" />
+                                  Reward
+                                </Badge>
                               )}
                             </div>
+                            <p className="text-xs text-gray-500 truncate">
+                              {penalty.reason}
+                            </p>
+                            {penalty.chores && (
+                              <p className="text-xs text-gray-400 truncate">
+                                Chore: {penalty.chores.name}
+                              </p>
+                            )}
                           </div>
-                          <div className="text-right ml-2 sm:ml-4 flex-shrink-0">
+                        </div>
+                        <div className="text-right ml-2 sm:ml-4 flex-shrink-0 flex items-center gap-2">
+                          <div>
                             <p
                               className={`text-xs sm:text-sm font-semibold ${
                                 isReward ? 'text-green-600' : 'text-red-600'
@@ -532,104 +631,51 @@ export default function HouseholdFundPage() {
                               {formatDateRelatively(penalty.created_at!)}
                             </p>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 sm:py-8">
-                    <DollarSign className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      No transactions yet
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Current Issues */}
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="shadow-lg w-full">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 flex-shrink-0" />
-                  Current Issues
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Chores that may need penalties
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {choresLoading ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="p-3 sm:p-4 border rounded-lg animate-pulse"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-2 flex-1">
-                            <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-2 sm:h-3 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                          <div className="h-5 w-12 sm:h-6 sm:w-16 bg-gray-200 rounded ml-2 sm:ml-4"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : recentChores.length > 0 ? (
-                  <div className="space-y-2 sm:space-y-3">
-                    {recentChores.slice(0, 5).map((chore: any) => (
-                      <div
-                        key={chore.id}
-                        className="flex items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors w-full cursor-pointer"
-                      >
-                        <div className="flex-1 min-w-0 pr-2 sm:pr-4">
-                          <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                            {chore.name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            Assigned to:{' '}
-                            {chore.profiles?.full_name || 'Unknown'}
-                          </p>
-                          {chore.due_date && (
-                            <p className="text-xs text-gray-500 truncate">
-                              Due:{' '}
-                              {new Date(chore.due_date).toLocaleDateString()}
-                            </p>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(penalty.id)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
-                        <Badge
-                          variant={
-                            chore.status === 'overdue'
-                              ? 'destructive'
-                              : chore.status === 'incomplete'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          className="text-xs flex-shrink-0"
-                        >
-                          {chore.status}
-                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 sm:py-8">
-                    <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mx-auto mb-3 sm:mb-4" />
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      No current issues! 🎉
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 sm:py-8">
+                  <DollarSign className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    {showAllTransactions && searchFilter
+                      ? 'No transactions match your search'
+                      : 'No transactions yet'}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {showAllTransactions && (
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAllTransactions(false);
+                setSearchFilter('');
+              }}
+            >
+              Show Recent
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Dialogs */}
+      {/* Add Penalty Dialog */}
       <AddPenaltyDialog
         isOpen={isPenaltyDialogOpen}
         onOpenChange={setIsPenaltyDialogOpen}
@@ -641,6 +687,7 @@ export default function HouseholdFundPage() {
         onPenaltyAdded={handleTransactionAdded}
       />
 
+      {/* Add Reward Dialog */}
       <AddRewardDialog
         isOpen={isRewardDialogOpen}
         onOpenChange={setIsRewardDialogOpen}
@@ -651,6 +698,34 @@ export default function HouseholdFundPage() {
         isLoading={membersLoading}
         onRewardAdded={handleTransactionAdded}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Transaction?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            Are you sure you want to delete this transaction? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmId(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteTransaction}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style jsx>{`
         .hover-lift:hover {

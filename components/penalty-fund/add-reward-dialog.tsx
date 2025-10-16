@@ -174,6 +174,40 @@ const AddRewardDialog: React.FC<AddRewardDialogProps> = ({
 
       if (fundError) throw fundError;
 
+      const expenseDescription = formData.description
+        ? `Reward: ${formData.reason} - ${formData.description}`
+        : `Reward: ${formData.reason}`;
+      
+      const { data: createdExpense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          household_id: householdId,
+          paid_by: formData.userId, // The rewarded user is responsible for this expense
+          amount: amount,
+          description: expenseDescription,
+          category: 'reward', // Categorize as reward expense
+          date: currentDate,
+          split_type: 'custom', // Use custom since only one person owes
+          created_at: currentDate,
+          updated_at: currentDate,
+        })
+        .select()
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      // Create expense split - the rewarded user owes the full amount
+      const { error: splitError } = await supabase
+        .from('expense_splits')
+        .insert({
+          expense_id: createdExpense.id,
+          user_id: formData.userId,
+          amount_owed: amount,
+          is_settled: false, // Reward starts as unsettled
+        });
+
+      if (splitError) throw splitError;
+
       // Create notification for the rewarded user
       const { error: notificationError } = await supabase
         .from('notifications')
