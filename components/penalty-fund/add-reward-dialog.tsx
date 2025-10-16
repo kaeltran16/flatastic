@@ -1,0 +1,524 @@
+'use client';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { createClient } from '@/lib/supabase/client';
+import { Chore, Profile } from '@/lib/supabase/schema.alias';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  DollarSign,
+  Gift,
+  Loader2,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import UserAvatar from '../user-avatar';
+
+interface AddRewardDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  householdId: string;
+  householdMembers: Profile[];
+  recentChores: (Chore & {
+    profiles?: Pick<
+      Profile,
+      'id' | 'full_name' | 'email' | 'avatar_url'
+    > | null;
+  })[];
+  currentUser: Profile;
+  isLoading?: boolean;
+  onRewardAdded?: () => void;
+}
+
+interface FormData {
+  amount: string;
+  userId: string;
+  reason: string;
+  choreId: string;
+  description: string;
+}
+
+const AddRewardDialog: React.FC<AddRewardDialogProps> = ({
+  isOpen,
+  onOpenChange,
+  householdId,
+  householdMembers,
+  recentChores,
+  currentUser,
+  isLoading = false,
+  onRewardAdded,
+}) => {
+  const [formData, setFormData] = useState<FormData>({
+    amount: '',
+    userId: '',
+    reason: '',
+    choreId: '',
+    description: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const rewardReasons = [
+    { value: 'Completed all chores on time', icon: '⭐' },
+    { value: 'Extra tasks completed', icon: '💪' },
+    { value: 'Exceptional quality work', icon: '🏆' },
+    { value: 'Helped others with their chores', icon: '🤝' },
+    { value: 'Initiative and responsibility', icon: '🌟' },
+    { value: 'Other', icon: '🎁' },
+  ];
+
+  const relatedChores = useMemo(() => {
+    return recentChores.filter(
+      (chore) =>
+        chore.assigned_to === formData.userId && chore.status === 'completed'
+    );
+  }, [recentChores, formData.userId]);
+
+  const quickAmounts = ['5.00', '10.00', '15.00', '20.00'];
+
+  const getChoreStatusBadgeProps = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return { variant: 'default' as const, color: 'text-green-700' };
+      case 'in_progress':
+        return { variant: 'secondary' as const, color: 'text-blue-700' };
+      default:
+        return { variant: 'outline' as const, color: 'text-gray-700' };
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleQuickAmount = (amount: string) => {
+    setFormData((prev) => ({ ...prev, amount }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      amount: '',
+      userId: '',
+      reason: '',
+      choreId: '',
+      description: '',
+    });
+    setExpandedSection(null);
+    setShowSuccess(false);
+    setShowError(false);
+    setErrorMessage('');
+  };
+
+  const showErrorAlert = (message: string) => {
+    setErrorMessage(message);
+    setShowError(true);
+    setTimeout(() => setShowError(false), 5000);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.amount || !formData.userId || !formData.reason) {
+      showErrorAlert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const supabase = createClient();
+      const amount = -Math.abs(parseFloat(formData.amount)); // Store as negative value
+      const currentDate = new Date().toISOString();
+
+      // Insert fund reward record (as negative amount in fund_penalties table)
+      const { error: fundError } = await supabase
+        .from('fund_penalties')
+        .insert({
+          household_id: householdId,
+          user_id: formData.userId,
+          amount: amount, // Negative value for rewards
+          reason: formData.reason,
+          chore_id: formData.choreId || null,
+          description: formData.description || null,
+          created_at: currentDate,
+        });
+
+      if (fundError) throw fundError;
+
+      // Create notification for the rewarded user
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          household_id: householdId,
+          user_id: formData.userId,
+          type: 'fund_reward',
+          title: 'Household Fund Reward',
+          message: `You've earned $${Math.abs(
+            parseFloat(formData.amount)
+          ).toFixed(2)} for: ${formData.reason}`,
+          is_urgent: false,
+          is_read: false,
+        });
+
+      if (notificationError) throw notificationError;
+
+      setShowSuccess(true);
+
+      if (onRewardAdded) {
+        onRewardAdded();
+      }
+
+      setTimeout(() => {
+        resetForm();
+        onOpenChange(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error adding fund reward:', error);
+      showErrorAlert('Failed to add reward. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
+  const isFormValid = formData.amount && formData.userId && formData.reason;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[95vw] max-w-md mx-auto my-4 sm:my-8 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <div className="animate-in fade-in-50 duration-200">
+          <DialogHeader className="pb-4 sm:pb-6">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Gift className="w-5 h-5 text-green-600" />
+              Add Fund Reward
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Success Alert */}
+          {showSuccess && (
+            <div className="mb-4 animate-in fade-in-50 duration-200">
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800 font-medium text-sm">
+                  🎉 Reward added successfully!
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Error Alert */}
+          {showError && (
+            <div className="mb-4 animate-in fade-in-50 duration-200">
+              <Alert className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 font-medium text-sm">
+                  {errorMessage}
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <div className="space-y-4 sm:space-y-6">
+            {/* Select Member */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Select Member *
+              </Label>
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3 border-2 border-dashed rounded-lg animate-pulse"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div className="space-y-1 flex-1">
+                          <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Select
+                  value={formData.userId}
+                  onValueChange={(value) => handleSelectChange('userId', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
+                    <SelectValue placeholder="Select a household member" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {householdMembers.map((member) => (
+                      <SelectItem
+                        key={member.id}
+                        value={member.id}
+                        className="py-3 sm:py-2"
+                      >
+                        <UserAvatar
+                          user={member}
+                          showAsYou={member.id === currentUser.id}
+                        />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Reward Amount */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Reward Amount *</Label>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-2">
+                  {quickAmounts.map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => handleQuickAmount(amount)}
+                      className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium hover:scale-105 active:scale-95 ${
+                        formData.amount === amount
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      type="button"
+                      disabled={isSubmitting}
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Custom amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    className="pl-9 h-11 sm:h-10 text-base sm:text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Reason *</Label>
+              <Select
+                value={formData.reason}
+                onValueChange={(value) => handleSelectChange('reason', value)}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger className="w-full h-11 sm:h-10 text-base sm:text-sm">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rewardReasons.map((reason) => (
+                    <SelectItem
+                      key={reason.value}
+                      value={reason.value}
+                      className="py-3 sm:py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{reason.icon}</span>
+                        <span className="text-base sm:text-sm">
+                          {reason.value}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Optional Details - Collapsible */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedSection(
+                    expandedSection === 'details' ? null : 'details'
+                  )
+                }
+                className="flex items-center justify-between w-full text-left hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                disabled={isSubmitting}
+              >
+                <Label className="text-sm font-medium text-gray-700">
+                  Additional Details (Optional)
+                </Label>
+                <ChevronDown
+                  className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
+                    expandedSection === 'details' ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {expandedSection === 'details' && (
+                <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  {/* Related Chore */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-600">
+                      Related Chore
+                    </Label>
+                    {isLoading ? (
+                      <div className="bg-gray-100 rounded-lg animate-pulse flex items-center px-3 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        <span className="ml-2 text-sm text-gray-500">
+                          Loading chores...
+                        </span>
+                      </div>
+                    ) : relatedChores.length > 0 ? (
+                      <Select
+                        value={formData.choreId}
+                        onValueChange={(value) =>
+                          handleSelectChange('choreId', value)
+                        }
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="text-sm w-full">
+                          <SelectValue placeholder="Select a chore (optional)" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[240px] w-full">
+                          {relatedChores.map((chore) => (
+                            <SelectItem
+                              key={chore.id}
+                              value={chore.id}
+                              className="py-2 w-full"
+                            >
+                              <div className="flex items-center justify-between w-full min-w-0 gap-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="font-medium text-sm truncate">
+                                    {chore.name}
+                                  </span>
+                                  {chore.due_date && (
+                                    <span className="text-xs text-gray-500 flex-shrink-0">
+                                      {new Date(
+                                        chore.due_date
+                                      ).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <Badge
+                                  variant={
+                                    getChoreStatusBadgeProps(chore.status || '')
+                                      .variant
+                                  }
+                                  className="text-xs px-1.5 py-0.5 flex-shrink-0 h-5"
+                                >
+                                  {chore.status}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="p-3 border-2 border-dashed border-gray-200 rounded-lg text-center">
+                        <p className="text-sm text-gray-500">
+                          No completed chores found for this member
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Completed chores assigned to the selected member will
+                          appear here
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-600">
+                      Additional Notes
+                    </Label>
+                    <Textarea
+                      name="description"
+                      placeholder="Any additional details..."
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="resize-none text-sm"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 pt-6 sm:pt-4">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormValid || isSubmitting}
+              className="w-full sm:w-auto text-base sm:text-sm bg-green-600 hover:bg-green-700 hover:scale-105 active:scale-95 transition-transform"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Add ${formData.amount || '0.00'} Reward
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AddRewardDialog;
