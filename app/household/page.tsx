@@ -1,4 +1,4 @@
-// Updated household page component with implemented functionality
+// Updated household page component with admin availability management
 
 'use client';
 
@@ -12,6 +12,7 @@ import { HouseholdHeader } from '@/components/household/header';
 import { HouseholdInfo } from '@/components/household/info';
 import { InviteMemberDialog } from '@/components/household/invite-member-dialog';
 import { LoadingSpinner } from '@/components/household/loading';
+import { AvailabilitySection } from '@/components/household/member-availability';
 import { MembersList } from '@/components/household/member-list';
 import { HouseholdSettings } from '@/components/household/settings';
 import { HouseholdSidebar } from '@/components/household/sidebar';
@@ -29,33 +30,43 @@ import {
 import { HouseholdInviteData } from '@/lib/supabase/types';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function HouseholdPage() {
   const router = useRouter();
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const {
     profile,
     loading: profileLoading,
     error: profileError,
+    refetch: refetchProfile,
   } = useProfile();
 
   const {
     household,
     loading: householdLoading,
     error: householdError,
+    refetch: refetchHousehold,
   } = useHousehold(profile?.household_id);
 
   const {
     members,
     loading: membersLoading,
     error: membersError,
+    refetch: refetchMembers,
   } = useHouseholdMembers(profile?.household_id || null);
 
   const loading = profileLoading || householdLoading || membersLoading;
   const error = profileError || householdError || membersError;
+
+  const handleRefresh = async () => {
+    // Refetch only the data that changed
+    await Promise.all([
+      refetchProfile?.(),
+      refetchMembers?.(),
+      refetchHousehold?.(),
+    ]);
+  };
 
   const handleInviteMember = async (data: HouseholdInviteData) => {
     if (!household) {
@@ -66,7 +77,7 @@ export default function HouseholdPage() {
     try {
       await inviteHouseholdMember(household.id, data);
       toast.success(`Invitation sent to ${data.email}!`);
-      setRefreshKey((prev) => prev + 1); // Force refresh to update any notifications
+      await handleRefresh();
     } catch (error) {
       console.error('Error inviting member:', error);
       toast.error(
@@ -81,14 +92,13 @@ export default function HouseholdPage() {
       return;
     }
 
-    // Get member name for toast message
     const member = members?.find((m) => m.id === memberId);
     const memberName = member?.full_name || member?.email || 'Member';
 
     try {
       await removeHouseholdMember(household.id, memberId);
       toast.success(`${memberName} has been removed from the household`);
-      setRefreshKey((prev) => prev + 1); // Force refresh
+      await handleRefresh();
     } catch (error) {
       console.error('Error removing member:', error);
       toast.error(
@@ -102,7 +112,7 @@ export default function HouseholdPage() {
 
     try {
       await updateHouseholdName(household.id, name);
-      setRefreshKey((prev) => prev + 1); // Force refresh
+      await handleRefresh();
       toast.success('Household name updated!');
     } catch (error) {
       toast.error(
@@ -117,7 +127,7 @@ export default function HouseholdPage() {
 
     try {
       const newCode = await regenerateInviteCode(household.id);
-      setRefreshKey((prev) => prev + 1); // Force refresh
+      await handleRefresh();
       toast.success('New invite code generated!');
       return newCode;
     } catch (error) {
@@ -139,7 +149,6 @@ export default function HouseholdPage() {
     }
   };
 
-  // Check if current user is admin
   const isAdmin = profile?.id === household?.admin_id;
 
   if (loading) {
@@ -165,12 +174,10 @@ export default function HouseholdPage() {
       initial="initial"
       animate="animate"
       exit="exit"
-      key={refreshKey} // Force re-render when data changes
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-4">
         <HouseholdHeader />
 
-        {/* Only show invite button if user is admin */}
         {isAdmin && (
           <div className="flex justify-end mb-4">
             <InviteMemberDialog
@@ -189,13 +196,23 @@ export default function HouseholdPage() {
             animate="animate"
           >
             <HouseholdInfo household={household} />
+
+            {/* Enhanced Availability Section with Admin Controls */}
+            <AvailabilitySection
+              userId={profile.id}
+              currentUserAvailability={profile.is_available ?? true}
+              isAdmin={isAdmin}
+              members={members || []}
+              onAvailabilityChange={handleRefresh}
+            />
+
             <MembersList
               members={members}
               currentUserId={profile.id}
               household={household}
               onRemoveMember={handleRemoveMember}
             />
-            {/* Add Settings */}
+
             {household && (
               <HouseholdSettings
                 household={household}

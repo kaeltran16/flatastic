@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSettlements } from '@/hooks/use-settlement';
+import { createClient } from '@/lib/supabase/client';
 import type { Balance } from '@/lib/supabase/types';
 import {
   AlertCircle,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function PaymentsPage() {
   const {
@@ -78,6 +80,30 @@ export default function PaymentsPage() {
   const totalOwing = userBalances
     .filter((balance) => balance.fromUser.id === currentUser?.id)
     .reduce((sum, balance) => sum + balance.amount, 0);
+
+  const onRemind = async (balance: Balance) => {
+    const supabase = await createClient();
+    if (balance.toUser.household_id !== currentUser?.household_id) {
+      toast.error('You are not authorized to send reminders for this payment');
+      return;
+    }
+    const { error } = await supabase.rpc('create_notification_with_push', {
+      p_user_id: balance.toUser.id,
+      p_household_id: balance.toUser.household_id || undefined,
+      p_title: '⏰ Reminder to pay',
+      p_message: `You have an outstanding balance of ${balance.amount.toFixed(
+        2
+      )} to ${balance.fromUser.full_name}. Please pay it before it's overdue!`,
+      p_type: 'payment_due',
+      p_is_urgent: true,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Reminder sent successfully');
+    }
+  };
 
   if (loading) {
     return <LoadingSpinner />;
@@ -192,6 +218,7 @@ export default function PaymentsPage() {
                           <BalanceCard
                             key={`individual-${balance.fromUser.id}-${balance.toUser.id}-${balanceIndex}`}
                             balance={balance}
+                            onRemind={onRemind}
                             currentUserId={currentUser?.id}
                             onSettle={openSettleDialog}
                             variant="individual"

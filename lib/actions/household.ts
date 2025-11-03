@@ -642,3 +642,108 @@ export async function removeHouseholdMember(
     throw error;
   }
 }
+
+
+export async function updateUserAvailability(
+  targetUserId: string,
+  isAvailable: boolean,
+  isAdminRequest: boolean = false
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get current authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Get current user's profile to check household and admin status
+    const { data: currentProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !currentProfile) {
+      return { success: false, error: 'User profile not found' };
+    }
+
+    // Get target user's profile
+    const { data: targetProfile, error: targetProfileError } = await supabase
+      .from('profiles')
+      .select('id, household_id')
+      .eq('id', targetUserId)
+      .single();
+
+    if (targetProfileError || !targetProfile) {
+      return { success: false, error: 'Target user not found' };
+    }
+
+    // Check if users are in the same household
+    if (currentProfile.household_id !== targetProfile.household_id) {
+      return {
+        success: false,
+        error: 'Cannot modify users from different households',
+      };
+    }
+
+    // If not updating own availability, check admin permissions
+    if (user.id !== targetUserId) {
+      if (!isAdminRequest) {
+        return {
+          success: false,
+          error: 'You can only update your own availability',
+        };
+      }
+
+      // Verify user is actually admin of the household
+      const { data: household, error: householdError } = await supabase
+        .from('households')
+        .select('admin_id')
+        .eq('id', currentProfile?.household_id || '')
+        .single();
+
+      if (householdError || !household) {
+        return { success: false, error: 'Household not found' };
+      }
+
+      if (household.admin_id !== user.id) {
+        return {
+          success: false,
+          error: "Only household admin can modify other members' availability",
+        };
+      }
+    }
+
+    // Update the user's availability
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        is_available: isAvailable,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', targetUserId);
+
+    if (updateError) {
+      console.error('Error updating availability:', updateError);
+      return { success: false, error: 'Failed to update availability' };
+    }
+
+    // Revalidate relevant paths
+    revalidatePath('/household');
+    revalidatePath('/chores');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in updateUserAvailability:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}

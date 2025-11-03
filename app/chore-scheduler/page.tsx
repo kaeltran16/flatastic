@@ -73,7 +73,7 @@ export default function ChoreSchedulerPage() {
   });
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
-  // Use custom hook for rotation logic
+  // Use custom hook for rotation logic - PASS queryClient here
   const {
     selectedChores,
     unavailableUsers,
@@ -92,7 +92,7 @@ export default function ChoreSchedulerPage() {
     nextStep,
     prevStep,
     setActiveStep,
-  } = useChoreRotation(profile, members);
+  } = useChoreRotation(profile, members, queryClient);
 
   // Fetch chore templates
   const {

@@ -1,11 +1,20 @@
-import { ActiveStep, RotationAssignment, RotationSettings } from '@/components/chore-scheduler/types';
+import {
+  ActiveStep,
+  RotationAssignment,
+  RotationSettings,
+} from '@/components/chore-scheduler/types';
 import { createChore } from '@/lib/actions/chore';
 import { ChoreInsert, Profile } from '@/lib/supabase/schema.alias';
 import { toISOEndOfDayInTZ } from '@/utils';
+import { QueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-export const useChoreRotation = (profile: any, members: Profile[]) => {
+export const useChoreRotation = (
+  profile: any,
+  members: Profile[],
+  queryClient?: QueryClient
+) => {
   const [selectedChores, setSelectedChores] = useState<string[]>([]);
   const [unavailableUsers, setUnavailableUsers] = useState<string[]>([]);
   const [memberOrder, setMemberOrder] = useState<Profile[]>([]);
@@ -130,6 +139,17 @@ export const useChoreRotation = (profile: any, members: Profile[]) => {
           `Successfully created ${createdChores.length} chores in rotation!`
         );
 
+        // Invalidate chores cache to refresh the chore list
+        if (queryClient) {
+          queryClient.invalidateQueries({
+            queryKey: ['chores', profile.household_id],
+          });
+          // Also invalidate any other related queries
+          queryClient.invalidateQueries({
+            queryKey: ['household_chores'],
+          });
+        }
+
         // Reset state
         resetRotation();
       } catch (error: any) {
@@ -139,7 +159,7 @@ export const useChoreRotation = (profile: any, members: Profile[]) => {
         setIsCreatingChores(false);
       }
     },
-    [profile, rotationPreview, members.length]
+    [profile, rotationPreview, members.length, queryClient]
   );
 
   const resetRotation = useCallback(() => {
