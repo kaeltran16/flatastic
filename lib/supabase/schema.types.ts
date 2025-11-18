@@ -25,6 +25,13 @@ export type Database = {
           is_custom: boolean | null;
           name: string;
           updated_at: string | null;
+          is_recurring: boolean | null;
+          recurring_type: string | null;
+          recurring_interval: number | null;
+          next_creation_date: string | null;
+          last_created_at: string | null;
+          auto_assign_rotation: boolean | null;
+          recurring_start_date: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -36,6 +43,13 @@ export type Database = {
           is_custom?: boolean | null;
           name: string;
           updated_at?: string | null;
+          is_recurring?: boolean | null;
+          recurring_type?: string | null;
+          recurring_interval?: number | null;
+          next_creation_date?: string | null;
+          last_created_at?: string | null;
+          auto_assign_rotation?: boolean | null;
+          recurring_start_date?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -47,6 +61,13 @@ export type Database = {
           is_custom?: boolean | null;
           name?: string;
           updated_at?: string | null;
+          is_recurring?: boolean | null;
+          recurring_type?: string | null;
+          recurring_interval?: number | null;
+          next_creation_date?: string | null;
+          last_created_at?: string | null;
+          auto_assign_rotation?: boolean | null;
+          recurring_start_date?: string | null;
         };
         Relationships: [
           {

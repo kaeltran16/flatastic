@@ -42,7 +42,7 @@ export async function createChoreTemplate(
   }
 
   // Prepare insert data
-  const insertData = {
+  const insertData: any = {
     name: templateData.name.trim(),
     description: templateData.description?.trim() || null,
     is_custom: true,
@@ -50,6 +50,28 @@ export async function createChoreTemplate(
     household_id: templateData.household_id || profile.household_id,
     created_by: user.id,
   };
+
+  // Add recurring configuration if provided
+  if (templateData.is_recurring !== undefined) {
+    insertData.is_recurring = templateData.is_recurring;
+  }
+  if (templateData.recurring_type !== undefined) {
+    insertData.recurring_type = templateData.recurring_type;
+  }
+  if (templateData.recurring_interval !== undefined) {
+    insertData.recurring_interval = templateData.recurring_interval;
+  }
+  if (templateData.recurring_start_date !== undefined) {
+    insertData.recurring_start_date = templateData.recurring_start_date;
+    // Calculate initial next_creation_date if recurring is enabled
+    if (templateData.is_recurring && templateData.recurring_type && templateData.recurring_interval) {
+      const startDate = new Date(templateData.recurring_start_date);
+      insertData.next_creation_date = startDate.toISOString();
+    }
+  }
+  if (templateData.auto_assign_rotation !== undefined) {
+    insertData.auto_assign_rotation = templateData.auto_assign_rotation;
+  }
 
   // Insert the new template
   const { data: newTemplate, error: insertError } = await supabase
@@ -110,6 +132,29 @@ export async function updateChoreTemplate(
 
   if (templateData.is_active !== undefined) {
     updateData.is_active = templateData.is_active;
+  }
+
+  // Add recurring configuration updates
+  if (templateData.is_recurring !== undefined) {
+    updateData.is_recurring = templateData.is_recurring;
+  }
+  if (templateData.recurring_type !== undefined) {
+    updateData.recurring_type = templateData.recurring_type;
+  }
+  if (templateData.recurring_interval !== undefined) {
+    updateData.recurring_interval = templateData.recurring_interval;
+  }
+  if (templateData.recurring_start_date !== undefined) {
+    updateData.recurring_start_date = templateData.recurring_start_date;
+  }
+  if (templateData.auto_assign_rotation !== undefined) {
+    updateData.auto_assign_rotation = templateData.auto_assign_rotation;
+  }
+  if (templateData.next_creation_date !== undefined) {
+    updateData.next_creation_date = templateData.next_creation_date;
+  }
+  if (templateData.last_created_at !== undefined) {
+    updateData.last_created_at = templateData.last_created_at;
   }
 
   // Update the template
