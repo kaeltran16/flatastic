@@ -39,9 +39,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
+import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { ChoreTemplate, Chore } from '@/lib/supabase/schema.alias';
 import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
+import { manuallyTriggerChoreCreation } from '@/lib/actions/chore-template';
 
 interface HouseholdStats {
   totalChores: number;
@@ -68,6 +70,9 @@ export default function AdminDashboardPage() {
   const { members, loading: membersLoading } = useHouseholdMembers(
     profile?.household_id || null
   );
+  const { household, loading: householdLoading } = useHousehold(
+    profile?.household_id || null
+  );
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ChoreTemplate | null>(
@@ -75,19 +80,15 @@ export default function AdminDashboardPage() {
   );
 
   // Check if user is admin
-  const isAdmin = profile?.household_id
-    ? profile.id ===
-      members?.find((m) => m.household_id === profile.household_id)?.household
-        ?.admin_id
-    : false;
+  const isAdmin = household && profile ? household.admin_id === profile.id : false;
 
   // Redirect non-admins
   useEffect(() => {
-    if (!profileLoading && !membersLoading && !isAdmin && profile) {
+    if (!profileLoading && !membersLoading && !householdLoading && !isAdmin && profile) {
       toast.error('Access denied. Admin privileges required.');
       router.push('/dashboard');
     }
-  }, [isAdmin, profileLoading, membersLoading, profile, router]);
+  }, [isAdmin, profileLoading, membersLoading, householdLoading, profile, router]);
 
   // Fetch household stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -240,6 +241,26 @@ export default function AdminDashboardPage() {
     },
   });
 
+  // Manually trigger chore creation
+  const manualTriggerMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      const result = await manuallyTriggerChoreCreation(templateId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create chore');
+      }
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-recurring-chores'] });
+      const assigneeName = result.chore?.assigned_user_name || 'a member';
+      toast.success(`Chore created and assigned to ${assigneeName}!`);
+    },
+    onError: (error) => {
+      toast.error('Failed to create chore: ' + error.message);
+    },
+  });
+
   const recurringTemplates = templates.filter((t) => t.is_recurring);
   const oneTimeTemplates = templates.filter((t) => !t.is_recurring);
   const availableMembers = members?.filter((m) => m.is_available) || [];
@@ -281,7 +302,7 @@ export default function AdminDashboardPage() {
   };
 
   // Show loading state
-  if (profileLoading || membersLoading) {
+  if (profileLoading || membersLoading || householdLoading) {
     return (
       <div className="container mx-auto p-6 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -410,6 +431,19 @@ export default function AdminDashboardPage() {
           </Alert>
         )}
 
+        {/* No Available Members Alert */}
+        {availableMembers.length === 0 && (
+          <Alert className="mb-6" variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No members are available for chore assignment. Manual chore creation is disabled.{' '}
+              <a href="/household" className="underline font-medium">
+                Manage member availability
+              </a>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Main Content Tabs */}
         <Tabs defaultValue="recurring" className="space-y-4">
           <TabsList>
@@ -491,28 +525,51 @@ export default function AdminDashboardPage() {
                               </div>
                             )}
 
-                            <div className="flex gap-2 pt-3 border-t">
+                            <div className="flex flex-col gap-2 pt-3 border-t">
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(template)}
-                              >
-                                <Edit className="mr-1 h-3 w-3" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
+                                variant="default"
                                 size="sm"
                                 onClick={() =>
-                                  toggleRecurringMutation.mutate({
-                                    templateId: template.id,
-                                    isRecurring: true,
-                                  })
+                                  manualTriggerMutation.mutate(template.id)
                                 }
+                                disabled={
+                                  manualTriggerMutation.isPending ||
+                                  availableMembers.length === 0
+                                }
+                                className="w-full"
                               >
-                                <PauseCircle className="mr-1 h-3 w-3" />
-                                Pause
+                                {manualTriggerMutation.isPending ? (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <PlayCircle className="mr-1 h-3 w-3" />
+                                )}
+                                Create Now
                               </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEdit(template)}
+                                  className="flex-1"
+                                >
+                                  <Edit className="mr-1 h-3 w-3" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    toggleRecurringMutation.mutate({
+                                      templateId: template.id,
+                                      isRecurring: true,
+                                    })
+                                  }
+                                  className="flex-1"
+                                >
+                                  <PauseCircle className="mr-1 h-3 w-3" />
+                                  Pause
+                                </Button>
+                              </div>
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -525,6 +582,7 @@ export default function AdminDashboardPage() {
                                     deleteTemplateMutation.mutate(template.id);
                                   }
                                 }}
+                                className="w-full"
                               >
                                 <Trash2 className="mr-1 h-3 w-3" />
                                 Delete
@@ -558,28 +616,50 @@ export default function AdminDashboardPage() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(template)}
-                            >
-                              <Edit className="mr-1 h-3 w-3" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
                               onClick={() =>
-                                toggleRecurringMutation.mutate({
-                                  templateId: template.id,
-                                  isRecurring: false,
-                                })
+                                manualTriggerMutation.mutate(template.id)
+                              }
+                              disabled={
+                                manualTriggerMutation.isPending ||
+                                availableMembers.length === 0
                               }
                             >
-                              <PlayCircle className="mr-1 h-3 w-3" />
-                              Enable
+                              {manualTriggerMutation.isPending ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : (
+                                <PlayCircle className="mr-1 h-3 w-3" />
+                              )}
+                              Create Now
                             </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(template)}
+                                className="flex-1"
+                              >
+                                <Edit className="mr-1 h-3 w-3" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  toggleRecurringMutation.mutate({
+                                    templateId: template.id,
+                                    isRecurring: false,
+                                  })
+                                }
+                                className="flex-1"
+                              >
+                                <PlayCircle className="mr-1 h-3 w-3" />
+                                Enable
+                              </Button>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>

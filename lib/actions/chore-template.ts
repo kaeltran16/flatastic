@@ -64,7 +64,7 @@ export async function createChoreTemplate(
   if (templateData.recurring_start_date !== undefined) {
     insertData.recurring_start_date = templateData.recurring_start_date;
     // Calculate initial next_creation_date if recurring is enabled
-    if (templateData.is_recurring && templateData.recurring_type && templateData.recurring_interval) {
+    if (templateData.is_recurring && templateData.recurring_type && templateData.recurring_interval && templateData.recurring_start_date) {
       const startDate = new Date(templateData.recurring_start_date);
       insertData.next_creation_date = startDate.toISOString();
     }
@@ -401,4 +401,115 @@ export async function createMultipleChoreTemplates(
   revalidatePath('/chores/rotation');
 
   return newTemplates as ChoreTemplate[];
+}
+
+/**
+ * Manually trigger chore creation from a template (for rotation chores)
+ * This bypasses the automated webhook and allows admins to create chores on-demand
+ */
+export async function manuallyTriggerChoreCreation(
+  templateId: string,
+  dueDate?: string
+): Promise<{ success: boolean; chore?: any; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    // Get user's profile to check household and admin status
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.household_id) {
+      return { success: false, error: 'User profile or household not found' };
+    }
+
+    // Verify user is admin of the household
+    const { data: household, error: householdError } = await supabase
+      .from('households')
+      .select('admin_id')
+      .eq('id', profile.household_id)
+      .single();
+
+    if (householdError || !household) {
+      return { success: false, error: 'Household not found' };
+    }
+
+    if (household.admin_id !== user.id) {
+      return {
+        success: false,
+        error: 'Only household admin can manually trigger chore creation',
+      };
+    }
+
+    // Get the template
+    const { data: template, error: templateError } = await supabase
+      .from('chore_templates')
+      .select('*')
+      .eq('id', templateId)
+      .eq('household_id', profile.household_id)
+      .eq('is_active', true)
+      .single();
+
+    if (templateError || !template) {
+      return { success: false, error: 'Template not found or inactive' };
+    }
+
+    // Import and use the autoCreateChoreFromTemplate function
+    const { autoCreateChoreFromTemplate } = await import('./chore-webhooks');
+
+    // Prepare the data for chore creation
+    const choreData: any = {
+      template_id: templateId,
+      household_id: profile.household_id,
+      name: template.name,
+    };
+
+    // Add due date if provided
+    if (dueDate) {
+      choreData.due_date = dueDate;
+    }
+
+    // Add recurring configuration if available
+    if (template.recurring_type && template.recurring_interval) {
+      choreData.recurring = {
+        type: template.recurring_type,
+        interval: template.recurring_interval,
+      };
+    }
+
+    // Create the chore
+    const result = await autoCreateChoreFromTemplate(choreData);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to create chore',
+      };
+    }
+
+    // Revalidate paths
+    revalidatePath('/chores');
+    revalidatePath('/dashboard');
+    revalidatePath('/admin/recurring-chores');
+
+    return { success: true, chore: result.chore };
+  } catch (error) {
+    console.error('Error manually triggering chore creation:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to create chore',
+    };
+  }
 }
