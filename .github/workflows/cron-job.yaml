@@ -19,3 +19,8 @@ jobs:
         run: |
           curl -X GET https://flatastic02.vercel.app/api/webhooks/chore-reminder \
             -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
+
+      - name: Call auto-create-recurring-chores
+        run: |
+          curl -X GET https://flatastic02.vercel.app/api/webhooks/auto-create-recurring-chores \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"

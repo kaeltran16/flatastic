@@ -28,11 +28,13 @@ import {
   Users,
   Wallet,
   X,
+  Shield,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import UserAvatar from './user-avatar';
 
 const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
@@ -57,6 +59,24 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
+
+  // Check if user is admin
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ['is-admin', profile?.id, profile?.household_id],
+    queryFn: async () => {
+      if (!profile?.household_id) return false;
+
+      const supabase = createClient();
+      const { data: household } = await supabase
+        .from('households')
+        .select('admin_id')
+        .eq('id', profile.household_id)
+        .single();
+
+      return household?.admin_id === profile.id;
+    },
+    enabled: !!profile?.household_id,
+  });
 
   // Handle scroll effect
   useEffect(() => {
@@ -287,6 +307,40 @@ export function Navbar() {
                   </motion.div>
                 );
               })}
+
+              {/* Admin Link - Only visible to admins */}
+              {isAdmin && (
+                <motion.div
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Link
+                    href="/admin/recurring-chores"
+                    className={`relative flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActiveRoute('/admin')
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    }`}
+                  >
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin
+                    {isActiveRoute('/admin') && (
+                      <motion.div
+                        className="absolute inset-0 bg-primary rounded-xl -z-10"
+                        layoutId="activeTab"
+                        transition={{
+                          type: 'spring',
+                          stiffness: 300,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
+              )}
             </div>
 
             {/* Right side actions */}
@@ -573,6 +627,24 @@ export function Navbar() {
                       </motion.div>
                     );
                   })}
+
+                  {/* Admin Link - Only visible to admins */}
+                  {isAdmin && (
+                    <motion.div variants={staggerItem}>
+                      <Link
+                        href="/admin/recurring-chores"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                          isActiveRoute('/admin')
+                            ? 'bg-primary text-primary-foreground shadow-lg'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                        }`}
+                      >
+                        <Shield className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
+                        Admin
+                      </Link>
+                    </motion.div>
+                  )}
                 </motion.div>
 
                 {/* User Info */}
