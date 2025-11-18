@@ -110,7 +110,7 @@ export function AvailabilitySection({
       newAvailability[member.id] = member.is_available ?? true;
     });
     setLocalAvailability(newAvailability);
-  }, [userId, currentUserAvailability, members.length]); // Only depend on length, not full members array
+  }, [userId, currentUserAvailability, members]); // Depend on full members array to catch availability changes
 
   const handleToggle = async (
     targetUserId: string,
