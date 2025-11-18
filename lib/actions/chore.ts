@@ -330,3 +330,75 @@ export async function markChoreComplete(choreId: string) {
     };
   }
 }
+
+
+export async function sendChoreReminders(householdId: string) {
+  try {
+    const supabase = await createClient();
+
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+    const endOfToday = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+
+    // get chores due today
+    const { data: choresToday, error: choreError } = await supabase
+      .from('chores')
+      .select(
+        `
+        id,
+        name,
+        due_date,
+        assigned_to
+      `
+      )
+      .eq('household_id', householdId)
+      .eq('status', 'pending')
+      .gte('due_date', startOfToday)
+      .lte('due_date', endOfToday)
+      .not('assigned_to', 'is', null);
+
+    if (choreError) throw choreError;
+
+    let notificationsSent = 0;
+
+    // send reminder for each chore
+    if (choresToday && choresToday.length > 0) {
+      for (const chore of choresToday) {
+        const dueDate = new Date(chore.due_date!);
+        const dueTime = dueDate.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+
+        const { error: notifError } = await supabase.rpc(
+          'create_notification_with_push',
+          {
+            p_user_id: chore.assigned_to || undefined,
+            p_household_id: householdId,
+            p_title: '📋 Chore Due Today',
+            p_message: `"${chore.name}" is due today at ${dueTime}. Don't forget to complete it!`,
+            p_type: 'chore_reminder',
+            p_is_urgent: false,
+          }
+        );
+
+        if (!notifError) {
+          notificationsSent++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      notificationsSent,
+      choresDueToday: choresToday?.length || 0,
+    };
+  } catch (error) {
+    console.error('Error sending reminders:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
