@@ -2,16 +2,16 @@
 'use client';
 
 import {
-  createChore,
-  deleteChore,
-  markChoreComplete,
-  updateChore,
+    createChore,
+    deleteChore,
+    markChoreComplete,
+    updateChore,
 } from '@/lib/actions/chore';
 import { createClient } from '@/lib/supabase/client';
 import {
-  ChoreInsert,
-  ChoreStatus,
-  ChoreWithProfile,
+    ChoreInsert,
+    ChoreStatus,
+    ChoreWithProfile,
 } from '@/lib/supabase/schema.alias';
 import { TZDate } from '@date-fns/tz';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -130,7 +130,10 @@ export function useChores(householdId?: string, limit?: number) {
       return fetchChores(householdId, limit);
     },
     enabled: !!householdId,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 1000, // 1 minute - quicker updates
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 }
 

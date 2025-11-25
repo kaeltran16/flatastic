@@ -1,6 +1,5 @@
 // lib/validations/chore-template.ts
 import { z } from 'zod';
-import { RecurringTypeEnum } from './chore';
 
 // Schema for creating a chore template
 export const CreateChoreTemplateSchema = z
@@ -145,13 +144,16 @@ export type RecurringTemplateQuery = z.infer<
   typeof RecurringTemplateQuerySchema
 >;
 
-// Helper function to calculate next creation date
+// Helper function to calculate next creation date in GMT+7 with 23:59 deadline
 export function calculateNextCreationDate(
   startDate: string | Date,
   recurring_type: 'daily' | 'weekly' | 'monthly',
   recurring_interval: number,
   lastCreatedAt?: string | Date | null
 ): Date {
+  // Always use GMT+7 timezone
+  const TIMEZONE = 'Asia/Ho_Chi_Minh';
+  
   const baseDate = lastCreatedAt ? new Date(lastCreatedAt) : new Date(startDate);
   const nextDate = new Date(baseDate);
 
@@ -166,6 +168,10 @@ export function calculateNextCreationDate(
       nextDate.setMonth(nextDate.getMonth() + recurring_interval);
       break;
   }
+
+  // Set time to 23:59:59 in GMT+7
+  // This ensures chores expire at the end of the day
+  nextDate.setHours(23, 59, 59, 999);
 
   return nextDate;
 }

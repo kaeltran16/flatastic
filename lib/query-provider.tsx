@@ -11,9 +11,12 @@ export default function QueryProvider({ children }: PropsWithChildren) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // tweak as you like
-            staleTime: 1000 * 60, // 1 minute
-            refetchOnWindowFocus: true,
+            // Optimized for PWA performance
+            staleTime: 5 * 60 * 1000, // 5 minutes - data doesn't change frequently
+            gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
+            refetchOnWindowFocus: false, // Reduce unnecessary refetches
+            refetchOnMount: true, // Still refetch on component mount if stale
+            retry: 1, // Reduce retries for faster error handling
           },
         },
       })

@@ -1,11 +1,13 @@
 'use server';
 
 import {
-  ChoreTemplate,
-  ChoreTemplateInsert,
-  ChoreTemplateUpdate,
+    ChoreTemplate,
+    ChoreTemplateInsert,
+    ChoreTemplateUpdate,
 } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
+import { TZDate } from '@date-fns/tz';
+import { endOfDay, startOfDay } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -404,6 +406,181 @@ export async function createMultipleChoreTemplates(
 }
 
 /**
+ * Get the next user who will be assigned a chore from a template
+ */
+export async function getNextAssignedUser(
+  templateId: string
+): Promise<{ userId: string; userName: string } | null> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return null;
+    }
+
+    // Get user's profile to check household
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.household_id) {
+      return null;
+    }
+
+    // Get the template
+    const { data: template, error: templateError } = await supabase
+      .from('chore_templates')
+      .select('*')
+      .eq('id', templateId)
+      .eq('household_id', profile.household_id)
+      .eq('is_active', true)
+      .single();
+
+    if (templateError || !template) {
+      return null;
+    }
+
+    // Get all available users in the household
+    const { data: availableUsers, error: usersError } = await supabase
+      .from('profiles')
+      .select('id, full_name, is_available')
+      .eq('household_id', profile.household_id)
+      .eq('is_available', true)
+      .order('created_at');
+
+    if (usersError || !availableUsers?.length) {
+      return null;
+    }
+
+    // Get assignment tracking record for this template
+    const { data: assignmentTracker, error: trackerError } = await supabase
+      .from('template_assignment_tracker')
+      .select('last_assigned_user_id, assignment_order')
+      .eq('template_id', templateId)
+      .eq('household_id', profile.household_id)
+      .single();
+
+    let nextUserId: string;
+
+    if (trackerError || !assignmentTracker) {
+      // No tracking record exists, next will be first available user
+      nextUserId = availableUsers[0].id;
+    } else {
+      // Find current user index in available users
+      const currentUserIndex = availableUsers.findIndex(
+        (user: { id: string }) =>
+          user.id === assignmentTracker.last_assigned_user_id
+      );
+
+      if (currentUserIndex === -1) {
+        // Last assigned user not available anymore, start from beginning
+        nextUserId = availableUsers[0].id;
+      } else {
+        // Get next user in rotation (circular)
+        const nextUserIndex = (currentUserIndex + 1) % availableUsers.length;
+        nextUserId = availableUsers[nextUserIndex].id;
+      }
+    }
+
+    // Get the user's name
+    const nextUser = availableUsers.find((u: { id: string }) => u.id === nextUserId);
+    if (!nextUser) {
+      return null;
+    }
+
+    return {
+      userId: nextUserId,
+      userName: nextUser.full_name || 'Unknown',
+    };
+  } catch (error) {
+    console.error('Error getting next assigned user:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the next due date for a chore from a template
+ */
+export async function getNextDueDate(templateId: string): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return null;
+    }
+
+    // Get user's profile to check household
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.household_id) {
+      return null;
+    }
+
+    // Get the most recent chore created from this template
+    const { data: lastChore } = await supabase
+      .from('chores')
+      .select('created_at')
+      .eq('template_id', templateId)
+      .eq('household_id', profile.household_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const TIMEZONE = 'Asia/Ho_Chi_Minh';
+    const now = new Date();
+
+    // Get current time in GMT+7
+    const nowGMT7 = new TZDate(now, TIMEZONE);
+    const todayStartGMT7 = startOfDay(nowGMT7);
+
+    let dueDateGMT7: TZDate;
+
+    if (lastChore && lastChore.created_at) {
+      // Convert last chore creation time to GMT+7
+      const lastCreatedGMT7 = new TZDate(lastChore.created_at, TIMEZONE);
+      const lastCreatedStartGMT7 = startOfDay(lastCreatedGMT7);
+
+      // If last chore was created today (in GMT+7), set due date to tomorrow
+      if (lastCreatedStartGMT7.getTime() === todayStartGMT7.getTime()) {
+        // Tomorrow at end of day in GMT+7
+        const tomorrowGMT7 = new TZDate(
+          nowGMT7.getTime() + 24 * 60 * 60 * 1000,
+          TIMEZONE
+        );
+        dueDateGMT7 = endOfDay(tomorrowGMT7) as TZDate;
+      } else {
+        // Last chore was in the past, set due date to end of today in GMT+7
+        dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
+      }
+    } else {
+      // No previous chore exists, set due date to end of today in GMT+7
+      dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
+    }
+
+    return dueDateGMT7.toISOString();
+  } catch (error) {
+    console.error('Error getting next due date:', error);
+    return null;
+  }
+}
+
+/**
  * Manually trigger chore creation from a template (for rotation chores)
  * This bypasses the automated webhook and allows admins to create chores on-demand
  */
@@ -475,12 +652,59 @@ export async function manuallyTriggerChoreCreation(
       name: template.name,
     };
 
-    // Add due date if provided
+    // Smart due date logic: check last created chore from this template
+    const TIMEZONE = 'Asia/Ho_Chi_Minh';
+
     if (dueDate) {
-      choreData.due_date = dueDate;
+      // If due date is provided, ensure it's set to end of day in GMT+7
+      const providedDateGMT7 = new TZDate(dueDate, TIMEZONE);
+      const dueDateGMT7 = endOfDay(providedDateGMT7) as TZDate;
+      choreData.due_date = dueDateGMT7.toISOString();
+    } else {
+      // Get the most recent chore created from this template
+      const { data: lastChore } = await supabase
+        .from('chores')
+        .select('created_at')
+        .eq('template_id', templateId)
+        .eq('household_id', profile.household_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      const now = new Date();
+
+      // Get current time in GMT+7
+      const nowGMT7 = new TZDate(now, TIMEZONE);
+      const todayStartGMT7 = startOfDay(nowGMT7);
+
+      let dueDateGMT7: TZDate;
+
+      if (lastChore && lastChore.created_at) {
+        // Convert last chore creation time to GMT+7
+        const lastCreatedGMT7 = new TZDate(lastChore.created_at, TIMEZONE);
+        const lastCreatedStartGMT7 = startOfDay(lastCreatedGMT7);
+
+        // If last chore was created today (in GMT+7), set due date to tomorrow
+        if (lastCreatedStartGMT7.getTime() === todayStartGMT7.getTime()) {
+          // Tomorrow at end of day in GMT+7
+          const tomorrowGMT7 = new TZDate(
+            nowGMT7.getTime() + 24 * 60 * 60 * 1000,
+            TIMEZONE
+          );
+          dueDateGMT7 = endOfDay(tomorrowGMT7) as TZDate;
+        } else {
+          // Last chore was in the past, set due date to end of today in GMT+7
+          dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
+        }
+      } else {
+        // No previous chore exists, set due date to end of today in GMT+7
+        dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
+      }
+
+      choreData.due_date = dueDateGMT7.toISOString();
     }
 
-    // Add recurring configuration if available
+    // Add recurring configuration if available (but don't use it for due date calculation)
     if (template.recurring_type && template.recurring_interval) {
       choreData.recurring = {
         type: template.recurring_type,

@@ -12,11 +12,10 @@ interface SplitWithExpense extends Omit<ExpenseSplit, 'created_at'> {
   expense: Expense;
 }
 
-// Fetch function for balances
+// Fetch function for balances - now fetches members in parallel
 async function fetchBalances(
   householdId: string,
-  userId: string,
-  members: Profile[]
+  userId: string
 ): Promise<{
   balances: Balance[];
   yourBalances: Balance[];
@@ -24,21 +23,31 @@ async function fetchBalances(
 }> {
   const supabase = createClient();
 
-  // Get all expense splits for the household
-  const { data: serverSplits, error } = await supabase
-    .from('expense_splits')
-    .select(
-      `
+  // Fetch expense splits and members in parallel
+  const [splitsResult, membersResult] = await Promise.all([
+    supabase
+      .from('expense_splits')
+      .select(
+        `
       *,
       expenses!inner(*)
     `
-    )
-    .eq('expenses.household_id', householdId);
+      )
+      .eq('expenses.household_id', householdId),
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('household_id', householdId),
+  ]);
 
-  if (error) throw new Error(`Failed to fetch balances: ${error.message}`);
+  if (splitsResult.error) throw new Error(`Failed to fetch balances: ${splitsResult.error.message}`);
+  if (membersResult.error) throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
+
+  const members = membersResult.data || [];
+  const serverSplits = splitsResult.data || [];
 
   // Transform server splits to our format
-  const splitsData: SplitWithExpense[] = (serverSplits || []).map((split) => ({
+  const splitsData: SplitWithExpense[] = serverSplits.map((split) => ({
     id: split.id,
     expense_id: split.expense_id,
     user_id: split.user_id,
@@ -179,12 +188,12 @@ export function useBalances() {
     queryFn: () =>
       fetchBalances(
         currentUser!.household_id!,
-        currentUser!.id,
-        householdMembers
+        currentUser!.id
+        // Members now fetched in parallel inside fetchBalances
       ),
-    enabled: !!currentUser?.household_id && householdMembers.length > 0,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    enabled: !!currentUser?.household_id, // Removed dependency on householdMembers
+    staleTime: 5 * 60 * 1000, // Increased from 2 to 5 minutes
+    gcTime: 10 * 60 * 1000, // Increased from 5 to 10 minutes
   });
 
   const loading = profileLoading || membersLoading || balancesLoading;

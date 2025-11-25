@@ -34,14 +34,15 @@ export function useHouseholdMembers(
     queryKey: ['household-members', householdId],
     queryFn: () => fetchHouseholdMembers(householdId ?? null),
     enabled: !!householdId?.trim(),
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - members rarely change
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Don't retry on authentication errors
       if (error instanceof Error && error.message === 'PGRST301') {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 1; // Reduced from 3 to 1 for faster failure
     },
     ...options, // Allow overriding defaults
   });

@@ -1,16 +1,15 @@
 // hooks/useExpenses.ts - Refactored with best practices
 import {
-  addExpenseAction,
-  deleteExpenseAction,
-  editExpenseAction,
-  settleExpenseAction,
+    addExpenseAction,
+    deleteExpenseAction,
+    editExpenseAction,
+    settleExpenseAction,
 } from '@/lib/actions/expense';
 import { queryKeys } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  ExpenseSplit,
-  ExpenseWithDetails,
-  Profile,
+    ExpenseSplit,
+    ExpenseWithDetails
 } from '@/lib/supabase/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
@@ -33,28 +32,38 @@ export interface ExpenseFormData {
   selected_users?: string[];
 }
 
-// Fetch expenses function
+// Fetch expenses function - now fetches members in parallel
 export async function fetchExpenses(
   householdId: string,
-  userId: string,
-  members: Profile[]
+  userId: string
 ): Promise<ExpenseWithDetails[]> {
   const supabase = createClient();
 
-  const { data: expenses, error } = await supabase
-    .from('expenses')
-    .select(
-      `
+  // Fetch expenses and members in parallel to reduce waterfall
+  const [expensesResult, membersResult] = await Promise.all([
+    supabase
+      .from('expenses')
+      .select(
+        `
       *,
       expense_splits(*)
     `
-    )
-    .eq('household_id', householdId)
-    .order('date', { ascending: false });
+      )
+      .eq('household_id', householdId)
+      .order('date', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('household_id', householdId),
+  ]);
 
-  if (error) throw new Error(`Failed to fetch expenses: ${error.message}`);
+  if (expensesResult.error) throw new Error(`Failed to fetch expenses: ${expensesResult.error.message}`);
+  if (membersResult.error) throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
 
-  const processedExpenses: ExpenseWithDetails[] = (expenses || []).map(
+  const members = membersResult.data || [];
+  const expenses = expensesResult.data || [];
+
+  const processedExpenses: ExpenseWithDetails[] = expenses.map(
     (expense) => {
       const payer = members.find((member) => member.id === expense.paid_by);
       if (!payer) throw new Error(`Payer not found for expense ${expense.id}`);
@@ -113,12 +122,12 @@ export function useExpenses() {
     queryFn: () =>
       fetchExpenses(
         currentUser!.household_id!,
-        currentUser!.id,
-        householdMembers
+        currentUser!.id
+        // Members now fetched in parallel inside fetchExpenses
       ),
-    enabled: !!currentUser?.household_id && householdMembers.length > 0,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    enabled: !!currentUser?.household_id, // Removed dependency on householdMembers
+    staleTime: 5 * 60 * 1000, // Increased from 2 to 5 minutes
+    gcTime: 10 * 60 * 1000, // Increased from 5 to 10 minutes
   });
 
   // Helper function to invalidate all related queries after mutations

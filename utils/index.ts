@@ -25,19 +25,22 @@ export const formatDate = (
 
 export const formatDateRelatively = (
   dateString: string,
-  option: { addSuffix?: boolean } = { addSuffix: true }
+  option: { addSuffix?: boolean; timeZone?: string } = { addSuffix: true, timeZone: 'Asia/Ho_Chi_Minh' }
 ) => {
   const LARGE_DATE_THRESHOLD = 14;
-  const date = new Date(dateString);
-  const now = new Date();
+  const TIMEZONE = option.timeZone || 'Asia/Ho_Chi_Minh';
 
-  const diffInDays = Math.abs(differenceInDays(date, now));
+  // Convert both dates to GMT+7 timezone for accurate comparison
+  const dateGMT7 = new TZDate(dateString, TIMEZONE);
+  const nowGMT7 = new TZDate(new Date(), TIMEZONE);
+
+  const diffInDays = Math.abs(differenceInDays(dateGMT7, nowGMT7));
 
   if (diffInDays > LARGE_DATE_THRESHOLD) {
     return formatDate(dateString);
   }
 
-  return formatDistanceToNow(date, option);
+  return formatDistanceToNow(dateGMT7, option);
 };
 
 export const getChoreStatusColor = (status: string) => {

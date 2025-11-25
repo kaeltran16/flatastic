@@ -64,15 +64,16 @@ export function useProfile() {
   const supabase = createClient();
 
   const query = useQuery({
-    queryKey: ['profile'],
+    queryKey: ['profile'], // User-specific caching handled by auth state
     queryFn: fetchProfile,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - profile rarely changes
+    gcTime: 10 * 60 * 1000, // Keep in cache longer
     retry: (failureCount, error: any) => {
       // Don't retry auth errors
       if (error?.message?.includes('Authentication error')) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 1; // Reduced from 3 to 1 for faster failure
     },
   });
 

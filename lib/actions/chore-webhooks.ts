@@ -163,23 +163,10 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
       );
     }
 
-    // Calculate due date
-    let calculatedDueDate = due_date;
-    if (!calculatedDueDate && recurring) {
-      const now = new Date();
-      switch (recurring.type) {
-        case 'daily':
-          now.setDate(now.getDate() + recurring.interval);
-          break;
-        case 'weekly':
-          now.setDate(now.getDate() + recurring.interval * 7);
-          break;
-        case 'monthly':
-          now.setMonth(now.getMonth() + recurring.interval);
-          break;
-      }
-      calculatedDueDate = now.toISOString().split('T')[0];
-    }
+    // The due_date is already calculated in GMT+7 timezone with 23:59:59
+    // from the calling function (webhook or manual trigger)
+    // We should NOT modify it here as it would use local timezone
+    const calculatedDueDate = due_date;
 
     // Create the chore
     const { data: newChore, error: choreError } = await supabase

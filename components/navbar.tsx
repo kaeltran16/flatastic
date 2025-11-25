@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useProfile } from '@/hooks/use-profile';
 import { useNotifications } from '@/hooks/use-push-notification';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
   Bell,
@@ -24,17 +25,16 @@ import {
   Home,
   LogOut,
   Menu,
+  Shield,
   User,
   Users,
   Wallet,
   X,
-  Shield,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import UserAvatar from './user-avatar';
 
 const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
@@ -47,7 +47,6 @@ const navigationItems = [
   { name: 'Household', href: '/household', icon: Users },
   { name: 'Chore Scheduler', href: '/chore-scheduler', icon: Calendar },
   { name: 'Penalty Fund', href: '/penalty-fund', icon: Wallet },
-  { name: 'PWA NextJS', href: '/pwa-nextjs', icon: Users },
 ];
 
 export function Navbar() {

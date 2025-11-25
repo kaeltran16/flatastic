@@ -1,49 +1,53 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { motion } from 'motion/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Calendar,
-  Clock,
-  Plus,
-  Trash2,
-  Edit,
-  PlayCircle,
-  PauseCircle,
-  RotateCw,
-  Users,
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Activity,
-  BarChart3,
-  UserCheck,
-  UserX,
-  Loader2,
+    Activity,
+    AlertCircle,
+    BarChart3,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Edit,
+    Loader2,
+    PauseCircle,
+    PlayCircle,
+    Plus,
+    RotateCw,
+    Trash2,
+    TrendingUp,
+    UserCheck,
+    Users,
+    UserX,
 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
+import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { createClient } from '@/lib/supabase/client';
-import { useProfile } from '@/hooks/use-profile';
 import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
-import { ChoreTemplate, Chore } from '@/lib/supabase/schema.alias';
-import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
-import { manuallyTriggerChoreCreation } from '@/lib/actions/chore-template';
+import { useProfile } from '@/hooks/use-profile';
+import {
+  getNextAssignedUser,
+  getNextDueDate,
+  manuallyTriggerChoreCreation,
+} from '@/lib/actions/chore-template';
+import { createClient } from '@/lib/supabase/client';
+import { ChoreTemplate } from '@/lib/supabase/schema.alias';
 
 interface HouseholdStats {
   totalChores: number;
@@ -250,11 +254,17 @@ export default function AdminDashboardPage() {
       }
       return result;
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+    onSuccess: (data, templateId) => {
+      queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
       queryClient.invalidateQueries({ queryKey: ['recent-recurring-chores'] });
-      const assigneeName = result.chore?.assigned_user_name || 'a member';
-      toast.success(`Chore created and assigned to ${assigneeName}!`);
+      queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['next-assigned-user', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['next-due-date', templateId] });
+      // Invalidate chore queries so the chore list updates
+      queryClient.invalidateQueries({ queryKey: ['chores'] });
+      toast.success(
+        `Chore created successfully! Assigned to ${data.chore?.assigned_user_name || 'user'}`
+      );
     },
     onError: (error) => {
       toast.error('Failed to create chore: ' + error.message);
@@ -289,6 +299,52 @@ export default function AdminDashboardPage() {
     }).format(nextDate);
 
     return isPast ? `Overdue (${formatted})` : formatted;
+  };
+
+  // Component to show next assignment info
+  const NextAssignmentInfo = ({ templateId }: { templateId: string }) => {
+    const { data: nextUser } = useQuery({
+      queryKey: ['next-assigned-user', templateId],
+      queryFn: () => getNextAssignedUser(templateId),
+      refetchInterval: 30000, // Refresh every 30 seconds
+    });
+
+    const { data: nextDueDate } = useQuery({
+      queryKey: ['next-due-date', templateId],
+      queryFn: () => getNextDueDate(templateId),
+      refetchInterval: 30000, // Refresh every 30 seconds
+    });
+
+    return (
+      <div className="space-y-2 text-sm">
+        {nextUser && (
+          <div className="flex items-center text-muted-foreground">
+            <UserCheck className="mr-2 h-4 w-4" />
+            <span>
+              Next assignee: <span className="font-medium text-foreground">{nextUser.userName}</span>
+            </span>
+          </div>
+        )}
+        {nextDueDate && (
+          <div className="flex items-center text-muted-foreground">
+            <Clock className="mr-2 h-4 w-4" />
+            <span>
+              Will be due:{' '}
+              <span className="font-medium text-foreground">
+                {new Intl.DateTimeFormat('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  timeZone: 'Asia/Ho_Chi_Minh',
+                }).format(new Date(nextDueDate))}{' '}
+                GMT+7
+              </span>
+            </span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleEdit = (template: ChoreTemplate) => {
@@ -524,6 +580,10 @@ export default function AdminDashboardPage() {
                                 }).format(new Date(template.last_created_at))}
                               </div>
                             )}
+
+                            <div className="pt-3 border-t">
+                              <NextAssignmentInfo templateId={template.id} />
+                            </div>
 
                             <div className="flex flex-col gap-2 pt-3 border-t">
                               <Button

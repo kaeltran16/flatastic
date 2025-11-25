@@ -19,10 +19,10 @@ export function useExpensesList(
     refetch,
   } = useQuery({
     queryKey: queryKeys.expenses.household(householdId),
-    queryFn: () => fetchExpenses(householdId, userId, members),
-    enabled: !!householdId && !!userId && members.length > 0,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    queryFn: () => fetchExpenses(householdId, userId), // Removed members parameter
+    enabled: !!householdId && !!userId, // Removed members.length check
+    staleTime: 5 * 60 * 1000, // Updated from 2 to 5 minutes
+    gcTime: 10 * 60 * 1000, // Updated from 5 to 10 minutes
   });
 
   // Apply limit on client side using useMemo for performance
