@@ -1,0 +1,95 @@
+/* Dark mode overrides for react-big-calendar */
+.dark .rbc-calendar {
+  color: var(--foreground);
+}
+
+.dark .rbc-off-range-bg {
+  background-color: var(--muted);
+}
+
+.dark .rbc-off-range {
+  color: var(--muted-foreground);
+}
+
+.dark .rbc-header {
+  border-bottom-color: var(--border);
+}
+
+.dark .rbc-month-view,
+.dark .rbc-time-view,
+.dark .rbc-agenda-view {
+  border-color: var(--border);
+}
+
+.dark .rbc-day-bg + .rbc-day-bg,
+.dark .rbc-month-row + .rbc-month-row {
+  border-color: var(--border);
+}
+
+.dark .rbc-day-slot .rbc-time-slot {
+  border-color: var(--border);
+}
+
+.dark .rbc-timeslot-group {
+  border-bottom-color: var(--border);
+}
+
+.dark .rbc-time-content > * + * > * {
+  border-left-color: var(--border);
+}
+
+.dark .rbc-time-header-content {
+  border-left-color: var(--border);
+}
+
+.dark .rbc-today {
+  background-color: var(--accent);
+}
+
+.dark .rbc-event {
+  background-color: var(--primary);
+}
+
+.dark .rbc-toolbar button {
+  color: var(--foreground);
+}
+
+.dark .rbc-toolbar button:active,
+.dark .rbc-toolbar button.rbc-active {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.dark .rbc-toolbar button:hover {
+  background-color: var(--muted);
+}
+
+/* General styling improvements */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-event {
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.rbc-event:focus {
+  outline: none;
+}
+
+.rbc-day-slot .rbc-event {
+  border: none;
+  background: transparent;
+}
+
+.rbc-toolbar button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.rbc-month-row {
+  overflow: visible; /* Fix for popups being clipped */
+}

@@ -1,5 +1,7 @@
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
+import { FAB } from '@/components/fab/fab';
 import { Navbar } from '@/components/navbar';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import QueryProvider from '@/lib/query-provider';
 import { Analytics } from '@vercel/analytics/next';
@@ -46,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-title" content="Flatastic" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -57,15 +59,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <QueryProvider>
-          {/* Auto-subscribe to push notifications silently on app load */}
-          <Navbar />
-          <AppBreadcrumb />
-          <main>{children}</main>
-          <Toaster />
-          <Analytics />
-          <SpeedInsights />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            {/* Auto-subscribe to push notifications silently on app load */}
+            <Navbar />
+            <AppBreadcrumb />
+            <main>{children}</main>
+            <FAB />
+            <Toaster />
+            <Analytics />
+            <SpeedInsights />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

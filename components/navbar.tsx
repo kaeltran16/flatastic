@@ -1,53 +1,38 @@
 'use client';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import UserAvatar from '@/components/user-avatar';
 import { useProfile } from '@/hooks/use-profile';
 import { useNotifications } from '@/hooks/use-push-notification';
+import { navigationItems, NO_NAVBAR_PATHS } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertCircle,
-  Bell,
-  Calendar,
-  Clock,
-  CreditCard,
-  DollarSign,
-  Home,
-  LogOut,
-  Menu,
-  Shield,
-  User,
-  Users,
-  Wallet,
-  X,
+    AlertCircle,
+    Bell,
+    Clock,
+    Home,
+    LogOut,
+    Menu,
+    Shield,
+    User,
+    X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import UserAvatar from './user-avatar';
-
-const NO_NAVBAR_PATHS = ['/auth/login', '/auth/signup', '/auth/callback'];
-
-const navigationItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Chores', href: '/chores', icon: Calendar },
-  { name: 'Expenses', href: '/expenses', icon: DollarSign },
-  { name: 'Payments', href: '/payments', icon: CreditCard },
-  { name: 'Household', href: '/household', icon: Users },
-  { name: 'Chore Scheduler', href: '/chore-scheduler', icon: Calendar },
-  { name: 'Penalty Fund', href: '/penalty-fund', icon: Wallet },
-];
 
 export function Navbar() {
   const router = useRouter();
@@ -162,15 +147,11 @@ export function Navbar() {
 
   const navbarVariants = {
     scrolled: {
-      backdropFilter: 'blur(20px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-      borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       transition: { duration: 0.3 },
     },
     top: {
-      backdropFilter: 'blur(0px)',
-      backgroundColor: 'rgba(255, 255, 255, 1)',
-      borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+      boxShadow: 'none',
       transition: { duration: 0.3 },
     },
   };
@@ -226,8 +207,10 @@ export function Navbar() {
   return (
     <>
       <motion.nav
-        className={`fixed top-0 left-0 right-0 z-40 border-b bg-background/80 backdrop-blur-md transition-all duration-300 ${
-          isScrolled ? 'shadow-lg' : 'shadow-sm'
+        className={`fixed top-0 left-0 right-0 z-40 border-b transition-colors duration-300 ${
+          isScrolled
+            ? 'bg-background/80 backdrop-blur-md border-border'
+            : 'bg-background border-transparent'
         }`}
         variants={navbarVariants}
         animate={isScrolled ? 'scrolled' : 'top'}
@@ -272,7 +255,7 @@ export function Navbar() {
 
             {/* Center - Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1">
-              {navigationItems.slice(0, -1).map((item, index) => {
+              {navigationItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.href);
                 return (
@@ -344,6 +327,9 @@ export function Navbar() {
 
             {/* Right side actions */}
             <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
               {/* Notifications Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
