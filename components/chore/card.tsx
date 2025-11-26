@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/button';
 import { ChoreFormData } from '@/hooks/use-chore';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import {
-  formatDateRelatively,
-  getChoreRecurringTypeColor,
-  getChoreStatusColor,
+    formatDateRelatively,
+    getChoreRecurringTypeColor,
+    getChoreStatusColor,
 } from '@/utils';
 import { Calendar, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -65,8 +65,8 @@ export default function ChoreCard({
     onChoreDeleted(chore.id);
   };
 
-  const cardClassName = `${isOverdue ? 'border-red-200 bg-red-50/30' : ''} ${
-    isCompleted ? 'opacity-75 bg-green-50/30' : ''
+  const cardClassName = `${isOverdue ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/30' : ''} ${
+    isCompleted ? 'opacity-75 bg-green-50/30 dark:bg-green-950/30' : ''
   }`;
 
   return (
