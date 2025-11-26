@@ -2,74 +2,35 @@
 
 import type { Profile } from '@/lib/supabase/schema.alias';
 import { motion } from 'motion/react';
+import { useMemo } from 'react';
 
 interface DashboardHeaderProps {
   profile: Profile;
 }
 
 const DashboardHeader = ({ profile }: DashboardHeaderProps) => {
-  // useLoadingScreen();
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.05,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: 16,
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4,
-        ease: 'easeOut' as const,
-      },
-    },
-  };
-
-  const titleVariants = {
-    hidden: {
-      opacity: 0,
-      y: 20,
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: 'easeOut' as const,
-      },
-    },
-  };
+  const firstName = profile.full_name?.split(' ')[0] || 'there';
 
   return (
     <motion.div
-      className="mb-8"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      className="mb-6"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
-      <motion.h1
-        className="text-3xl md:text-4xl font-bold text-foreground mb-2"
-        variants={titleVariants}
-      >
-        Welcome back, {profile.full_name?.split(' ')[0] || 'there'}!
-      </motion.h1>
-      <motion.p
-        className="text-muted-foreground text-base md:text-lg"
-        variants={itemVariants}
-      >
-        Here's what's happening in your household
-      </motion.p>
+      <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+        {greeting}, {firstName}!
+      </h1>
+      <p className="text-sm md:text-base text-muted-foreground mt-1">
+        Here's what's happening today
+      </p>
     </motion.div>
   );
 };

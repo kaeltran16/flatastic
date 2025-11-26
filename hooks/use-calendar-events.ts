@@ -17,6 +17,7 @@ export interface CalendarEvent {
   status: 'pending' | 'completed' | 'overdue' | 'settled';
   resource: ChoreWithProfile | ExpenseWithDetails;
   color?: string;
+  description?: string;
 }
 
 export function useCalendarEvents() {
@@ -50,6 +51,7 @@ export function useCalendarEvents() {
         status: chore.status as 'pending' | 'completed' | 'overdue',
         resource: chore,
         color,
+        description: chore.description || undefined,
       });
     });
 

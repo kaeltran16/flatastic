@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    Activity,
     AlertCircle,
     BarChart3,
     Calendar,
@@ -13,18 +12,16 @@ import {
     PauseCircle,
     PlayCircle,
     Plus,
-    RotateCw,
     Trash2,
-    TrendingUp,
     UserCheck,
-    Users,
-    UserX,
+    UserX
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import RecurringHeroStats from '@/components/admin-dashboard/recurring-hero-stats';
 import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -36,15 +33,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { useProfile } from '@/hooks/use-profile';
 import {
-  getNextAssignedUser,
-  getNextDueDate,
-  manuallyTriggerChoreCreation,
+    getNextAssignedUser,
+    getNextDueDate,
+    manuallyTriggerChoreCreation,
 } from '@/lib/actions/chore-template';
 import { createClient } from '@/lib/supabase/client';
 import { ChoreTemplate } from '@/lib/supabase/schema.alias';
@@ -404,75 +400,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Statistics Overview */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Chores</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {statsLoading ? '...' : stats?.totalChores || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.pendingChores || 0} pending, {stats?.completedChores || 0}{' '}
-                completed
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Completion Rate
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {statsLoading ? '...' : `${stats?.completionRate || 0}%`}
-              </div>
-              <Progress
-                value={stats?.completionRate || 0}
-                className="mt-2"
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Recurring Templates
-              </CardTitle>
-              <RotateCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {statsLoading ? '...' : stats?.activeRecurringTemplates || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Active automations
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Available Members
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {availableMembers.length}/{members?.length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Ready for assignments
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <RecurringHeroStats
+          stats={stats}
+          availableMembersCount={availableMembers.length}
+          totalMembersCount={members?.length || 0}
+          loading={statsLoading || membersLoading}
+        />
 
         {/* Overdue Chores Alert */}
         {stats && stats.overdueChores > 0 && (

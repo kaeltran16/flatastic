@@ -1,5 +1,6 @@
 'use client';
 
+import AdminHeroStats from '@/components/admin-dashboard/admin-hero-stats';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,13 +16,12 @@ import { createClient } from '@/lib/supabase/client';
 import { ChoreWithProfile, Profile } from '@/lib/supabase/schema.alias';
 import { format } from 'date-fns';
 import {
-  AlertCircle,
   Bell,
   Calendar,
   CheckCircle2,
-  Clock,
-  User,
+  User
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 interface DashboardStats {
@@ -172,23 +172,34 @@ export default function AdminDashboardClient({
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground">
-            Household chore overview and management
-          </p>
-        </div>
-        <Button
-          onClick={sendReminders}
-          disabled={sendingReminder}
-          className="gap-2"
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
         >
-          <Bell className="h-4 w-4" />
-          {sendingReminder ? 'Sending...' : 'Send Reminders'}
-        </Button>
-      </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+                Admin Dashboard
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Household chore overview and management
+              </p>
+            </div>
+            <Button
+              onClick={sendReminders}
+              disabled={sendingReminder}
+              className="gap-2 rounded-xl"
+            >
+              <Bell className="h-4 w-4" />
+              {sendingReminder ? 'Sending...' : 'Send Reminders'}
+            </Button>
+          </div>
+        </motion.div>
 
       {reminderMessage && (
         <Alert>
@@ -196,67 +207,7 @@ export default function AdminDashboardClient({
         </Alert>
       )}
 
-      {/* stats cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPending}</div>
-            <p className="text-xs text-muted-foreground">chores to complete</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {stats.totalOverdue}
-            </div>
-            <p className="text-xs text-muted-foreground">past due date</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unfinished</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.unfinishedChores.length}
-            </div>
-            <p className="text-xs text-muted-foreground">total incomplete</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Last Completed
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.lastCompletedChore ? '✓' : '-'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.lastCompletedChore?.updated_at
-                ? format(
-                    new Date(stats.lastCompletedChore.updated_at),
-                    'MMM d, h:mm a'
-                  )
-                : 'No completed chores'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminHeroStats stats={stats} loading={loading} />
 
       {/* detailed cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -416,6 +367,7 @@ export default function AdminDashboardClient({
           </CardContent>
         </Card>
       </div>
+    </div>
     </div>
   );
 }

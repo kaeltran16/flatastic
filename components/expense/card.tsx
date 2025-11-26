@@ -1,12 +1,18 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
-import { formatDate } from '@/utils';
-import { Users } from 'lucide-react';
+import { formatDateRelatively } from '@/utils';
+import { MoreVertical, Pencil, Trash2, Users } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useState } from 'react';
-import ActionCard from '../action-card';
 import UserAvatar from '../user-avatar';
 import DeleteExpenseDialog from './delete-expense-dialog';
 import ExpenseDetailsDialog from './details-dialog';
@@ -24,6 +30,7 @@ interface ExpenseCardProps {
   onExpenseUpdated?: () => void;
   currentUser: Profile;
   householdMembers: Profile[];
+  index?: number;
 }
 
 export default function ExpenseCard({
@@ -35,22 +42,10 @@ export default function ExpenseCard({
   onExpenseUpdated,
   currentUser,
   householdMembers,
+  index = 0,
 }: ExpenseCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const getCategoryIcon = (category: string) => {
-    const icons = {
-      groceries: '🛒',
-      utilities: '⚡',
-      household: '🏠',
-      food: '🍽️',
-      transportation: '🚗',
-      entertainment: '🎬',
-      default: '💰',
-    };
-    return icons[category as keyof typeof icons] || icons.default;
-  };
 
   const isPayer = expense.paid_by === currentUser.id;
   const currentUserSplit = expense.splits.find(
@@ -69,16 +64,6 @@ export default function ExpenseCard({
   ).length;
   const isSettled = expense.status === 'settled';
 
-  const getCardStyling = () => {
-    if (isSettled)
-      return 'border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50';
-    if (isPayer && !isCurrentUserSettled)
-      return 'border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50';
-    if (!isPayer && !isCurrentUserSettled)
-      return 'border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50';
-    return 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900';
-  };
-
   const handleEdit = () => {
     setIsEditDialogOpen(true);
   };
@@ -87,141 +72,217 @@ export default function ExpenseCard({
     setIsDeleteDialogOpen(true);
   };
 
+  // Glassmorphism colors based on status
+  const getGlassStyle = () => {
+    if (isSettled) {
+      return 'bg-green-500/10 border-green-500/20 dark:bg-green-400/10 dark:border-green-400/20';
+    }
+    if (isPayer && !isCurrentUserSettled) {
+      return 'bg-blue-500/10 border-blue-500/20 dark:bg-blue-400/10 dark:border-blue-400/20';
+    }
+    if (!isPayer && !isCurrentUserSettled) {
+      return 'bg-orange-500/10 border-orange-500/20 dark:bg-orange-400/10 dark:border-orange-400/20';
+    }
+    return 'bg-gray-500/10 border-gray-500/20 dark:bg-gray-400/10 dark:border-gray-400/20';
+  };
+
+  const getAccentGlow = () => {
+    if (isSettled) return 'shadow-green-500/20';
+    if (isPayer) return 'shadow-blue-500/20';
+    return 'shadow-orange-500/20';
+  };
+
   return (
     <>
-      <ActionCard
-        onEdit={isPayer && canModify ? handleEdit : undefined}
-        onDelete={isPayer && canModify ? handleDelete : undefined}
-        canEdit={canModify}
-        canDelete={canModify}
-        editLabel="Edit Expense"
-        deleteLabel="Delete Expense"
-        className={`${getCardStyling()} shadow-sm overflow-hidden mb-3 rounded-2xl`}
-        contentClassName="p-0"
-        hoverAnimation={true}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{
+          delay: index * 0.05,
+          duration: 0.4,
+          ease: [0.4, 0.0, 0.2, 1],
+        }}
+        whileHover={{ y: -2, transition: { duration: 0.2 } }}
       >
-        {/* Header with Category Dot and Expense Description */}
-        <div className="flex items-center gap-3 p-4 pb-2">
-          {/* Category Dot */}
+        <div
+          className={`
+          group relative overflow-hidden rounded-2xl p-[1px]
+          ${getGlassStyle()}
+          backdrop-blur-xl
+          border
+          shadow-lg ${getAccentGlow()}
+          hover:shadow-xl hover:${getAccentGlow()}
+          transition-all duration-300
+          ${isSettled ? 'opacity-75' : ''}
+        `}
+        >
+          {/* Glassmorphism inner content */}
+          <div className="relative rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl p-4 sm:p-5">
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 dark:to-transparent pointer-events-none rounded-2xl" />
 
-          {/* Expense Description as Header */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 truncate">
-              {expense.description}
-            </h3>
-          </div>
-        </div>
+            {/* Content */}
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold leading-tight mb-2 text-foreground">
+                    {expense.description}
+                  </h3>
 
-        {/* Payer Info and Date */}
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <UserAvatar
-                user={expense.payer}
-                shouldShowName={true}
-                showAsYou={expense.paid_by === currentUser.id}
-              />
+                  {/* Badges */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge
+                      className={`backdrop-blur-sm text-xs px-2 py-0.5 ${
+                        isSettled
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                      }`}
+                    >
+                      {isSettled
+                        ? 'Settled'
+                        : `${settledCount}/${expense.splits.length} paid`}
+                    </Badge>
+                    {expense.category && (
+                      <Badge
+                        variant="secondary"
+                        className="backdrop-blur-sm text-xs px-2 py-0.5"
+                      >
+                        {expense.category}
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto px-2 py-0.5 rounded-lg bg-black/5 dark:bg-white/5 backdrop-blur-sm">
+                      <Users className="w-3 h-3" />
+                      <span>{expense.splits.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions Menu */}
+                {isPayer && canModify && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="backdrop-blur-xl bg-white/90 dark:bg-gray-900/90">
+                      <DropdownMenuItem onClick={handleEdit} className="gap-2 text-sm py-2">
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDelete} className="gap-2 text-sm py-2 text-red-600 dark:text-red-400">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+
+              {/* Payer and Date */}
+              <div className="flex items-center justify-between mb-3 text-sm">
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 backdrop-blur-sm">
+                  <UserAvatar
+                    user={expense.payer}
+                    shouldShowName={true}
+                    showAsYou={expense.paid_by === currentUser.id}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground font-medium">
+                  {formatDateRelatively(expense.date)}
+                </span>
+              </div>
+
+              {/* Amount Display */}
+              <div className="mb-3 bg-gradient-to-br from-black/5 to-black/10 dark:from-white/5 dark:to-white/10 rounded-xl p-4 text-center backdrop-blur-sm">
+                <div className="text-3xl font-bold text-foreground mb-1">
+                  ${expense.your_share.toFixed(2)}
+                </div>
+                <div className="text-xs text-muted-foreground font-medium">
+                  of ${expense.amount.toFixed(2)} total
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                {expense.status === 'pending' && !isCurrentUserSettled ? (
+                  <>
+                    {isPayer ? (
+                      <motion.div whileTap={{ scale: 0.97 }}>
+                        <Button
+                          className="w-full rounded-xl font-semibold text-sm shadow-lg backdrop-blur-sm h-10"
+                          onClick={() => onSettle?.(expense)}
+                          size="default"
+                        >
+                          Mark as Paid
+                        </Button>
+                      </motion.div>
+                    ) : (
+                      <ExpenseDetailsDialog
+                        expense={expense}
+                        currentUser={currentUser}
+                        householdMembers={householdMembers}
+                        onSettle={onSettle}
+                        onEditExpense={onEditExpense}
+                        onDeleteExpense={onDeleteExpense}
+                        onExpenseUpdated={onExpenseUpdated}
+                        trigger={
+                          <Button className="w-full rounded-xl font-semibold text-sm shadow-lg backdrop-blur-sm h-10" size="default">
+                            Pay ${expense.your_share.toFixed(2)}
+                          </Button>
+                        }
+                      />
+                    )}
+
+                    <ExpenseDetailsDialog
+                      expense={expense}
+                      currentUser={currentUser}
+                      householdMembers={householdMembers}
+                      onSettle={onSettle}
+                      onEditExpense={onEditExpense}
+                      onDeleteExpense={onDeleteExpense}
+                      onExpenseUpdated={onExpenseUpdated}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          className="w-full rounded-xl font-medium text-sm backdrop-blur-sm h-10"
+                          size="default"
+                        >
+                          View Details
+                        </Button>
+                      }
+                    />
+                  </>
+                ) : (
+                  <ExpenseDetailsDialog
+                    expense={expense}
+                    currentUser={currentUser}
+                    householdMembers={householdMembers}
+                    onSettle={onSettle}
+                    onEditExpense={onEditExpense}
+                    onDeleteExpense={onDeleteExpense}
+                    onExpenseUpdated={onExpenseUpdated}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-xl font-medium text-sm backdrop-blur-sm h-10"
+                        size="default"
+                      >
+                        View Details
+                      </Button>
+                    }
+                  />
+                )}
+              </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {formatDate(expense.date)}
-            </p>
           </div>
         </div>
-
-        {/* Amount Display */}
-        <div className="mx-4 mb-4 bg-gray-100/80 dark:bg-gray-800 rounded-2xl p-6 text-center">
-          <div className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            ${expense.your_share.toFixed(2)}
-          </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            of ${expense.amount.toFixed(2)} total
-          </div>
-        </div>
-
-        {/* Status Badges */}
-        <div className="px-4 mb-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Payment Status Badge */}
-            <Badge
-              className={`text-xs px-3 py-1 rounded-full font-medium ${
-                isSettled
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-              }`}
-            >
-              {isSettled
-                ? 'settled'
-                : `${settledCount}/${expense.splits.length} paid`}
-            </Badge>
-
-            {/* Category Badge */}
-            {expense.category && (
-              <Badge
-                variant="secondary"
-                className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
-              >
-                {expense.category}
-              </Badge>
-            )}
-
-            {/* Participants Count */}
-            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 ml-auto">
-              <Users className="w-3 h-3" />
-              <span>{expense.splits.length}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="px-4 pb-4">
-          {expense.status === 'pending' && !isCurrentUserSettled ? (
-            <div className="space-y-2">
-              {isPayer ? (
-                <Button className="w-full" onClick={() => onSettle?.(expense)}>
-                  Mark as Paid
-                </Button>
-              ) : (
-                <ExpenseDetailsDialog
-                  expense={expense}
-                  currentUser={currentUser}
-                  householdMembers={householdMembers}
-                  onSettle={onSettle}
-                  onEditExpense={onEditExpense}
-                  onDeleteExpense={onDeleteExpense}
-                  onExpenseUpdated={onExpenseUpdated}
-                  trigger={
-                    <Button className="w-full ">
-                      Pay ${expense.your_share.toFixed(2)}
-                    </Button>
-                  }
-                />
-              )}
-
-              <ExpenseDetailsDialog
-                expense={expense}
-                currentUser={currentUser}
-                householdMembers={householdMembers}
-                onSettle={onSettle}
-                onEditExpense={onEditExpense}
-                onDeleteExpense={onDeleteExpense}
-                onExpenseUpdated={onExpenseUpdated}
-                trigger={<Button className="w-full ">View Details</Button>}
-              />
-            </div>
-          ) : (
-            <ExpenseDetailsDialog
-              expense={expense}
-              currentUser={currentUser}
-              householdMembers={householdMembers}
-              onSettle={onSettle}
-              onEditExpense={onEditExpense}
-              onDeleteExpense={onDeleteExpense}
-              onExpenseUpdated={onExpenseUpdated}
-              trigger={<Button className="w-full ">View Details</Button>}
-            />
-          )}
-        </div>
-      </ActionCard>
+      </motion.div>
 
       {/* Dialogs */}
       {isEditDialogOpen && (

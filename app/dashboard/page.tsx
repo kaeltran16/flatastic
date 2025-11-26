@@ -1,10 +1,8 @@
 import RecentChores from '@/components/dashboard/chore';
 import RecentExpenses from '@/components/dashboard/expense';
 import DashboardHeader from '@/components/dashboard/header';
+import HeroStats from '@/components/dashboard/hero-stats';
 import ProgressCards from '@/components/dashboard/progress-cards';
-import QuickActions from '@/components/dashboard/quick-actions';
-
-import StatsCards from '@/components/dashboard/stats-card';
 import { getProfile } from '@/lib/actions/user';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -20,26 +18,26 @@ export default async function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       <DashboardHeader profile={profile} />
 
       {profile.household_id && profile.id ? (
-        <>
-          <StatsCards />
-          <QuickActions
-            currentUser={profile}
-            householdId={profile.household_id!}
-          />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-            <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
+          {/* Hero Stats */}
+          <HeroStats />
+          
+          {/* Recent Activity */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground px-1">Recent Activity</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <RecentChores />
-            </div>
-            <div className="space-y-6">
               <RecentExpenses />
-              <ProgressCards />
             </div>
           </div>
-        </>
+
+          {/* Progress */}
+          <ProgressCards />
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center h-full">
           <h1 className="text-2xl font-bold">

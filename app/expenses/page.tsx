@@ -1,6 +1,5 @@
 'use client';
 
-import BalancesSidebar from '@/components/expense/balance-sidebar';
 import { ErrorState } from '@/components/expense/error';
 import ExpenseDialog from '@/components/expense/expense-dialog';
 import ExpenseFilters from '@/components/expense/filter';
@@ -341,88 +340,63 @@ export default function ExpensesPage() {
             />
           </motion.div>
 
-          {/* Main Grid Layout */}
-          <motion.div
-            className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-6 sm:mt-8"
-            variants={gridVariants}
-          >
-            <motion.div
-              className="xl:col-span-1 order-first xl:order-last"
-              variants={sidebarVariants}
-            >
-              <div className="sticky top-4">
-                <BalancesSidebar
-                  balances={balances}
-                  yourBalances={yourBalances}
-                  yourNetBalance={yourNetBalance}
-                  currentUser={currentUser}
-                />
-              </div>
-            </motion.div>
-            {/* Main Content */}
-            <motion.div
-              className="xl:col-span-2 space-y-4 sm:space-y-6"
-              variants={containerVariants}
-            >
-              {/* Filters */}
-              <motion.div variants={itemVariants} className="w-full">
-                <ExpenseFilters
-                  onSearchChange={handleSearchChange}
-                  onCategoryChange={handleCategoryChange}
-                  onStatusChange={handleStatusChange}
-                />
-              </motion.div>
-
-              {/* Results Summary */}
-              {(searchQuery ||
-                categoryFilter !== 'all' ||
-                statusFilter !== 'all') && (
-                <motion.div
-                  variants={itemVariants}
-                  className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border"
-                >
-                  Showing {filteredExpenses.length} of {expenses?.length || 0}{' '}
-                  expenses
-                  {filteredStats.totalExpenses > 0 && (
-                    <span className="ml-2">
-                      (Total: ${filteredStats.totalExpenses.toFixed(2)})
-                    </span>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Expenses List */}
-              <motion.div variants={itemVariants} className="w-full">
-                <ExpenseList
-                  expenses={filteredExpenses}
-                  currentUser={currentUser}
-                  householdMembers={householdMembers}
-                  onAddExpense={handleAddExpense}
-                  onEditExpense={handleEditExpense}
-                  onDeleteExpense={handleDeleteExpense}
-                  onViewDetails={handleViewDetails}
-                  onSettle={handleSettle}
-                />
-              </motion.div>
-
-              {/* No Results Message */}
-              {filteredExpenses.length === 0 &&
-                expenses &&
-                expenses.length > 0 && (
-                  <motion.div
-                    variants={itemVariants}
-                    className="text-center py-12 text-muted-foreground"
-                  >
-                    <div className="text-lg font-medium mb-2">
-                      No expenses found
-                    </div>
-                    <div className="text-sm">
-                      Try adjusting your filters or search terms
-                    </div>
-                  </motion.div>
-                )}
-            </motion.div>
+          {/* Filters */}
+          <motion.div variants={itemVariants} className="w-full">
+            <ExpenseFilters
+              onSearchChange={handleSearchChange}
+              onCategoryChange={handleCategoryChange}
+              onStatusChange={handleStatusChange}
+            />
           </motion.div>
+
+          {/* Results Summary */}
+          {(searchQuery ||
+            categoryFilter !== 'all' ||
+            statusFilter !== 'all') && (
+            <motion.div
+              variants={itemVariants}
+              className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border"
+            >
+              Showing {filteredExpenses.length} of {expenses?.length || 0}{' '}
+              expenses
+              {filteredStats.totalExpenses > 0 && (
+                <span className="ml-2">
+                  (Total: ${filteredStats.totalExpenses.toFixed(2)})
+                </span>
+              )}
+            </motion.div>
+          )}
+
+          {/* Expenses List */}
+          <motion.div variants={itemVariants} className="w-full">
+            <ExpenseList
+              expenses={filteredExpenses}
+              currentUser={currentUser}
+              householdMembers={householdMembers}
+              onAddExpense={handleAddExpense}
+              onEditExpense={handleEditExpense}
+              onDeleteExpense={handleDeleteExpense}
+              onViewDetails={handleViewDetails}
+              onSettle={handleSettle}
+            />
+          </motion.div>
+
+          {/* No Results Message */}
+          {filteredExpenses.length === 0 &&
+            expenses &&
+            expenses.length > 0 && (
+              <motion.div
+                variants={itemVariants}
+                className="text-center py-12 text-muted-foreground"
+              >
+                <div className="text-lg font-medium mb-2">
+                  No expenses found
+                </div>
+                <div className="text-sm">
+                  Try adjusting your filters or search terms
+                </div>
+              </motion.div>
+            )}
         </div>
       </motion.div>
     </AnimatePresence>

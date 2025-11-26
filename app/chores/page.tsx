@@ -5,22 +5,21 @@ import { motion } from 'motion/react';
 import { useMemo, useState } from 'react';
 
 // Components
-import ChoreDialog from '@/components/chore/chore-dialog';
 import ErrorState from '@/components/chore/error';
 import ChoreFilters from '@/components/chore/filters';
+import ChoreHeroStats from '@/components/chore/hero-stats';
 import SetupRequiredState from '@/components/chore/requirements';
-import ChoreStatsCards from '@/components/chore/stats-card';
 import ChoreTabs from '@/components/chore/tabs';
 import { LoadingSpinner } from '@/components/household/loading';
 
 // Hooks and utilities
 import {
-  ChoreFormData,
-  useChores,
-  useCreateChore,
-  useDeleteChore,
-  useMarkChoreComplete,
-  useUpdateChore,
+    ChoreFormData,
+    useChores,
+    useCreateChore,
+    useDeleteChore,
+    useMarkChoreComplete,
+    useUpdateChore,
 } from '@/hooks/use-chore';
 import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
@@ -119,7 +118,6 @@ export default function ChoresPage() {
     try {
       await createChoreMutation.mutateAsync(formData);
     } catch (error) {
-      // Error handling is done in the mutation hook
       console.error('Failed to create chore:', error);
     }
   };
@@ -132,7 +130,7 @@ export default function ChoresPage() {
       await updateChoreMutation.mutateAsync({ choreId, formData });
     } catch (error) {
       console.error('Failed to update chore:', error);
-      throw error; // Re-throw so the component can handle it
+      throw error;
     }
   };
 
@@ -182,47 +180,50 @@ export default function ChoresPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         {/* Header */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="mb-6 sm:mb-8"
+          className="mb-6"
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Household Chores
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Manage and track all household tasks for {household.name}
+          <p className="text-sm text-muted-foreground mt-1">
+            {household.name}
           </p>
         </motion.div>
 
-        {/* Add Chore Button */}
-        <ChoreDialog
-          className="w-full mb-4"
-          mode="create"
-          householdId={household.id}
-          currentUser={currentUser}
-          householdMembers={householdMembers}
-          onSubmit={handleNewChore}
-          isLoading={createChoreMutation.isPending}
-        />
-
-        {/* Stats Cards */}
+        {/* Hero Stats */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.25 }}
         >
-          <ChoreStatsCards chores={chores} />
+          <ChoreHeroStats
+            pendingCount={choresByStatus.pending.length}
+            overdueCount={choresByStatus.overdue.length}
+            completedThisWeek={choresByStatus.completed.filter(
+              (chore) => {
+                const completedDate = new Date(chore.updated_at || '');
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return completedDate >= weekAgo;
+              }
+            ).length}
+            totalChores={chores.length}
+            householdMemberCount={householdMembers.length}
+            onFilterChange={(filter) => handleFilterChange('statusFilter', filter)}
+          />
         </motion.div>
 
         {/* Filters */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
         >
           <ChoreFilters
             householdMembers={householdMembers}
@@ -243,39 +244,30 @@ export default function ChoresPage() {
         </motion.div>
 
         {/* Chore Tabs */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <ChoreTabs
-            filteredChores={filteredChores}
-            pendingChores={choresByStatus.pending}
-            overdueChores={choresByStatus.overdue}
-            completedChores={choresByStatus.completed}
-            household={household}
-            currentUser={currentUser}
-            householdMembers={householdMembers}
-            onMarkComplete={handleMarkComplete}
-            onChoreUpdated={(updatedChore) => {
-              // This will be handled automatically by TanStack Query
-              console.log('Chore updated:', updatedChore);
-            }}
-            onChoreDeleted={(choreId) => {
-              // This will be handled automatically by TanStack Query
-              console.log('Chore deleted:', choreId);
-            }}
-            onChoreAdded={() => {
-              // This will be handled automatically by TanStack Query
-              console.log('Chore added');
-            }}
-            onUpdateChore={handleUpdateChore}
-            onDeleteChore={handleDeleteChore}
-            isUpdating={updateChoreMutation.isPending}
-            isDeleting={deleteChoreMutation.isPending}
-            isMarkingComplete={markCompleteMutation.isPending}
-          />
-        </motion.div>
+        <ChoreTabs
+          filteredChores={filteredChores}
+          pendingChores={choresByStatus.pending}
+          overdueChores={choresByStatus.overdue}
+          completedChores={choresByStatus.completed}
+          household={household}
+          currentUser={currentUser}
+          householdMembers={householdMembers}
+          onMarkComplete={handleMarkComplete}
+          onChoreUpdated={(updatedChore) => {
+            console.log('Chore updated:', updatedChore);
+          }}
+          onChoreDeleted={(choreId) => {
+            console.log('Chore deleted:', choreId);
+          }}
+          onChoreAdded={() => {
+            console.log('Chore added');
+          }}
+          onUpdateChore={handleUpdateChore}
+          onDeleteChore={handleDeleteChore}
+          isUpdating={updateChoreMutation.isPending}
+          isDeleting={deleteChoreMutation.isPending}
+          isMarkingComplete={markCompleteMutation.isPending}
+        />
       </div>
     </div>
   );

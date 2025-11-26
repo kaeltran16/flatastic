@@ -26,84 +26,86 @@ export function CalendarToolbar({
   filterValue,
 }: CustomToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 mb-4 p-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => onNavigate('PREV')}
-            className="h-8 w-8"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => onNavigate('NEXT')}
-            className="h-8 w-8"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate('TODAY')}
-            className="text-xs"
-          >
-            Today
-          </Button>
-          <h2 className="text-lg font-semibold ml-2">{label}</h2>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex bg-muted rounded-lg p-1">
+    <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Navigation */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <Button
-              variant={view === 'month' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => onView('month')}
-              className="text-xs h-7"
+              variant="outline"
+              size="icon"
+              onClick={() => onNavigate('PREV')}
+              className="h-9 w-9 rounded-xl"
             >
-              Month
+              <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant={view === 'week' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => onView('week')}
-              className="text-xs h-7"
+              variant="outline"
+              size="icon"
+              onClick={() => onNavigate('NEXT')}
+              className="h-9 w-9 rounded-xl"
             >
-              Week
+              <ChevronRight className="h-4 w-4" />
             </Button>
             <Button
-              variant={view === 'agenda' ? 'secondary' : 'ghost'}
+              variant="outline"
               size="sm"
-              onClick={() => onView('agenda')}
-              className="text-xs h-7"
+              onClick={() => onNavigate('TODAY')}
+              className="rounded-xl font-medium"
             >
-              Agenda
+              Today
             </Button>
           </div>
+          <div className="hidden sm:block h-6 w-px bg-border" />
+          <h2 className="text-sm font-medium text-muted-foreground">{label}</h2>
+        </div>
+
+        {/* View Switcher - Desktop */}
+        <div className="hidden md:flex bg-muted rounded-xl p-1">
+          <Button
+            variant={view === 'month' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => onView('month')}
+            className="rounded-lg font-medium"
+          >
+            Month
+          </Button>
+          <Button
+            variant={view === 'week' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => onView('week')}
+            className="rounded-lg font-medium"
+          >
+            Week
+          </Button>
+          <Button
+            variant={view === 'agenda' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => onView('agenda')}
+            className="rounded-lg font-medium"
+          >
+            Agenda
+          </Button>
         </div>
       </div>
 
+      {/* Filter and Mobile View Switcher */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Select value={filterValue} onValueChange={onFilterChange}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue placeholder="Filter events" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Events</SelectItem>
-              <SelectItem value="chore">Chores Only</SelectItem>
-              <SelectItem value="expense">Expenses Only</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={filterValue} onValueChange={onFilterChange}>
+          <SelectTrigger className="w-[150px] h-9 rounded-xl">
+            <SelectValue placeholder="Filter events" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Events</SelectItem>
+            <SelectItem value="chore">Chores Only</SelectItem>
+            <SelectItem value="expense">Expenses Only</SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Mobile View Switcher */}
         <div className="md:hidden">
           <Select value={view} onValueChange={(v) => onView(v as any)}>
-            <SelectTrigger className="w-[100px] h-8 text-xs">
+            <SelectTrigger className="w-[110px] h-9 rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

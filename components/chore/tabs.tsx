@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChoreFormData } from '@/hooks/use-chore';
 import { Chore, Household, Profile } from '@/lib/supabase/schema.alias';
 import { AnimatePresence, motion } from 'motion/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ChoreCard from './card';
 import EmptyChoresState from './empty-state';
 
@@ -66,14 +66,14 @@ function usePagination(items: Chore[], itemsPerPage: number) {
   }, [items, currentPage, itemsPerPage]);
 
   // Reset to first page when items change
-  useMemo(() => {
+  useEffect(() => {
     if (
       currentPage > paginationData.totalPages &&
       paginationData.totalPages > 0
     ) {
       setCurrentPage(1);
     }
-  }, [items?.length]);
+  }, [items?.length, currentPage, paginationData.totalPages]);
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, paginationData.totalPages)));

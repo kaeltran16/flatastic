@@ -3,6 +3,7 @@
 import { LoadingSpinner } from '@/components/household/loading';
 import AddPenaltyDialog from '@/components/penalty-fund/add-penalty-fund-dialog';
 import AddRewardDialog from '@/components/penalty-fund/add-reward-dialog';
+import PenaltyHeroStats from '@/components/penalty-fund/penalty-hero-stats';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,13 +32,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Award,
-  CircleSlash2,
   DollarSign,
   FileText,
   Search,
   Trash2,
   TrendingDown,
-  TrendingUp,
   X
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -390,112 +389,13 @@ export default function HouseholdFundPage() {
         </motion.div>
 
         {/* Balance Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
-          {/* Household Fund Balance Card */}
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-xl border-0 w-full hover-lift">
-              <div className="absolute inset-0 overflow-hidden rounded-lg">
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full"></div>
-                <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full"></div>
-              </div>
-              <div className="absolute inset-0 bg-black/10 rounded-lg"></div>
-              <CardContent className="relative p-6 sm:p-8">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/90 text-sm sm:text-base font-semibold mb-2 drop-shadow-sm">
-                      Household Fund Balance
-                    </p>
-                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold mt-2">
-                      {balanceLoading ? (
-                        <LoadingSpinner />
-                      ) : (
-                        <span style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-                          ${fundBalance.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-4 sm:mt-6">
-                      <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {monthlyLoading
-                            ? '...'
-                            : `${monthlyAdditions >= 0 ? '+' : ''}${monthlyAdditions.toFixed(2)} this month`}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="relative flex-shrink-0 ml-4">
-                    <div className="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 bg-yellow-500 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 hover:bg-yellow-400 transition-colors shadow-lg">
-                      <DollarSign className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-white drop-shadow-lg" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Your Balance Card */}
-          <motion.div variants={itemVariants} className="w-full">
-            <Card className="relative bg-gradient-to-br from-violet-500 via-violet-600 to-purple-600 text-white shadow-xl border-0 w-full hover-lift">
-              <div className="absolute inset-0 overflow-hidden rounded-lg">
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full"></div>
-                <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/5 rounded-full"></div>
-              </div>
-              <div className="absolute inset-0 bg-black/10 rounded-lg"></div>
-              <CardContent className="relative p-6 sm:p-8">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/90 text-sm sm:text-base font-semibold mb-2 drop-shadow-sm">
-                      Your Balance
-                    </p>
-                    <div className="text-3xl sm:text-4xl md:text-5xl font-bold mt-2">
-                      {userBalanceLoading ? (
-                        <LoadingSpinner />
-                      ) : (
-                        <span style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-                          ${(userBalance?.net || 0).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-start gap-3 mt-4 sm:mt-6 flex-col md:flex-row">
-                      <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <CircleSlash2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {userBalanceLoading
-                            ? '...'
-                            : `${(userBalance?.penalties || 0).toFixed(2)} penalties`}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 hover:bg-white/25 transition-colors border border-white/10">
-                        <Award className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-white text-sm sm:text-base font-semibold drop-shadow-sm">
-                          {userBalanceLoading
-                            ? '...'
-                            : `${(userBalance?.rewards || 0).toFixed(2)} rewards`}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="relative flex-shrink-0 ml-4">
-                    <div
-                      className={`h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 transition-colors shadow-lg ${
-                        (userBalance?.net || 0) > 0
-                          ? 'bg-red-500 hover:bg-red-400'
-                          : 'bg-green-500 hover:bg-green-400'
-                      }`}
-                    >
-                      {(userBalance?.net || 0) > 0 ? (
-                        <Award className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-white drop-shadow-lg" />
-                      ) : (
-                        <TrendingDown className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-white drop-shadow-lg" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+        <div className="mb-6 sm:mb-8">
+          <PenaltyHeroStats
+            fundBalance={fundBalance}
+            monthlyAdditions={monthlyAdditions}
+            userBalance={userBalance}
+            loading={balanceLoading || monthlyLoading || userBalanceLoading}
+          />
         </div>
 
         {/* Recent Transactions */}

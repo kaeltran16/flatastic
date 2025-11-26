@@ -1,12 +1,12 @@
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from '@/components/ui/pagination';
 import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
@@ -147,12 +147,13 @@ export default function ExpenseList({
     <div className="space-y-6">
       {/* Expense Cards */}
       <div className="space-y-4 sm:px-0">
-        {paginatedExpenses.map((expense) => (
+        {paginatedExpenses.map((expense, index) => (
           <ExpenseCard
             currentUser={currentUser}
             householdMembers={householdMembers}
             key={expense.id}
             expense={expense}
+            index={index}
             onViewDetails={onViewDetails}
             onSettle={onSettle}
             onEditExpense={onEditExpense}
