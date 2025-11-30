@@ -661,7 +661,6 @@ export function Navbar() {
       </AnimatePresence>
 
       {/* Spacer to prevent content from hiding behind fixed navbar */}
-      <div className="h-16" />
     </>
   );
 }
