@@ -4,12 +4,12 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserAvatar from '@/components/user-avatar';
@@ -19,15 +19,15 @@ import { navigationItems, NO_NAVBAR_PATHS } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-    AlertCircle,
-    Bell,
-    Clock,
-    Home,
-    LogOut,
-    Menu,
-    Shield,
-    User,
-    X,
+  AlertCircle,
+  Bell,
+  Clock,
+  Home,
+  LogOut,
+  Menu,
+  Shield,
+  User,
+  X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
@@ -83,8 +83,13 @@ export function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Don't render navbar on auth pages or if no profile
-  if (!profile || NO_NAVBAR_PATHS.includes(pathname)) {
+  // Don't render navbar on auth pages
+  if (NO_NAVBAR_PATHS.includes(pathname)) {
+    return null;
+  }
+
+  // Don't render navbar if explicitly no user (not loading and no profile)
+  if (!profileLoading && !profile) {
     return null;
   }
 
@@ -505,7 +510,7 @@ export function Navbar() {
                       variant="ghost"
                       className="relative h-10 w-10 rounded-full"
                     >
-                      <UserAvatar user={profile} shouldShowName={false} />
+                      {profile && <UserAvatar user={profile} shouldShowName={false} />}
                     </Button>
                   </motion.div>
                 </DropdownMenuTrigger>
@@ -513,10 +518,10 @@ export function Navbar() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {profile.full_name || 'User'}
+                        {profile?.full_name || 'User'}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {profile.email}
+                        {profile?.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -638,13 +643,13 @@ export function Navbar() {
                   variants={staggerItem}
                 >
                   <div className="flex items-center space-x-3">
-                    <UserAvatar user={profile} shouldShowName={false} />
+                    {profile && <UserAvatar user={profile} shouldShowName={false} />}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {profile.full_name || 'User'}
+                        {profile?.full_name || 'User'}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {profile.email}
+                        {profile?.email}
                       </p>
                     </div>
                   </div>
