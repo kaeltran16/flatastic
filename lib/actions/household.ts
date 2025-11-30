@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { HouseholdInviteData } from '../supabase/types';
+
 export interface HouseholdStats {
   pendingChores: number;
   overdueChores: number;
@@ -155,6 +155,11 @@ export interface CreateHouseholdData {
 
 export interface JoinHouseholdData {
   inviteCode: string;
+}
+
+export interface HouseholdInviteData {
+  email: string;
+  message?: string;
 }
 
 function generateInviteCode(): string {
@@ -343,58 +348,40 @@ export async function leaveHousehold() {
         'Cannot leave household while you are the admin and there are other members. Please transfer admin rights first.'
       );
     }
-
-    // If admin is the only member, delete the household
-    await supabase.from('households').delete().eq('id', profile.household_id);
   }
 
-  // Remove user from household
-  const { error: profileError } = await supabase
+  // Remove member from household (or delete household if last member)
+  // Note: If admin leaves (and no other members), we might want to delete the household or handle it differently.
+  // The check above prevents admin from leaving if there are others.
+  
+  // If we are here, either user is not admin, OR user is admin but is the only member.
+  
+  const { error: updateError } = await supabase
     .from('profiles')
     .update({ household_id: null })
     .eq('id', user.id);
 
-  if (profileError) {
-    throw new Error(`Failed to leave household: ${profileError.message}`);
+  if (updateError) {
+    throw new Error(`Failed to leave household: ${updateError.message}`);
+  }
+
+  // If the user was the last member (and admin), we might want to delete the household
+  // But for now, let's just leave it as is, or maybe the household remains with no members?
+  // Ideally, we should delete the household if no members left.
+  
+  // Check if any members left
+  const { count } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('household_id', profile.household_id);
+
+  if (count === 0) {
+      // Delete household if empty
+      await supabase.from('households').delete().eq('id', profile.household_id);
   }
 
   revalidatePath('/household');
   revalidatePath('/dashboard');
-}
-
-export async function updateHouseholdName(householdId: string, name: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    throw new Error('Authentication required');
-  }
-
-  // Check if user is admin
-  const { data: household } = await supabase
-    .from('households')
-    .select('admin_id')
-    .eq('id', householdId)
-    .single();
-
-  if (!household || household.admin_id !== user.id) {
-    throw new Error('Only household admin can update the name');
-  }
-
-  const { error } = await supabase
-    .from('households')
-    .update({ name, updated_at: new Date().toISOString() })
-    .eq('id', householdId);
-
-  if (error) {
-    throw new Error(`Failed to update household name: ${error.message}`);
-  }
-
-  revalidatePath('/household');
 }
 
 export async function regenerateInviteCode(householdId: string) {
@@ -705,7 +692,7 @@ export async function updateUserAvailability(
       const { data: household, error: householdError } = await supabase
         .from('households')
         .select('admin_id')
-        .eq('id', currentProfile?.household_id || '')
+        .eq('id', currentProfile.household_id || '')
         .single();
 
       if (householdError || !household) {
@@ -741,6 +728,120 @@ export async function updateUserAvailability(
     return { success: true };
   } catch (error) {
     console.error('Error in updateUserAvailability:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function updateChoreRotationOrder(
+  householdId: string,
+  order: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get current authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Check if user is admin of the household
+    const { data: household, error: householdError } = await supabase
+      .from('households')
+      .select('admin_id')
+      .eq('id', householdId)
+      .single();
+
+    if (householdError || !household) {
+      return { success: false, error: 'Household not found' };
+    }
+
+    if (household.admin_id !== user.id) {
+      return {
+        success: false,
+        error: 'Only household admin can update rotation order',
+      };
+    }
+
+    // Update the rotation order
+    const { error: updateError } = await supabase
+      .from('households')
+      .update({
+        chore_rotation_order: order,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', householdId);
+
+    if (updateError) {
+      console.error('Error updating rotation order:', updateError);
+      return { success: false, error: 'Failed to update rotation order' };
+    }
+
+    revalidatePath('/admin-dashboard');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in updateChoreRotationOrder:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function updateHouseholdName(householdId: string, name: string) {
+  try {
+    const supabase = await createClient();
+
+    // Get current authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    // Check if user is admin of the household
+    const { data: household, error: householdError } = await supabase
+      .from('households')
+      .select('admin_id')
+      .eq('id', householdId)
+      .single();
+
+    if (householdError || !household) {
+      return { success: false, error: 'Household not found' };
+    }
+
+    if (household.admin_id !== user.id) {
+      return {
+        success: false,
+        error: 'Only household admin can update the name',
+      };
+    }
+
+    // Update the household name
+    const { error: updateError } = await supabase
+      .from('households')
+      .update({ name, updated_at: new Date().toISOString() })
+      .eq('id', householdId);
+
+    if (updateError) {
+      console.error('Error updating household name:', updateError);
+      return { success: false, error: 'Failed to update household name' };
+    }
+
+    revalidatePath('/admin-dashboard');
+    return { success: true };
+  } catch (error) {
+    console.error('Error in updateHouseholdName:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

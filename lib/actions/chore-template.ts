@@ -7,7 +7,7 @@ import {
 } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
 import { TZDate } from '@date-fns/tz';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -532,47 +532,49 @@ export async function getNextDueDate(templateId: string): Promise<string | null>
       return null;
     }
 
-    // Get the most recent chore created from this template
-    const { data: lastChore } = await supabase
-      .from('chores')
-      .select('created_at')
-      .eq('template_id', templateId)
+    // Get the template
+    const { data: template, error: templateError } = await supabase
+      .from('chore_templates')
+      .select('*')
+      .eq('id', templateId)
       .eq('household_id', profile.household_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .eq('is_active', true)
       .single();
 
-    const TIMEZONE = 'Asia/Ho_Chi_Minh';
-    const now = new Date();
-
-    // Get current time in GMT+7
-    const nowGMT7 = new TZDate(now, TIMEZONE);
-    const todayStartGMT7 = startOfDay(nowGMT7);
-
-    let dueDateGMT7: TZDate;
-
-    if (lastChore && lastChore.created_at) {
-      // Convert last chore creation time to GMT+7
-      const lastCreatedGMT7 = new TZDate(lastChore.created_at, TIMEZONE);
-      const lastCreatedStartGMT7 = startOfDay(lastCreatedGMT7);
-
-      // If last chore was created today (in GMT+7), set due date to tomorrow
-      if (lastCreatedStartGMT7.getTime() === todayStartGMT7.getTime()) {
-        // Tomorrow at end of day in GMT+7
-        const tomorrowGMT7 = new TZDate(
-          nowGMT7.getTime() + 24 * 60 * 60 * 1000,
-          TIMEZONE
-        );
-        dueDateGMT7 = endOfDay(tomorrowGMT7) as TZDate;
-      } else {
-        // Last chore was in the past, set due date to end of today in GMT+7
-        dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
-      }
-    } else {
-      // No previous chore exists, set due date to end of today in GMT+7
-      dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
+    if (templateError || !template) {
+      return null;
     }
 
+    const TIMEZONE = 'Asia/Ho_Chi_Minh';
+
+    // If template is recurring, calculate based on last chore's due date + interval
+    if (template.is_recurring && template.recurring_type && template.recurring_interval) {
+      const { data: lastChore } = await supabase
+        .from('chores')
+        .select('due_date')
+        .eq('template_id', templateId)
+        .eq('household_id', profile.household_id)
+        .order('due_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lastChore && lastChore.due_date) {
+        // Base the next due date on the last chore's due date + recurring interval
+        const { calculateNextCreationDate } = await import('@/lib/validations/chore-template');
+        const lastDueDate = new Date(lastChore.due_date);
+        const nextDate = calculateNextCreationDate(
+          lastDueDate,
+          template.recurring_type as 'daily' | 'weekly' | 'monthly',
+          template.recurring_interval
+        );
+        return new TZDate(nextDate, TIMEZONE).toISOString();
+      }
+    }
+
+    // Fallback: use end of today for non-recurring or first-time chores
+    const now = new Date();
+    const nowGMT7 = new TZDate(now, TIMEZONE);
+    const dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
     return dueDateGMT7.toISOString();
   } catch (error) {
     console.error('Error getting next due date:', error);
@@ -660,47 +662,42 @@ export async function manuallyTriggerChoreCreation(
       const providedDateGMT7 = new TZDate(dueDate, TIMEZONE);
       const dueDateGMT7 = endOfDay(providedDateGMT7) as TZDate;
       choreData.due_date = dueDateGMT7.toISOString();
-    } else {
-      // Get the most recent chore created from this template
+    } else if (template.is_recurring && template.recurring_type && template.recurring_interval) {
+      // For recurring templates, calculate based on last chore's due date + interval
       const { data: lastChore } = await supabase
         .from('chores')
-        .select('created_at')
+        .select('due_date')
         .eq('template_id', templateId)
         .eq('household_id', profile.household_id)
-        .order('created_at', { ascending: false })
+        .order('due_date', { ascending: false })
         .limit(1)
         .single();
 
-      const now = new Date();
-
-      // Get current time in GMT+7
-      const nowGMT7 = new TZDate(now, TIMEZONE);
-      const todayStartGMT7 = startOfDay(nowGMT7);
-
       let dueDateGMT7: TZDate;
 
-      if (lastChore && lastChore.created_at) {
-        // Convert last chore creation time to GMT+7
-        const lastCreatedGMT7 = new TZDate(lastChore.created_at, TIMEZONE);
-        const lastCreatedStartGMT7 = startOfDay(lastCreatedGMT7);
-
-        // If last chore was created today (in GMT+7), set due date to tomorrow
-        if (lastCreatedStartGMT7.getTime() === todayStartGMT7.getTime()) {
-          // Tomorrow at end of day in GMT+7
-          const tomorrowGMT7 = new TZDate(
-            nowGMT7.getTime() + 24 * 60 * 60 * 1000,
-            TIMEZONE
-          );
-          dueDateGMT7 = endOfDay(tomorrowGMT7) as TZDate;
-        } else {
-          // Last chore was in the past, set due date to end of today in GMT+7
-          dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
-        }
+      if (lastChore && lastChore.due_date) {
+        // Base the new due date on the last chore's due date + recurring interval
+        const { calculateNextCreationDate } = await import('@/lib/validations/chore-template');
+        const lastDueDate = new Date(lastChore.due_date);
+        const nextDate = calculateNextCreationDate(
+          lastDueDate,
+          template.recurring_type as 'daily' | 'weekly' | 'monthly',
+          template.recurring_interval
+        );
+        dueDateGMT7 = new TZDate(nextDate, TIMEZONE);
       } else {
         // No previous chore exists, set due date to end of today in GMT+7
+        const now = new Date();
+        const nowGMT7 = new TZDate(now, TIMEZONE);
         dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
       }
 
+      choreData.due_date = dueDateGMT7.toISOString();
+    } else {
+      // Non-recurring template or fallback: set due date to end of today in GMT+7
+      const now = new Date();
+      const nowGMT7 = new TZDate(now, TIMEZONE);
+      const dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
       choreData.due_date = dueDateGMT7.toISOString();
     }
 
@@ -720,6 +717,25 @@ export async function manuallyTriggerChoreCreation(
         success: false,
         error: result.error || 'Failed to create chore',
       };
+    }
+
+    // Update template's next_creation_date if this is a recurring template
+    if (template.is_recurring && template.recurring_type && template.recurring_interval && choreData.due_date) {
+      const { calculateNextCreationDate } = await import('@/lib/validations/chore-template');
+      const nextCreationDate = calculateNextCreationDate(
+        choreData.due_date,
+        template.recurring_type as 'daily' | 'weekly' | 'monthly',
+        template.recurring_interval
+      );
+
+      await supabase
+        .from('chore_templates')
+        .update({
+          last_created_at: new Date().toISOString(),
+          next_creation_date: nextCreationDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', templateId);
     }
 
     // Revalidate paths

@@ -32,6 +32,7 @@ export type Database = {
           last_created_at: string | null;
           auto_assign_rotation: boolean | null;
           recurring_start_date: string | null;
+          next_assignee_id: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -50,6 +51,7 @@ export type Database = {
           last_created_at?: string | null;
           auto_assign_rotation?: boolean | null;
           recurring_start_date?: string | null;
+          next_assignee_id?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -68,6 +70,7 @@ export type Database = {
           last_created_at?: string | null;
           auto_assign_rotation?: boolean | null;
           recurring_start_date?: string | null;
+          next_assignee_id?: string | null;
         };
         Relationships: [
           {
@@ -305,6 +308,7 @@ export type Database = {
           invite_code: string | null;
           name: string;
           updated_at: string | null;
+          chore_rotation_order: string[] | null; // JSONB array of strings
         };
         Insert: {
           admin_id: string;
@@ -314,6 +318,7 @@ export type Database = {
           invite_code?: string | null;
           name: string;
           updated_at?: string | null;
+          chore_rotation_order?: string[] | null;
         };
         Update: {
           admin_id?: string;
@@ -323,6 +328,7 @@ export type Database = {
           invite_code?: string | null;
           name?: string;
           updated_at?: string | null;
+          chore_rotation_order?: string[] | null;
         };
         Relationships: [
           {

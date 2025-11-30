@@ -1,34 +1,36 @@
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { useMutation } from '@tanstack/react-query';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ChoreTemplate } from '@/lib/supabase/schema.alias';
-import {
-  createChoreTemplate,
-  updateChoreTemplate,
-} from '@/lib/actions/chore-template';
+import { Textarea } from '@/components/ui/textarea';
 import { useProfile } from '@/hooks/use-profile';
+import {
+    createChoreTemplate,
+    updateChoreTemplate,
+} from '@/lib/actions/chore-template';
+import { ChoreTemplate } from '@/lib/supabase/schema.alias';
+
+import { useHouseholdMembers } from '@/hooks/use-household-member';
 
 interface RecurringChoreDialogProps {
   open: boolean;
@@ -44,6 +46,8 @@ export function RecurringChoreDialog({
   onSuccess,
 }: RecurringChoreDialogProps) {
   const { profile } = useProfile();
+  const { members } = useHouseholdMembers(profile?.household_id);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -52,6 +56,8 @@ export function RecurringChoreDialog({
     recurring_interval: 1,
     recurring_start_date: new Date().toISOString().split('T')[0],
     auto_assign_rotation: true,
+    next_creation_date: '',
+    next_assignee_id: 'auto', // 'auto' or uuid
   });
 
   // Populate form when editing
@@ -67,6 +73,8 @@ export function RecurringChoreDialog({
           template.recurring_start_date ||
           new Date().toISOString().split('T')[0],
         auto_assign_rotation: template.auto_assign_rotation ?? true,
+        next_creation_date: template.next_creation_date ? template.next_creation_date.split('T')[0] : '',
+        next_assignee_id: template.next_assignee_id || 'auto',
       });
     } else {
       // Reset form for new template
@@ -78,6 +86,8 @@ export function RecurringChoreDialog({
         recurring_interval: 1,
         recurring_start_date: new Date().toISOString().split('T')[0],
         auto_assign_rotation: true,
+        next_creation_date: '',
+        next_assignee_id: 'auto',
       });
     }
   }, [template, open]);
@@ -88,16 +98,23 @@ export function RecurringChoreDialog({
         throw new Error('No household found');
       }
 
+      const payload: any = {
+        ...data,
+        next_assignee_id: data.next_assignee_id === 'auto' ? null : data.next_assignee_id,
+        // Only send next_creation_date if it's set and valid
+        next_creation_date: data.next_creation_date ? new Date(data.next_creation_date).toISOString() : undefined,
+      };
+
       if (template) {
         // Update existing template
         return await updateChoreTemplate({
           id: template.id,
-          ...data,
+          ...payload,
         });
       } else {
         // Create new template
         return await createChoreTemplate({
-          ...data,
+          ...payload,
           household_id: profile.household_id,
         });
       }
@@ -140,7 +157,7 @@ export function RecurringChoreDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {template ? 'Edit Template' : 'Create New Template'}
@@ -267,8 +284,60 @@ export function RecurringChoreDialog({
                 />
               </div>
 
+              {/* Manual Overrides Section (Only when editing) */}
+              {template && (
+                <div className="border-t pt-4 mt-4 space-y-4">
+                  <h5 className="text-sm font-medium text-muted-foreground">Manual Adjustments</h5>
+                  
+                  {/* Next Scheduled Date Override */}
+                  <div className="space-y-2">
+                    <Label htmlFor="next_creation_date">Next Scheduled Date</Label>
+                    <Input
+                      id="next_creation_date"
+                      type="date"
+                      value={formData.next_creation_date}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          next_creation_date: e.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Manually set when the next chore will be created.
+                    </p>
+                  </div>
+
+                  {/* Next Assignee Override */}
+                  <div className="space-y-2">
+                    <Label htmlFor="next_assignee_id">Next Assignee Override</Label>
+                    <Select
+                      value={formData.next_assignee_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, next_assignee_id: value })
+                      }
+                    >
+                      <SelectTrigger id="next_assignee_id">
+                        <SelectValue placeholder="Select user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto (Rotation)</SelectItem>
+                        {members.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.full_name || member.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Override who gets the next chore. Rotation will resume after.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Auto Assign Rotation */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="auto_assign_rotation">
                     Use Rotation Assignment

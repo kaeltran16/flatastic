@@ -8,7 +8,7 @@ import {
     Users,
 } from 'lucide-react';
 
-export const NO_NAVBAR_PATHS = ['/', '/auth/login', '/auth/register', '/auth/callback'];
+export const NO_NAVBAR_PATHS = ['/auth/login', '/auth/register', '/auth/callback'];
 
 export const navigationItems = [
   {

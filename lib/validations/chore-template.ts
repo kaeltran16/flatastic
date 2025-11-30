@@ -38,6 +38,7 @@ export const CreateChoreTemplateSchema = z
         { message: 'Invalid date format' }
       ),
     auto_assign_rotation: z.boolean().default(true),
+    next_assignee_id: z.string().uuid().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -107,6 +108,8 @@ export const UpdateChoreTemplateSchema = z
         { message: 'Invalid date format' }
       ),
     auto_assign_rotation: z.boolean().optional(),
+    next_assignee_id: z.string().uuid().optional().nullable(),
+    next_creation_date: z.string().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -146,15 +149,14 @@ export type RecurringTemplateQuery = z.infer<
 
 // Helper function to calculate next creation date in GMT+7 with 23:59 deadline
 export function calculateNextCreationDate(
-  startDate: string | Date,
+  currentScheduledDate: string | Date,
   recurring_type: 'daily' | 'weekly' | 'monthly',
-  recurring_interval: number,
-  lastCreatedAt?: string | Date | null
+  recurring_interval: number
 ): Date {
   // Always use GMT+7 timezone
   const TIMEZONE = 'Asia/Ho_Chi_Minh';
   
-  const baseDate = lastCreatedAt ? new Date(lastCreatedAt) : new Date(startDate);
+  const baseDate = new Date(currentScheduledDate);
   const nextDate = new Date(baseDate);
 
   switch (recurring_type) {

@@ -2,19 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    AlertCircle,
-    BarChart3,
-    Calendar,
-    CheckCircle2,
-    Clock,
-    Edit,
-    Loader2,
-    PauseCircle,
-    PlayCircle,
-    Plus,
-    Trash2,
-    UserCheck,
-    UserX
+  AlertCircle,
+  BarChart3,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Edit,
+  Loader2,
+  PauseCircle,
+  PlayCircle,
+  Plus,
+  Trash2,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
@@ -22,25 +22,26 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import RecurringHeroStats from '@/components/admin-dashboard/recurring-hero-stats';
+import { RotationSettings } from '@/components/admin-dashboard/rotation-settings';
 import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { useProfile } from '@/hooks/use-profile';
 import {
-    getNextAssignedUser,
-    getNextDueDate,
-    manuallyTriggerChoreCreation,
+  getNextAssignedUser,
+  getNextDueDate,
+  manuallyTriggerChoreCreation,
 } from '@/lib/actions/chore-template';
 import { createClient } from '@/lib/supabase/client';
 import { ChoreTemplate } from '@/lib/supabase/schema.alias';
@@ -250,14 +251,18 @@ export default function AdminDashboardPage() {
       }
       return result;
     },
-    onSuccess: (data, templateId) => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-      queryClient.invalidateQueries({ queryKey: ['recent-recurring-chores'] });
-      queryClient.invalidateQueries({ queryKey: ['household-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['next-assigned-user', templateId] });
-      queryClient.invalidateQueries({ queryKey: ['next-due-date', templateId] });
-      // Invalidate chore queries so the chore list updates
-      queryClient.invalidateQueries({ queryKey: ['chores'] });
+    onSuccess: async (data, templateId) => {
+      // Invalidate all relevant queries
+      await queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
+      await queryClient.invalidateQueries({ queryKey: ['recent-recurring-chores'] });
+      await queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['next-assigned-user', templateId] });
+      await queryClient.invalidateQueries({ queryKey: ['next-due-date', templateId] });
+      await queryClient.invalidateQueries({ queryKey: ['chores'] });
+      
+      // Force refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ['recurring-templates'] });
+      
       toast.success(
         `Chore created successfully! Assigned to ${data.chore?.assigned_user_name || 'user'}`
       );
@@ -739,6 +744,10 @@ export default function AdminDashboardPage() {
                   )}
                 </CardContent>
               </Card>
+            </div>
+            
+            <div className="mt-6">
+              <RotationSettings />
             </div>
           </TabsContent>
 

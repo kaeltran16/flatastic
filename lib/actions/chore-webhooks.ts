@@ -14,6 +14,7 @@ const AutoCreateChoreSchema = z.object({
   template_id: z.string().uuid('Invalid template ID'),
   household_id: z.string().uuid('Invalid household ID'),
   due_date: z.string().optional(),
+  assigned_to: z.string().uuid().optional().nullable(), // Allow manual override
   recurring: z
     .object({
       type: z.enum(['daily', 'weekly', 'monthly']),
@@ -22,7 +23,7 @@ const AutoCreateChoreSchema = z.object({
     .optional(),
 });
 
-async function getNextUserInRotation(
+export async function getNextUserInRotation(
   householdId: string,
   templateId: string
 ): Promise<string | null> {
@@ -41,6 +42,32 @@ async function getNextUserInRotation(
       return null;
     }
 
+    // Get household settings for rotation order
+    const { data: household, error: householdError } = await supabase
+      .from('households')
+      .select('chore_rotation_order')
+      .eq('id', householdId)
+      .single();
+
+    // Sort users based on custom order if available
+    let sortedUsers = [...availableUsers];
+    if (household?.chore_rotation_order && Array.isArray(household.chore_rotation_order)) {
+      const orderMap = new Map(
+        household.chore_rotation_order.map((id: string, index: number) => [id, index])
+      );
+      
+      sortedUsers.sort((a, b) => {
+        const indexA = orderMap.has(a.id) ? orderMap.get(a.id)! : Number.MAX_SAFE_INTEGER;
+        const indexB = orderMap.has(b.id) ? orderMap.get(b.id)! : Number.MAX_SAFE_INTEGER;
+        
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        // Fallback to created_at for users not in the order list (or both new)
+        return 0; // Stable sort preserves original created_at order from query
+      });
+    }
+
     // Get or create assignment tracking record for this template
     const { data: assignmentTracker, error: trackerError } = await supabase
       .from('template_assignment_tracker')
@@ -53,33 +80,32 @@ async function getNextUserInRotation(
 
     if (trackerError || !assignmentTracker) {
       // No tracking record exists, start with first available user
-      nextUserId = availableUsers[0].id;
+      nextUserId = sortedUsers[0].id;
 
       // Create tracking record
       await supabase.from('template_assignment_tracker').insert({
         template_id: templateId,
         household_id: householdId,
         last_assigned_user_id: nextUserId,
-        assignment_order: availableUsers.map((u: { id: string }) => u.id),
+        assignment_order: sortedUsers.map((u) => u.id),
         updated_at: new Date().toISOString(),
       });
 
       return nextUserId;
     }
 
-    // Find current user index in available users
-    const currentUserIndex = availableUsers.findIndex(
-      (user: { id: string }) =>
-        user.id === assignmentTracker.last_assigned_user_id
+    // Find current user index in sorted users
+    const currentUserIndex = sortedUsers.findIndex(
+      (user) => user.id === assignmentTracker.last_assigned_user_id
     );
 
     if (currentUserIndex === -1) {
       // Last assigned user not available anymore, start from beginning
-      nextUserId = availableUsers[0].id;
+      nextUserId = sortedUsers[0].id;
     } else {
       // Get next user in rotation (circular)
-      const nextUserIndex = (currentUserIndex + 1) % availableUsers.length;
-      nextUserId = availableUsers[nextUserIndex].id;
+      const nextUserIndex = (currentUserIndex + 1) % sortedUsers.length;
+      nextUserId = sortedUsers[nextUserIndex].id;
     }
 
     // Update tracking record
@@ -87,7 +113,7 @@ async function getNextUserInRotation(
       .from('template_assignment_tracker')
       .update({
         last_assigned_user_id: nextUserId,
-        assignment_order: availableUsers.map((u: { id: string }) => u.id),
+        assignment_order: sortedUsers.map((u) => u.id),
         updated_at: new Date().toISOString(),
       })
       .eq('template_id', templateId)
@@ -108,7 +134,7 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
     const supabase = await createSystemClient();
     // Validate input
     const validatedData = AutoCreateChoreSchema.parse(request);
-    const { template_id, household_id, due_date, recurring } = validatedData;
+    const { template_id, household_id, due_date, recurring, assigned_to } = validatedData;
 
     // Get the template
     const { data: template, error: templateError } = await supabase
@@ -150,11 +176,29 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
       );
     }
 
-    // Get next user in rotation
-    const assignedUserId = await getNextUserInRotation(
-      household_id,
-      template_id
-    );
+    let assignedUserId = assigned_to || undefined;
+
+    // If no manual override, get next user in rotation
+    // If no manual override, get next user in rotation
+    if (!assignedUserId) {
+      const nextUser = await getNextUserInRotation(
+        household_id,
+        template_id
+      );
+      assignedUserId = nextUser || undefined;
+    } else {
+      // If manual override, we should still update the tracker so rotation continues from here
+      // But we need to be careful not to break if the user is not in the rotation list
+      // For now, let's just update the tracker blindly if they exist
+       await supabase
+      .from('template_assignment_tracker')
+      .upsert({
+        template_id: template_id,
+        household_id: household_id,
+        last_assigned_user_id: assignedUserId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'template_id,household_id' });
+    }
 
     if (!assignedUserId) {
       throw new ChoreActionError(
