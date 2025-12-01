@@ -5,6 +5,7 @@ import { ChoreFormData } from '@/hooks/use-chore';
 import { ChoreInsert, ChoreUpdate } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
 import { CreateChoreSchema, UpdateChoreSchema } from '@/lib/validations/chore';
+import { calculateNextCreationDate } from '@/lib/validations/chore-template';
 import { revalidatePath } from 'next/cache';
 
 // Custom error class for chore operations
@@ -154,7 +155,7 @@ export async function updateChore(choreId: string, formData: ChoreFormData) {
     // Check if chore exists and user has permission
     const { data: existingChore, error: fetchError } = await supabase
       .from('chores')
-      .select('household_id')
+      .select('household_id, template_id')
       .eq('id', choreId)
       .single();
 
@@ -189,6 +190,43 @@ export async function updateChore(choreId: string, formData: ChoreFormData) {
       );
     }
 
+    // If due_date is being updated, check if we need to update the template's schedule
+    if (validatedData.due_date && existingChore.template_id) {
+      // Check if this is the latest chore for this template
+      const { data: latestChore } = await supabase
+        .from('chores')
+        .select('id')
+        .eq('template_id', existingChore.template_id)
+        .order('due_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestChore && latestChore.id === choreId) {
+        // This is the latest chore, so we should update the template's next_creation_date
+        const { data: template } = await supabase
+          .from('chore_templates')
+          .select('recurring_type, recurring_interval')
+          .eq('id', existingChore.template_id)
+          .single();
+
+        if (template && template.recurring_type && template.recurring_interval) {
+          const nextDate = calculateNextCreationDate(
+            validatedData.due_date,
+            template.recurring_type,
+            template.recurring_interval
+          );
+
+          await supabase
+            .from('chore_templates')
+            .update({
+              next_creation_date: nextDate.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingChore.template_id);
+        }
+      }
+    }
+
     revalidatePath('/chores');
     return { success: true, data: updatedChore };
   } catch (error) {
@@ -215,7 +253,7 @@ export async function deleteChore(choreId: string) {
     // Check if chore exists and user has permission
     const { data: existingChore, error: fetchError } = await supabase
       .from('chores')
-      .select('household_id')
+      .select('household_id, template_id, due_date')
       .eq('id', choreId)
       .single();
 
@@ -228,6 +266,33 @@ export async function deleteChore(choreId: string) {
         'Not authorized to delete this chore',
         'UNAUTHORIZED'
       );
+    }
+
+    // Check if we need to reconcile template schedule
+    if (existingChore.template_id) {
+      // Check if this is the latest chore for this template
+      const { data: latestChore } = await supabase
+        .from('chores')
+        .select('id')
+        .eq('template_id', existingChore.template_id)
+        .order('due_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestChore && latestChore.id === choreId) {
+        // We are deleting the latest chore.
+        // We should reset the template's next_creation_date to this chore's due_date
+        // so it gets recreated (or the schedule resumes from here)
+        if (existingChore.due_date) {
+           await supabase
+            .from('chore_templates')
+            .update({
+              next_creation_date: existingChore.due_date,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingChore.template_id);
+        }
+      }
     }
 
     // Delete chore
