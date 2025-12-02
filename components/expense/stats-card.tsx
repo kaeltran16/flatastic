@@ -1,8 +1,10 @@
 'use client';
 
+import ActiveBalancesDialog from '@/components/expense/active-balances-dialog';
 import { Balance } from '@/lib/supabase/types';
 import { DollarSign, Receipt, TrendingUp, Users } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useState } from 'react';
 
 interface ExpenseStatsCardsProps {
   totalExpenses: number;
@@ -10,6 +12,7 @@ interface ExpenseStatsCardsProps {
   pendingCount: number;
   yourNetBalance: number;
   yourBalances: Balance[];
+  currentUserId?: string;
 }
 
 export default function ExpenseStatsCards({
@@ -18,7 +21,10 @@ export default function ExpenseStatsCards({
   pendingCount,
   yourNetBalance,
   yourBalances,
+  currentUserId,
 }: ExpenseStatsCardsProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // Determine balance status
   const getBalanceStatus = () => {
     if (Math.abs(yourNetBalance) < 0.01) {
@@ -63,8 +69,10 @@ export default function ExpenseStatsCards({
     >
       {/* Hero Metric - Net Balance */}
       <motion.div
-        className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 backdrop-blur-sm"
+        className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 backdrop-blur-sm cursor-pointer"
         whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.01 }}
+        onClick={() => setIsDialogOpen(true)}
       >
         <div className="flex items-center gap-2 mb-2">
           <Users className="h-5 w-5 text-muted-foreground" />
@@ -79,6 +87,7 @@ export default function ExpenseStatsCards({
         {activeBalancesCount > 0 && (
           <p className="text-xs text-muted-foreground mt-1">
             {activeBalancesCount} active balance{activeBalancesCount !== 1 ? 's' : ''}
+            <span className="hidden sm:inline"> • Click to view</span>
           </p>
         )}
       </motion.div>
@@ -107,6 +116,14 @@ export default function ExpenseStatsCards({
           </motion.div>
         ))}
       </div>
+
+      {/* Active Balances Dialog */}
+      <ActiveBalancesDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        balances={yourBalances}
+        currentUserId={currentUserId}
+      />
     </motion.div>
   );
 }
