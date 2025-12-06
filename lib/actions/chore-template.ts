@@ -1,9 +1,9 @@
 'use server';
 
 import {
-    ChoreTemplate,
-    ChoreTemplateInsert,
-    ChoreTemplateUpdate,
+  ChoreTemplate,
+  ChoreTemplateInsert,
+  ChoreTemplateUpdate,
 } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
 import { TZDate } from '@date-fns/tz';
@@ -621,8 +621,9 @@ export async function getNextDueDate(templateId: string): Promise<string | null>
     // Fallback: use end of today for non-recurring or first-time chores
     const now = new Date();
     const nowGMT7 = new TZDate(now, TIMEZONE);
-    const dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
-    return dueDateGMT7.toISOString();
+    // Manually set to end of day in the specific timezone to avoid Date conversion issues
+    nowGMT7.setHours(23, 59, 59, 999);
+    return nowGMT7.toISOString();
   } catch (error) {
     console.error('Error getting next due date:', error);
     return null;
@@ -712,8 +713,8 @@ export async function manuallyTriggerChoreCreation(
     if (dueDate) {
       // If due date is provided, ensure it's set to end of day in GMT+7
       const providedDateGMT7 = new TZDate(dueDate, TIMEZONE);
-      const dueDateGMT7 = endOfDay(providedDateGMT7) as TZDate;
-      choreData.due_date = dueDateGMT7.toISOString();
+      providedDateGMT7.setHours(23, 59, 59, 999);
+      choreData.due_date = providedDateGMT7.toISOString();
     } else if (template.is_recurring && template.recurring_type && template.recurring_interval) {
       // For recurring templates, calculate based on last chore's due date + interval
       const { data: lastChore } = await supabase
@@ -749,8 +750,9 @@ export async function manuallyTriggerChoreCreation(
       // Non-recurring template or fallback: set due date to end of today in GMT+7
       const now = new Date();
       const nowGMT7 = new TZDate(now, TIMEZONE);
-      const dueDateGMT7 = endOfDay(nowGMT7) as TZDate;
-      choreData.due_date = dueDateGMT7.toISOString();
+      // Manually set to end of day in the specific timezone to avoid Date conversion issues
+      nowGMT7.setHours(23, 59, 59, 999);
+      choreData.due_date = nowGMT7.toISOString();
     }
 
     // Add recurring configuration if available (but don't use it for due date calculation)
