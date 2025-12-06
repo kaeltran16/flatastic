@@ -144,13 +144,16 @@ export async function GET(request: Request) {
             template.recurring_type,
             template.recurring_interval
           );
-          dueDateGMT7 = new TZDate(nextDate, TIMEZONE);
+          // Convert to GMT+7 timezone and set to end of day (23:59:59)
+          const nextDateGMT7 = new TZDate(nextDate, TIMEZONE);
+          dueDateGMT7 = endOfDay(nextDateGMT7) as TZDate;
         } else {
           // No previous chore exists, use the template's next_creation_date or now
           const scheduledDate = template.next_creation_date
             ? new Date(template.next_creation_date)
             : now;
           
+          // Convert to GMT+7 timezone and set to end of day (23:59:59)
           const scheduledDateGMT7 = new TZDate(scheduledDate, TIMEZONE);
           dueDateGMT7 = endOfDay(scheduledDateGMT7) as TZDate;
         }
