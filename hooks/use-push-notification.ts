@@ -5,7 +5,7 @@ import { subscribeUser } from '@/app/pwa-nextjs/actions';
 import { urlBase64ToUint8Array } from '@/app/pwa-nextjs/utils';
 import { createClient } from '@/lib/supabase/client';
 import { Notifications } from '@/lib/supabase/schema.alias';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const SUBSCRIPTION_STORAGE_KEY = 'push-notification-subscription';
 
@@ -24,7 +24,98 @@ export function useNotifications(userId: string) {
   // Push notifications state
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const supabase = createClient();
+  // Memoize supabase client to avoid recreating on each render
+  const supabase = useMemo(() => createClient(), []);
+
+  // Refetch notifications from database
+  const refetch = useCallback(async () => {
+    if (!userId || userId.trim() === '') return;
+    
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Notifications refetch error:', error);
+        return;
+      }
+
+      setNotifications(data || []);
+    } catch (error: any) {
+      console.error('Error refetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, userId]);
+
+  // Mark a notification as read (updates both DB and local state)
+  const markAsRead = useCallback(async (notificationId: string) => {
+    // Optimistically update local state first for immediate UI feedback
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+    );
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        // Revert optimistic update on error
+        setNotifications(prev => 
+          prev.map(n => n.id === notificationId ? { ...n, is_read: false } : n)
+        );
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      // Revert optimistic update on error
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, is_read: false } : n)
+      );
+      return false;
+    }
+  }, [supabase]);
+
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(async () => {
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length === 0) return true;
+
+    // Optimistically update local state first
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', unreadIds);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        // Revert on error - refetch to get accurate state
+        await refetch();
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      await refetch();
+      return false;
+    }
+  }, [notifications, supabase, refetch]);
 
   // Helper functions for storage
   const getStoredSubscriptionState = (): StoredSubscriptionState | null => {
@@ -265,5 +356,8 @@ export function useNotifications(userId: string) {
     error,
     isSubscribed,
     retrySubscription,
+    markAsRead,
+    markAllAsRead,
+    refetch,
   };
 }

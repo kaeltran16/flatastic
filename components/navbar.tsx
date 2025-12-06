@@ -18,25 +18,59 @@ import { useNotifications } from '@/hooks/use-push-notification';
 import { navigationItems, NO_NAVBAR_PATHS } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import type { LucideIcon } from 'lucide-react';
 import {
-    AlertCircle,
     Bell,
+    Calendar,
+    CheckCheck,
     Clock,
+    DollarSign,
     Home,
+    Info,
     LogOut,
     Shield,
-    User,
+    User
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+// Helper functions for notification icons
+const getNotificationIcon = (type: string | null | undefined): LucideIcon => {
+  switch (type) {
+    case 'chore_reminder':
+      return Calendar;
+    case 'expense_added':
+    case 'payment_due':
+      return DollarSign;
+    case 'system':
+      return Info;
+    default:
+      return Bell;
+  }
+};
+
+const getNotificationIconColor = (type: string | null | undefined, isUrgent: boolean | null | undefined): string => {
+  if (isUrgent) return 'text-red-500';
+  switch (type) {
+    case 'chore_reminder':
+      return 'text-orange-500';
+    case 'expense_added':
+      return 'text-emerald-500';
+    case 'payment_due':
+      return 'text-blue-500';
+    case 'system':
+      return 'text-muted-foreground';
+    default:
+      return 'text-primary';
+  }
+};
+
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
-  const [refreshNotifications, setRefreshNotifications] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
@@ -72,6 +106,8 @@ export function Navbar() {
   const {
     notifications,
     loading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
   } = useNotifications(profile?.id || '');
 
   // Don't render navbar on auth pages
@@ -84,7 +120,8 @@ export function Navbar() {
     return null;
   }
 
-  const urgentNotifications = notifications.filter((n) => n.is_urgent);
+  // Only count urgent notifications that are also unread
+  const urgentNotifications = notifications.filter((n) => n.is_urgent && !n.is_read);
   const unreadNotifications = notifications.filter((n) => !n.is_read);
 
   const handleSignOut = async () => {
@@ -102,26 +139,6 @@ export function Navbar() {
 
   const handleProfileClick = () => {
     router.push('/profile');
-  };
-
-  const handleNotificationClick = (notificationId?: string) => {
-    setRefreshNotifications(!refreshNotifications);
-    if (notificationId) {
-      console.log('Notification clicked:', notificationId);
-    }
-  };
-
-  const handleNotificationItemClick = async (notificationId: string) => {
-    try {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-
-      handleNotificationClick(notificationId);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
   };
 
   const formatNotificationTime = (dateString: string) => {
@@ -266,9 +283,10 @@ export function Navbar() {
                   >
                     <Button variant="ghost" size="icon" className="relative">
                       <Bell className="h-5 w-5" />
-                      <AnimatePresence>
+                      <AnimatePresence mode="wait">
                         {urgentNotifications.length > 0 && (
                           <motion.div
+                            key={`urgent-${urgentNotifications.length}`}
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0, opacity: 0 }}
@@ -286,6 +304,7 @@ export function Navbar() {
                         {unreadNotifications.length > 0 &&
                           urgentNotifications.length === 0 && (
                             <motion.div
+                              key={`unread-${unreadNotifications.length}`}
                               initial={{ scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               exit={{ scale: 0, opacity: 0 }}
@@ -295,7 +314,7 @@ export function Navbar() {
                                 damping: 30,
                               }}
                             >
-                              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary">
                                 {unreadNotifications.length}
                               </Badge>
                             </motion.div>
@@ -304,114 +323,166 @@ export function Navbar() {
                     </Button>
                   </motion.div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-80" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        Notifications
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {urgentNotifications.length > 0
-                          ? `${urgentNotifications.length} urgent notification${
-                              urgentNotifications.length === 1 ? '' : 's'
-                            }`
-                          : `You have ${
-                              unreadNotifications.length
-                            } unread notification${
-                              unreadNotifications.length === 1 ? '' : 's'
-                            }`}
-                      </p>
+                <DropdownMenuContent className="w-96" align="end" forceMount>
+                  {/* Header */}
+                  <div className="px-4 py-3 border-b border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">Notifications</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {unreadNotifications.length > 0
+                            ? `${unreadNotifications.length} unread`
+                            : 'All caught up!'}
+                        </p>
+                      </div>
+                      {unreadNotifications.length > 0 && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            await markAllAsRead();
+                          }}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors flex items-center gap-1"
+                        >
+                          <CheckCheck className="h-3 w-3" />
+                          Mark all read
+                        </motion.button>
+                      )}
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  </div>
 
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-[400px] overflow-y-auto">
                     {notificationsLoading ? (
-                      <div className="p-2 space-y-2">
+                      <div className="p-4 space-y-3">
                         {[...Array(3)].map((_, i) => (
-                          <Skeleton key={i} className="h-16 w-full" />
+                          <div key={i} className="flex items-start gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-3 w-2/3" />
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ) : notifications.length === 0 ? (
-                      <div className="p-4 text-center">
-                        <Bell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                          No notifications yet
+                      <div className="p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                          <Bell className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          No notifications
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          You&apos;re all caught up!
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="py-2">
                         {notifications
                           .slice(0, 10)
-                          .map((notification, index) => (
-                            <motion.div
-                              key={notification.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                            >
-                              <DropdownMenuItem
-                                className="p-0 cursor-pointer"
-                                onClick={() =>
-                                  handleNotificationItemClick(notification.id)
-                                }
+                          .map((notification, index) => {
+                            const NotificationIcon = getNotificationIcon(notification.type);
+                            const iconColorClass = getNotificationIconColor(notification.type, notification.is_urgent);
+                            
+                            return (
+                              <motion.div
+                                key={notification.id}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
                               >
-                                <div className="w-full p-3 flex items-start gap-3 hover:bg-accent/50 rounded-sm transition-colors">
-                                  <div className="flex-shrink-0 mt-1">
-                                    {notification.is_urgent ? (
-                                      <AlertCircle className="h-4 w-4 text-red-500" />
-                                    ) : (
-                                      <div
-                                        className={`w-2 h-2 rounded-full ${
-                                          notification.is_read
-                                            ? 'bg-muted'
-                                            : 'bg-blue-500'
-                                        }`}
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p
-                                      className={`text-sm ${
-                                        notification.is_read
-                                          ? 'text-muted-foreground'
-                                          : 'text-foreground font-medium'
+                                <DropdownMenuItem
+                                  className="p-0 cursor-pointer focus:bg-transparent"
+                                  onClick={async () => {
+                                    await markAsRead(notification.id);
+                                  }}
+                                >
+                                  <div
+                                    className={`w-full px-4 py-3 flex items-start gap-3 transition-all duration-200 hover:bg-accent/50 ${
+                                      !notification.is_read
+                                        ? 'bg-primary/5 border-l-2 border-l-primary'
+                                        : ''
+                                    }`}
+                                  >
+                                    {/* Icon */}
+                                    <div
+                                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                        notification.is_urgent
+                                          ? 'bg-red-100 dark:bg-red-500/20'
+                                          : 'bg-muted'
                                       }`}
                                     >
-                                      {notification.message}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <Clock className="h-3 w-3 text-muted-foreground" />
-                                      <span className="text-xs text-muted-foreground">
-                                        {formatNotificationTime(
-                                          notification.created_at || ''
-                                        )}
-                                      </span>
-                                      {notification.is_urgent && (
-                                        <Badge
-                                          variant="destructive"
-                                          className="text-xs h-4"
+                                      <NotificationIcon
+                                        className={`h-5 w-5 ${iconColorClass}`}
+                                      />
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      {/* Title */}
+                                      {notification.title && (
+                                        <p
+                                          className={`text-sm font-medium leading-tight ${
+                                            notification.is_read
+                                              ? 'text-muted-foreground'
+                                              : 'text-foreground'
+                                          }`}
                                         >
-                                          Urgent
-                                        </Badge>
+                                          {notification.title}
+                                        </p>
                                       )}
+                                      
+                                      {/* Message */}
+                                      <p
+                                        className={`text-sm leading-snug mt-0.5 ${
+                                          notification.is_read
+                                            ? 'text-muted-foreground/70'
+                                            : 'text-muted-foreground'
+                                        }`}
+                                      >
+                                        {notification.message}
+                                      </p>
+
+                                      {/* Meta info */}
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Clock className="h-3 w-3" />
+                                          {formatNotificationTime(
+                                            notification.created_at || ''
+                                          )}
+                                        </span>
+                                        {notification.is_urgent && (
+                                          <Badge
+                                            variant="destructive"
+                                            className="text-[10px] h-4 px-1.5"
+                                          >
+                                            Urgent
+                                          </Badge>
+                                        )}
+                                        {!notification.is_read && (
+                                          <div className="w-2 h-2 rounded-full bg-primary" />
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </DropdownMenuItem>
-                            </motion.div>
-                          ))}
+                                </DropdownMenuItem>
+                              </motion.div>
+                            );
+                          })}
                       </div>
                     )}
                   </div>
 
-                  {notifications.length > 10 && (
+                  {/* Footer with View All link */}
+                  {notifications.length > 0 && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link
                           href="/notifications"
-                          className="w-full text-center text-sm text-primary"
+                          className="w-full text-center text-sm text-primary py-3 font-medium hover:bg-accent/50"
                         >
                           View all notifications
                         </Link>

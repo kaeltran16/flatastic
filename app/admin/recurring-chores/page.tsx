@@ -2,25 +2,28 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle,
-  BarChart3,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Edit,
-  Loader2,
-  PauseCircle,
-  PlayCircle,
-  Plus,
-  Trash2,
-  UserCheck,
-  UserX
+    AlertCircle,
+    BarChart3,
+    Calendar,
+    CheckCircle2,
+    Clock,
+    Edit,
+    Loader2,
+    PauseCircle,
+    PlayCircle,
+    Plus,
+    Trash2,
+    UserCheck,
+    UserX
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { AdminChoreTab } from '@/components/admin-dashboard/admin-chore-tab';
+import { AdminExpenseTab } from '@/components/admin-dashboard/admin-expense-tab';
+import { AdminPenaltyTab } from '@/components/admin-dashboard/admin-penalty-tab';
 import RecurringHeroStats from '@/components/admin-dashboard/recurring-hero-stats';
 import { RotationSettings } from '@/components/admin-dashboard/rotation-settings';
 import { RecurringChoreDialog } from '@/components/recurring-chores/recurring-chore-dialog';
@@ -28,20 +31,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHousehold } from '@/hooks/use-household';
 import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { useProfile } from '@/hooks/use-profile';
 import {
-  getNextAssignedUser,
-  getNextDueDate,
-  manuallyTriggerChoreCreation,
+    getNextAssignedUser,
+    getNextDueDate,
+    manuallyTriggerChoreCreation,
 } from '@/lib/actions/chore-template';
 import { createClient } from '@/lib/supabase/client';
 import { ChoreTemplate } from '@/lib/supabase/schema.alias';
@@ -384,7 +387,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto p-6 pb-24 max-w-7xl">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -440,10 +443,43 @@ export default function AdminDashboardPage() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="recurring" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="recurring">Recurring Templates</TabsTrigger>
-            <TabsTrigger value="members">Member Status</TabsTrigger>
-            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+          <TabsList className="w-full h-auto flex flex-wrap justify-start gap-2 bg-transparent p-0 text-foreground">
+            <TabsTrigger 
+              value="recurring" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Templates
+            </TabsTrigger>
+            <TabsTrigger 
+              value="chores"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Chores
+            </TabsTrigger>
+            <TabsTrigger 
+              value="expenses"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Expenses
+            </TabsTrigger>
+            <TabsTrigger 
+              value="penalties"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Penalties
+            </TabsTrigger>
+            <TabsTrigger 
+              value="members"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Members
+            </TabsTrigger>
+            <TabsTrigger 
+              value="activity"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background"
+            >
+              Activity
+            </TabsTrigger>
           </TabsList>
 
           {/* Recurring Templates Tab */}
@@ -816,6 +852,21 @@ export default function AdminDashboardPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Chore Management Tab */}
+          <TabsContent value="chores" className="space-y-4">
+            <AdminChoreTab />
+          </TabsContent>
+
+          {/* Expenses Tab */}
+          <TabsContent value="expenses" className="space-y-4">
+            <AdminExpenseTab />
+          </TabsContent>
+
+          {/* Penalty Fund Tab */}
+          <TabsContent value="penalties" className="space-y-4">
+            <AdminPenaltyTab />
           </TabsContent>
         </Tabs>
 
