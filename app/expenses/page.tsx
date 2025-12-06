@@ -1,5 +1,6 @@
 'use client';
 
+import { BalancesSummary } from '@/components/expense/balances-summary';
 import { ErrorState } from '@/components/expense/error';
 import ExpenseDialog from '@/components/expense/expense-dialog';
 import ExpenseFilters from '@/components/expense/filter';
@@ -18,6 +19,7 @@ export default function ExpensesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [balanceFilterUserId, setBalanceFilterUserId] = useState<string | null>(null);
 
   // Initialize balances hook first
   const {
@@ -50,6 +52,16 @@ export default function ExpensesPage() {
     if (!expenses) return [];
 
     return expenses.filter((expense) => {
+      // Balance filter - show expenses involving selected person
+      if (balanceFilterUserId) {
+        const involvesSelectedPerson = 
+          expense.paid_by === balanceFilterUserId ||
+          expense.splits?.some(split => split.user_id === balanceFilterUserId);
+        if (!involvesSelectedPerson) {
+          return false;
+        }
+      }
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -82,7 +94,7 @@ export default function ExpensesPage() {
 
       return true;
     });
-  }, [expenses, searchQuery, categoryFilter, statusFilter]);
+  }, [expenses, searchQuery, categoryFilter, statusFilter, balanceFilterUserId]);
 
   // Calculate filtered stats
   const filteredStats = useMemo(() => {
@@ -341,35 +353,57 @@ export default function ExpensesPage() {
             />
           </motion.div>
 
+          {/* Outstanding Balances */}
+          <motion.div variants={itemVariants} className="mb-4">
+            <BalancesSummary
+              balances={balances}
+              currentUserId={currentUser?.id}
+              selectedBalanceUserId={balanceFilterUserId}
+              onBalanceSelect={setBalanceFilterUserId}
+            />
+          </motion.div>
+
           {/* Filters */}
-          <motion.div variants={itemVariants} className="w-full">
+          <motion.div variants={itemVariants} className="w-full mt-4">
             <ExpenseFilters
               onSearchChange={handleSearchChange}
               onCategoryChange={handleCategoryChange}
               onStatusChange={handleStatusChange}
+              personFilter={
+                balanceFilterUserId
+                  ? {
+                      id: balanceFilterUserId,
+                      name: householdMembers.find(m => m.id === balanceFilterUserId)?.full_name || 'Unknown',
+                    }
+                  : null
+              }
+              onPersonFilterClear={() => setBalanceFilterUserId(null)}
             />
           </motion.div>
 
-          {/* Results Summary */}
+          {/* Results Summary - only show when filters are active */}
           {(searchQuery ||
             categoryFilter !== 'all' ||
-            statusFilter !== 'all') && (
+            statusFilter !== 'all' ||
+            balanceFilterUserId) && (
             <motion.div
               variants={itemVariants}
-              className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3 border"
+              className="flex items-center justify-between text-xs text-muted-foreground py-2 px-1"
             >
-              Showing {filteredExpenses.length} of {expenses?.length || 0}{' '}
-              expenses
+              <span>
+                <span className="font-medium text-foreground">{filteredExpenses.length}</span>
+                {' '}of {expenses?.length || 0} expenses
+              </span>
               {filteredStats.totalExpenses > 0 && (
-                <span className="ml-2">
-                  (Total: ${filteredStats.totalExpenses.toFixed(2)})
+                <span className="font-medium">
+                  Total: <span className="text-foreground">${filteredStats.totalExpenses.toFixed(2)}</span>
                 </span>
               )}
             </motion.div>
           )}
 
           {/* Expenses List */}
-          <motion.div variants={itemVariants} className="w-full">
+          <motion.div variants={itemVariants} className="w-full mt-6">
             <ExpenseList
               expenses={filteredExpenses}
               currentUser={currentUser}

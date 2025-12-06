@@ -2,24 +2,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import {
-  Car,
-  CheckCircle2,
-  Clock,
-  Film,
-  Home,
-  Pizza,
-  Search,
-  ShoppingCart,
-  SlidersHorizontal,
-  X,
-  Zap,
+    Car,
+    CheckCircle2,
+    Clock,
+    Film,
+    Home,
+    Pizza,
+    Search,
+    ShoppingCart,
+    SlidersHorizontal,
+    X,
+    Zap,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,6 +28,8 @@ interface ExpenseFiltersProps {
   onCategoryChange?: (category: string) => void;
   onStatusChange?: (status: string) => void;
   onSearchChange?: (search: string) => void;
+  personFilter?: { id: string; name: string } | null;
+  onPersonFilterClear?: () => void;
 }
 
 const categories = [
@@ -48,6 +50,8 @@ export default function ExpenseFilters({
   onCategoryChange,
   onStatusChange,
   onSearchChange,
+  personFilter,
+  onPersonFilterClear,
 }: ExpenseFiltersProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -115,7 +119,7 @@ export default function ExpenseFilters({
   }, [onStatusChange]);
 
   const hasActiveFilters =
-    searchValue || categoryValue !== 'all' || statusValue !== 'all';
+    searchValue || categoryValue !== 'all' || statusValue !== 'all' || personFilter;
 
   const selectedCategory = categories.find(
     (cat) => cat.value === categoryValue
@@ -128,6 +132,7 @@ export default function ExpenseFilters({
     searchValue && 1,
     categoryValue !== 'all' && 1,
     statusValue !== 'all' && 1,
+    personFilter && 1,
   ].filter(Boolean).length;
 
   return (
@@ -395,6 +400,23 @@ export default function ExpenseFilters({
                 onClick={clearStatus}
                 className="ml-1 hover:bg-green-200/50 dark:hover:bg-green-800/50 rounded p-0.5 transition-colors"
                 aria-label="Clear status filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {personFilter && (
+            <Badge
+              variant="secondary"
+              className="px-3 py-1 text-sm flex items-center gap-2 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800"
+            >
+              <span>👤</span>
+              {personFilter.name}
+              <button
+                onClick={onPersonFilterClear}
+                className="ml-1 hover:bg-purple-200/50 dark:hover:bg-purple-800/50 rounded p-0.5 transition-colors"
+                aria-label="Clear person filter"
               >
                 <X className="h-3 w-3" />
               </button>

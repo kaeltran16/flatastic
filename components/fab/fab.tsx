@@ -92,7 +92,12 @@ export function FAB() {
 
       {/* Main FAB Button */}
       <motion.div
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50"
+        className="fixed right-6 z-50 lg:bottom-8 md:right-8"
+        style={{
+          // On mobile: position above bottom navbar (nav height ~64px + safe area + 16px gap)
+          // On desktop: normal bottom-8 positioning
+          bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+        }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{
           scale: 1,

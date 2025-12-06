@@ -4,12 +4,12 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserAvatar from '@/components/user-avatar';
@@ -19,15 +19,13 @@ import { navigationItems, NO_NAVBAR_PATHS } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertCircle,
-  Bell,
-  Clock,
-  Home,
-  LogOut,
-  Menu,
-  Shield,
-  User,
-  X,
+    AlertCircle,
+    Bell,
+    Clock,
+    Home,
+    LogOut,
+    Shield,
+    User,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
@@ -39,7 +37,6 @@ export function Navbar() {
   const pathname = usePathname();
   const supabase = createClient();
   const [refreshNotifications, setRefreshNotifications] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { profile, loading: profileLoading } = useProfile();
@@ -75,13 +72,7 @@ export function Navbar() {
   const {
     notifications,
     loading: notificationsLoading,
-    isSubscribed,
   } = useNotifications(profile?.id || '');
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   // Don't render navbar on auth pages
   if (NO_NAVBAR_PATHS.includes(pathname)) {
@@ -150,107 +141,36 @@ export function Navbar() {
     return pathname === href || pathname.startsWith(href + '/');
   };
 
-  const navbarVariants = {
-    scrolled: {
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-      transition: { duration: 0.3 },
-    },
-    top: {
-      boxShadow: 'none',
-      transition: { duration: 0.3 },
-    },
-  };
-
-  const mobileMenuVariants = {
-    hidden: {
-      x: '-100%',
-      transition: {
-        type: 'spring' as const,
-        stiffness: 300,
-        damping: 30,
-      },
-    },
-    visible: {
-      x: 0,
-      transition: {
-        type: 'spring' as const,
-        stiffness: 300,
-        damping: 30,
-      },
-    },
-  };
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const staggerItem = {
-    hidden: { x: -20, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: {
-        type: 'spring' as const,
-        stiffness: 300,
-        damping: 24,
-      },
-    },
-  };
-
   return (
     <>
+      {/* Top Navigation Bar - Minimal */}
       <motion.nav
-        className={`fixed top-0 left-0 right-0 z-40 border-b transition-colors duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           isScrolled
-            ? 'bg-background/80 backdrop-blur-md border-border'
-            : 'bg-background border-transparent'
+            ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm'
+            : 'bg-background/50 backdrop-blur-md border-b border-transparent'
         }`}
-        variants={navbarVariants}
-        animate={isScrolled ? 'scrolled' : 'top'}
+        style={{
+          WebkitBackdropFilter: isScrolled ? 'blur(20px)' : 'blur(10px)',
+          backdropFilter: isScrolled ? 'blur(20px)' : 'blur(10px)',
+        }}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* Left side - Logo and Burger Menu */}
-            <div className="flex items-center space-x-4">
-              {/* Burger Menu (Mobile) */}
-              <motion.div className="lg:hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="relative"
-                >
-                  <motion.div
-                    whileTap={{ scale: 0.95 }}
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    <Menu className="h-5 w-5" />
-                  </motion.div>
-                </Button>
-              </motion.div>
-
-              {/* Logo */}
+          <div className="flex justify-between h-14">
+            {/* Left side - Logo */}
+            <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center group">
                 <motion.div
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.6, type: 'spring' }}
                 >
-                  <Home className="h-8 w-8 text-primary" />
+                  <Home className="h-7 w-7 text-primary" />
                 </motion.div>
                 <motion.span
-                  className="ml-2 text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
+                  className="ml-2 text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
                   whileHover={{ scale: 1.05 }}
                 >
                   Flatastic
@@ -258,9 +178,9 @@ export function Navbar() {
               </Link>
             </div>
 
-            {/* Center - Desktop Navigation */}
+            {/* Center - Desktop Navigation (hidden on mobile) */}
             <div className="hidden lg:flex items-center space-x-1">
-              {navigationItems.map((item, index) => {
+              {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = isActiveRoute(item.href);
                 return (
@@ -271,7 +191,7 @@ export function Navbar() {
                   >
                     <Link
                       href={item.href}
-                      className={`relative flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      className={`relative flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                         isActive
                           ? 'bg-primary text-primary-foreground shadow-md'
                           : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
@@ -279,23 +199,12 @@ export function Navbar() {
                     >
                       <Icon className="mr-2 h-4 w-4" />
                       {item.name}
-                      {isActive && (
-                        <motion.div
-                          className="absolute inset-0 bg-primary rounded-xl -z-10"
-                          layoutId="activeTab"
-                          transition={{
-                            type: 'spring',
-                            stiffness: 300,
-                            damping: 30,
-                          }}
-                        />
-                      )}
                     </Link>
                   </motion.div>
                 );
               })}
 
-              {/* Admin Link - Only visible to admins */}
+              {/* Admin Link - Desktop only */}
               {isAdmin && (
                 <motion.div
                   whileHover={{ y: -2 }}
@@ -306,7 +215,7 @@ export function Navbar() {
                 >
                   <Link
                     href="/admin/recurring-chores"
-                    className={`relative flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    className={`relative flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                       isActiveRoute('/admin')
                         ? 'bg-primary text-primary-foreground shadow-md'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
@@ -314,24 +223,37 @@ export function Navbar() {
                   >
                     <Shield className="mr-2 h-4 w-4" />
                     Admin
-                    {isActiveRoute('/admin') && (
-                      <motion.div
-                        className="absolute inset-0 bg-primary rounded-xl -z-10"
-                        layoutId="activeTab"
-                        transition={{
-                          type: 'spring',
-                          stiffness: 300,
-                          damping: 30,
-                        }}
-                      />
-                    )}
                   </Link>
                 </motion.div>
               )}
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              {/* Admin Icon - Mobile only */}
+              {isAdmin && (
+                <motion.div
+                  className="lg:hidden"
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Link href="/admin/recurring-chores">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`relative ${
+                        isActiveRoute('/admin')
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      <Shield className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </motion.div>
+              )}
+
               {/* Theme Toggle */}
               <ThemeToggle />
 
@@ -508,7 +430,7 @@ export function Navbar() {
                   >
                     <Button
                       variant="ghost"
-                      className="relative h-10 w-10 rounded-full"
+                      className="relative h-9 w-9 rounded-full"
                     >
                       {profile && <UserAvatar user={profile} shouldShowName={false} />}
                     </Button>
@@ -542,125 +464,8 @@ export function Navbar() {
         </div>
       </motion.nav>
 
-      {/* Mobile Menu Overlay and Content */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Overlay */}
-            <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
-              variants={overlayVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-
-            {/* Mobile Menu */}
-            <motion.div
-              className="fixed top-0 left-0 h-full w-80 bg-background border-r shadow-2xl z-50 lg:hidden"
-              variants={mobileMenuVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-            >
-              <div className="flex flex-col h-full">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b">
-                  <div className="flex items-center space-x-3">
-                    <motion.div
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6, type: 'spring' }}
-                    >
-                      <Home className="h-8 w-8 text-primary" />
-                    </motion.div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                      Flatastic
-                    </span>
-                  </div>
-                  <motion.div whileTap={{ scale: 0.95 }}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="rounded-full"
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </motion.div>
-                </div>
-
-                {/* Navigation Items */}
-                <motion.div
-                  className="flex-1 p-6 space-y-2"
-                  variants={staggerContainer}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {navigationItems.map((item, index) => {
-                    const Icon = item.icon;
-                    const isActive = isActiveRoute(item.href);
-                    return (
-                      <motion.div key={item.name} variants={staggerItem}>
-                        <Link
-                          href={item.href}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                            isActive
-                              ? 'bg-primary text-primary-foreground shadow-lg'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                          }`}
-                        >
-                          <Icon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
-                          {item.name}
-                        </Link>
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* Admin Link - Only visible to admins */}
-                  {isAdmin && (
-                    <motion.div variants={staggerItem}>
-                      <Link
-                        href="/admin/recurring-chores"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                          isActiveRoute('/admin')
-                            ? 'bg-primary text-primary-foreground shadow-lg'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                        }`}
-                      >
-                        <Shield className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform" />
-                        Admin
-                      </Link>
-                    </motion.div>
-                  )}
-                </motion.div>
-
-                {/* User Info */}
-                <motion.div
-                  className="p-6 border-t bg-accent/20"
-                  variants={staggerItem}
-                >
-                  <div className="flex items-center space-x-3">
-                    {profile && <UserAvatar user={profile} shouldShowName={false} />}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {profile?.full_name || 'User'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {profile?.email}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       {/* Spacer to prevent content from hiding behind fixed navbar */}
+      <div className="h-14" />
     </>
   );
 }

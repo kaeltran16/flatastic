@@ -1,4 +1,5 @@
 import { AppBreadcrumb } from '@/components/app-breadcrumb';
+import { BottomNavbar } from '@/components/bottom-navbar';
 import { FAB } from '@/components/fab/fab';
 import { Navbar } from '@/components/navbar';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -66,6 +67,7 @@ export default function RootLayout({
             <AppBreadcrumb />
             <main>{children}</main>
             <FAB />
+            <BottomNavbar />
             <Toaster />
             <Analytics />
             <SpeedInsights />

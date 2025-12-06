@@ -1,33 +1,30 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
+import { formatDateRelatively } from '@/utils';
 import {
-  Calendar,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Edit,
-  MoreVertical,
-  Trash2,
-  Users,
+    CheckCircle2,
+    Clock,
+    Edit,
+    MoreVertical,
+    Receipt,
+    Trash2,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
@@ -65,78 +62,19 @@ export default function ExpenseDetailsDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'groceries':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'utilities':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'household':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'food':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'transportation':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'entertainment':
-        return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatFullDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
   const isPayer = expense.paid_by === currentUser.id;
   const currentUserSplit = expense.splits.find(
     (split) => split.user_id === currentUser.id
   );
   const isCurrentUserSettled = currentUserSplit?.is_settled || false;
+  const settledCount = expense.splits.filter((s) => s.is_settled).length;
+  const isFullySettled = expense.status === 'settled';
 
-  // Check if expense can be edited/deleted (only payer can, and only if others haven't settled)
   const canModify =
     isPayer &&
     expense.splits.some(
       (split) => split.user_id !== currentUser.id && split.is_settled
     ) === false;
-
-  // Animation variants matching the add dialog
-  const containerVariants = {
-    hidden: { opacity: 0, scale: 0.95, y: 20 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.3,
-        ease: 'easeOut' as const,
-        staggerChildren: 0.1,
-      },
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      y: 20,
-      transition: { duration: 0.2, ease: 'easeIn' as const },
-    },
-  };
-
-  const childVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0, transition: { ease: 'easeOut' as const } },
-  };
 
   const handleEdit = () => {
     setIsOpen(false);
@@ -153,6 +91,15 @@ export default function ExpenseDetailsDialog({
     setIsOpen(false);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -164,211 +111,209 @@ export default function ExpenseDetailsDialog({
 
         <AnimatePresence>
           {isOpen && (
-            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
               <motion.div
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={containerVariants}
-                className="flex flex-col"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.2 }}
               >
-                <DialogHeader>
-                  <div className="flex items-center justify-between">
-                    <DialogTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Expense Details
-                    </DialogTitle>
+                {/* Header with gradient */}
+                <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 pb-6">
+                  <DialogHeader className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-primary/10">
+                          <Receipt className="h-5 w-5 text-primary" />
+                        </div>
+                        <DialogTitle className="text-lg font-semibold">
+                          Expense Details
+                        </DialogTitle>
+                      </div>
 
-                    {/* Actions Menu - only show for payer */}
-                    {isPayer && (onEditExpense || onDeleteExpense) && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {onEditExpense && (
-                            <DropdownMenuItem
-                              onClick={handleEdit}
-                              disabled={!canModify}
-                              className="flex items-center gap-2"
-                            >
-                              <Edit className="h-4 w-4" />
-                              Edit Expense
-                            </DropdownMenuItem>
-                          )}
-                          {onDeleteExpense && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={handleDelete}
-                                disabled={!canModify}
-                                className="flex items-center gap-2 text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete Expense
+                      {/* Actions Menu */}
+                      {isPayer && (onEditExpense || onDeleteExpense) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {onEditExpense && (
+                              <DropdownMenuItem onClick={handleEdit} disabled={!canModify}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
                               </DropdownMenuItem>
-                            </>
-                          )}
-                          {!canModify && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                                Cannot modify: others have settled
-                              </div>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
+                            )}
+                            {onDeleteExpense && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={handleDelete}
+                                  disabled={!canModify}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
 
-                  <DialogDescription>
-                    View the details of this expense and manage payments.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-6 mt-4">
-                  {/* Main Info Card */}
-                  <motion.div
-                    variants={childVariants}
-                    className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-4 sm:p-6 space-y-4"
-                  >
+                    {/* Description & badges */}
                     <div>
-                      <h2 className="text-lg sm:text-xl font-bold leading-tight mb-2 break-words">
+                      <h2 className="text-xl font-bold leading-tight mb-2">
                         {expense.description}
                       </h2>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${
+                            isFullySettled
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+                          }`}
+                        >
+                          {isFullySettled ? (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Settled
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3 mr-1" />
+                              {settledCount}/{expense.splits.length} paid
+                            </>
+                          )}
+                        </Badge>
                         {expense.category && (
-                          <Badge
-                            className={`${getCategoryColor(
-                              expense.category
-                            )} text-xs font-medium px-2 py-1`}
-                            variant="secondary"
-                          >
+                          <Badge variant="outline" className="text-xs">
                             {expense.category}
                           </Badge>
                         )}
-                        <Badge
-                          variant={
-                            expense.status === 'settled'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                          className="text-xs font-medium px-2 py-1 flex items-center gap-1"
-                        >
-                          {expense.status === 'settled' ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            <Clock className="h-3 w-3" />
-                          )}
-                          {expense.status}
-                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDateRelatively(expense.date)}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Amount Display */}
-                    <div className="text-center py-4 sm:py-6">
-                      <p className="text-2xl sm:text-3xl font-bold text-primary">
-                        ${expense.your_share.toFixed(2)}
-                      </p>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">
-                          Total amount:{' '}
-                          <span className="font-semibold text-foreground text-base">
-                            ${expense.amount.toFixed(2)}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Info Grid */}
-                  <motion.div
-                    variants={childVariants}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                  >
-                    <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg border border-border/50">
-                      <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground font-medium">
-                          Date
-                        </p>
-                        <p className="font-semibold text-sm truncate">
-                          {formatDate(expense.date)}
-                        </p>
-                        <p className="text-xs text-muted-foreground hidden sm:block">
-                          {formatFullDate(expense.date)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg border border-border/50">
-                      <Users className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground font-medium">
-                          Split Between
-                        </p>
-                        <p className="font-semibold text-sm">
-                          {expense.splits.length + 1} people
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  <Separator />
-
-                  {/* Paid By Section */}
-                  <motion.div variants={childVariants} className="space-y-3">
-                    <h3 className="text-base sm:text-lg font-semibold">
-                      Paid By
-                    </h3>
-                    <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
-                      <UserAvatar
-                        className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0"
-                        user={expense.payer}
-                        showAsYou={expense.payer.id === currentUser.id}
-                        shouldShowName={true}
-                      />
-
-                      <div className="text-right">
-                        <p className="font-bold text-lg text-primary">
-                          ${expense.amount.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
+                  </DialogHeader>
                 </div>
 
-                {/* Action Buttons */}
-                {expense.status === 'pending' && !isCurrentUserSettled && (
-                  <DialogFooter className="flex gap-2 pt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Close
-                    </Button>
-                    <motion.div
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      className="w-full sm:w-auto"
-                    >
+                {/* Content */}
+                <div className="p-5 space-y-5">
+                  {/* Amount card */}
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Your share</p>
+                      <p className="text-3xl font-bold tabular-nums">
+                        ${expense.your_share.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">Total</p>
+                      <p className="text-lg font-semibold text-muted-foreground">
+                        ${expense.amount.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Paid by */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Paid by</p>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border">
+                      <UserAvatar
+                        user={expense.payer}
+                        className="h-10 w-10"
+                        shouldShowName={false}
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">
+                          {expense.paid_by === currentUser.id
+                            ? 'You'
+                            : expense.payer.full_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(expense.date)}
+                        </p>
+                      </div>
+                      <p className="text-lg font-bold text-primary">
+                        ${expense.amount.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Split breakdown */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Split between {expense.splits.length} people
+                    </p>
+                    <div className="space-y-2">
+                      {expense.splits.map((split) => {
+                        const member = householdMembers.find(
+                          (m) => m.id === split.user_id
+                        );
+                        const isYou = split.user_id === currentUser.id;
+
+                        return (
+                          <div
+                            key={split.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-lg border transition-colors ${
+                              split.is_settled
+                                ? 'bg-emerald-50/50 border-emerald-200/50 dark:bg-emerald-500/10 dark:border-emerald-500/20'
+                                : 'bg-muted/30 border-border/50'
+                            }`}
+                          >
+                            <UserAvatar
+                              user={member || { id: split.user_id, full_name: 'Unknown' } as Profile}
+                              className="h-8 w-8"
+                              shouldShowName={false}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {isYou ? 'You' : member?.full_name || 'Unknown'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold tabular-nums">
+                                ${split.amount_owed.toFixed(2)}
+                              </span>
+                              {split.is_settled ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-amber-500" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <DialogFooter className="p-5 pt-0">
+                  {expense.status === 'pending' && !isCurrentUserSettled ? (
+                    <div className="flex gap-2 w-full">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsOpen(false)}
+                        className="flex-1"
+                      >
+                        Close
+                      </Button>
                       {isPayer ? (
                         <Button
                           onClick={() => {
                             onSettle?.(expense);
                             setIsOpen(false);
                           }}
-                          className="w-full"
+                          className="flex-1"
                         >
-                          Mark as Settled
+                          Mark as Paid
                         </Button>
                       ) : (
                         <Button
@@ -376,27 +321,22 @@ export default function ExpenseDetailsDialog({
                             setIsPaymentDialogOpen(true);
                             setIsOpen(false);
                           }}
-                          className="w-full"
+                          className="flex-1"
                         >
                           Pay ${expense.your_share.toFixed(2)}
                         </Button>
                       )}
-                    </motion.div>
-                  </DialogFooter>
-                )}
-
-                {/* If expense is settled or user has settled, just show close button */}
-                {(expense.status === 'settled' || isCurrentUserSettled) && (
-                  <DialogFooter className="pt-6">
+                    </div>
+                  ) : (
                     <Button
-                      type="button"
                       variant="outline"
                       onClick={() => setIsOpen(false)}
+                      className="w-full"
                     >
                       Close
                     </Button>
-                  </DialogFooter>
-                )}
+                  )}
+                </DialogFooter>
               </motion.div>
             </DialogContent>
           )}

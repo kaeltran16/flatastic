@@ -42,7 +42,11 @@ export function FABMenu({ isOpen, onClose, onAction }: FABMenuProps) {
 
   return (
     <motion.div
-      className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40"
+      className="fixed right-6 md:right-8 z-40"
+      style={{
+        // Match the FAB button position (above bottom navbar)
+        bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
