@@ -337,6 +337,7 @@ export default function ExpensesPage() {
               pendingCount={filteredStats.pendingExpenses.length}
               yourNetBalance={yourNetBalance}
               yourBalances={yourBalances}
+              currentUserId={currentUser?.id}
             />
           </motion.div>
 

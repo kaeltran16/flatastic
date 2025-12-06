@@ -1,3 +1,4 @@
+import ActiveBalancesDialog from '@/components/expense/active-balances-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -63,6 +64,8 @@ const PaymentSidebar = ({
   currentUserId,
   onRecordPayment,
 }: PaymentSidebarProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   const totalOwed = userBalances
     .filter((b) => b.toUser.id === currentUserId)
     .reduce((sum, b) => sum + b.amount, 0);
@@ -286,17 +289,23 @@ const PaymentSidebar = ({
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4">
             <motion.div
-              className="flex justify-between items-center"
+              className="flex justify-between items-center cursor-pointer"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
+              onClick={() => setIsDialogOpen(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <span className="text-muted-foreground text-sm sm:text-base">
                 Net Balance
+                {userBalances.length > 0 && (
+                  <span className="ml-1 sm:ml-2 text-xs hidden sm:inline">(Click to view)</span>
+                )}
               </span>
               <motion.span
                 className={`font-bold text-lg sm:text-xl ${
-                  animatedNetBalance >= 0 ? 'text-green-600' : 'text-red-600'
+                  animatedNetBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}
                 key={animatedNetBalance} // Re-trigger animation on value change
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -423,6 +432,14 @@ const PaymentSidebar = ({
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Active Balances Dialog */}
+      <ActiveBalancesDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        balances={userBalances}
+        currentUserId={currentUserId}
+      />
     </motion.div>
   );
 };
