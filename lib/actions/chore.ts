@@ -208,11 +208,11 @@ export async function updateChore(choreId: string, formData: ChoreFormData) {
           .select('recurring_type, recurring_interval')
           .eq('id', existingChore.template_id)
           .single();
-
+        
         if (template && template.recurring_type && template.recurring_interval) {
           const nextDate = calculateNextCreationDate(
             validatedData.due_date,
-            template.recurring_type,
+            template.recurring_type as 'daily' | 'weekly' | 'monthly',
             template.recurring_interval
           );
 
