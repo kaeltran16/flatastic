@@ -157,9 +157,8 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
 
-export default withSentryConfig(undefined, {
+export default withSentryConfig(withPWA(nextConfig), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 

@@ -148,7 +148,7 @@ export async function addExpenseAction(formData: ExpenseFormData): Promise<
     }
 
     // Revalidate cache
-    revalidateTag(`expenses-${profile.household_id}`);
+    revalidateTag(`expenses-${profile.household_id}`, {});
 
     return {
       success: true,
@@ -312,7 +312,7 @@ export async function editExpenseAction(
       };
     }
 
-    revalidateTag(`expenses-${existingExpense.household_id}`);
+    revalidateTag(`expenses-${existingExpense.household_id}`, {});
 
     return {
       success: true,
@@ -407,7 +407,7 @@ export async function deleteExpenseAction(
       };
     }
 
-    revalidateTag(`expenses-${expense.household_id}`);
+    revalidateTag(`expenses-${expense.household_id}`, {});
 
     return {
       success: true,
@@ -510,7 +510,7 @@ export async function settleExpenseAction(expenseId: string): Promise<
       }
     }
 
-    revalidateTag(`expenses-${expense.household_id}`);
+    revalidateTag(`expenses-${expense.household_id}`, {});
 
     return {
       success: true,
