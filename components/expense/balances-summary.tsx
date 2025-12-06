@@ -14,13 +14,15 @@ interface BalancesSummaryProps {
   currentUserId: string | undefined;
   selectedBalanceUserId?: string | null;
   onBalanceSelect?: (userId: string | null) => void;
+  onSettleBalance?: (splitIds: string[]) => Promise<void>;
 }
 
 export function BalancesSummary({ 
   balances, 
   currentUserId, 
   selectedBalanceUserId,
-  onBalanceSelect 
+  onBalanceSelect,
+  onSettleBalance,
 }: BalancesSummaryProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<Balance | null>(null);
@@ -42,11 +44,31 @@ export function BalancesSummary({
   };
 
   const handleSettlePayment = async (
-    _balance: Balance,
+    balance: Balance,
     _amount: number,
     _note: string
   ) => {
-    setSelectedBalance(null);
+    try {
+      if (onSettleBalance && balance.related_splits) {
+        // Collect all related split IDs
+        // related_splits contains ExpenseSplitWithExpense
+        // We want to settle ALL splits involved in this balance to square up.
+        // This includes splits where I owe them AND splits where they owe me.
+        
+        const splitsToSettle = balance.related_splits
+          .filter(split => !split.is_settled)
+          .map(split => split.id);
+          
+        if (splitsToSettle.length > 0) {
+            await onSettleBalance(splitsToSettle);
+        }
+      }
+    } catch (error) {
+        console.error('Failed to settle balance:', error);
+        // Toast is handled in the hook, but we could add safe guard here
+    } finally {
+        setSelectedBalance(null);
+    }
   };
 
   const handleRowClick = (balance: Balance) => {

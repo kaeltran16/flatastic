@@ -3,6 +3,7 @@ import { BottomNavbar } from '@/components/bottom-navbar';
 import { FAB } from '@/components/fab/fab';
 import { Navbar } from '@/components/navbar';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { Toaster } from '@/components/ui/sonner';
 import QueryProvider from '@/lib/query-provider';
 import { Analytics } from '@vercel/analytics/next';
@@ -65,7 +66,9 @@ export default function RootLayout({
             {/* Auto-subscribe to push notifications silently on app load */}
             <Navbar />
             <AppBreadcrumb />
-            <main>{children}</main>
+            <PullToRefresh>
+              <main>{children}</main>
+            </PullToRefresh>
             <FAB />
             <BottomNavbar />
             <Toaster />

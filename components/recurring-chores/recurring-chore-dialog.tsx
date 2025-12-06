@@ -70,7 +70,7 @@ export function RecurringChoreDialog({
         recurring_type: (template.recurring_type as 'daily' | 'weekly' | 'monthly') || 'weekly',
         recurring_interval: template.recurring_interval || 1,
         recurring_start_date:
-          template.recurring_start_date ||
+          template.recurring_start_date?.split('T')[0] ||
           new Date().toISOString().split('T')[0],
         auto_assign_rotation: template.auto_assign_rotation ?? true,
         next_creation_date: template.next_creation_date ? template.next_creation_date.split('T')[0] : '',

@@ -181,11 +181,26 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
     // If no manual override, get next user in rotation
     // If no manual override, get next user in rotation
     if (!assignedUserId) {
-      const nextUser = await getNextUserInRotation(
-        household_id,
-        template_id
-      );
-      assignedUserId = nextUser || undefined;
+      // Check for template-level override first
+      if (template.next_assignee_id) {
+        assignedUserId = template.next_assignee_id;
+
+        // Update tracker to ensure rotation continues from this overridden user
+        await supabase
+          .from('template_assignment_tracker')
+          .upsert({
+            template_id: template_id,
+            household_id: household_id,
+            last_assigned_user_id: assignedUserId,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'template_id,household_id' });
+      } else {
+        const nextUser = await getNextUserInRotation(
+          household_id,
+          template_id
+        );
+        assignedUserId = nextUser || undefined;
+      }
     } else {
       // If manual override, we should still update the tracker so rotation continues from here
       // But we need to be careful not to break if the user is not in the rotation list
@@ -235,6 +250,17 @@ export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
         `Failed to create chore: ${choreError?.message}`,
         'CREATE_FAILED'
       );
+    }
+
+    // If we used a template override, clear it now so rotation resumes
+    if (template.next_assignee_id) {
+       await supabase
+        .from('chore_templates')
+        .update({ 
+          next_assignee_id: null,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', template_id);
     }
 
     // Get assigned user's name

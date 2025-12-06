@@ -300,6 +300,7 @@ export default function AdminDashboardPage() {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+      timeZone: 'Asia/Ho_Chi_Minh',
     }).format(nextDate);
 
     return isPast ? `Overdue (${formatted})` : formatted;
@@ -878,6 +879,9 @@ export default function AdminDashboardPage() {
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
             queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+            // Invalidate all next-assigned-user and next-due-date queries to update specific template cards
+            queryClient.invalidateQueries({ queryKey: ['next-assigned-user'] });
+            queryClient.invalidateQueries({ queryKey: ['next-due-date'] });
             setIsDialogOpen(false);
             setSelectedTemplate(null);
           }}

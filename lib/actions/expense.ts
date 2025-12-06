@@ -528,3 +528,56 @@ export async function settleExpenseAction(expenseId: string): Promise<
     };
   }
 }
+
+// Settle balance server action
+export async function settleBalanceAction(splitIds: string[]): Promise<ActionResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    if (!splitIds || splitIds.length === 0) {
+      return { success: false, error: 'No splits provided to settle' };
+    }
+
+    const { error: updateError } = await supabase
+      .from('expense_splits')
+      .update({ is_settled: true })
+      .in('id', splitIds);
+
+    if (updateError) {
+      return {
+        success: false,
+        error: `Failed to settle splits: ${updateError.message}`,
+      };
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.household_id) {
+      revalidateTag(`expenses-${profile.household_id}`, {});
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Settle balance error:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}

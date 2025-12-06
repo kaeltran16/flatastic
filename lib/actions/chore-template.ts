@@ -74,6 +74,9 @@ export async function createChoreTemplate(
   if (templateData.auto_assign_rotation !== undefined) {
     insertData.auto_assign_rotation = templateData.auto_assign_rotation;
   }
+  if (templateData.next_assignee_id !== undefined) {
+    insertData.next_assignee_id = templateData.next_assignee_id;
+  }
 
   // Insert the new template
   const { data: newTemplate, error: insertError } = await supabase
@@ -114,6 +117,21 @@ export async function updateChoreTemplate(
   // Validate required fields
   if (!templateData.id) {
     throw new Error('Template ID is required for updates');
+  }
+
+  // Get user's profile to access household_id
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('household_id')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('Failed to fetch user profile');
+  }
+
+  if (!profile.household_id) {
+    throw new Error('User does not belong to a household');
   }
 
   // Prepare update data (only include fields that are provided)
@@ -158,13 +176,16 @@ export async function updateChoreTemplate(
   if (templateData.last_created_at !== undefined) {
     updateData.last_created_at = templateData.last_created_at;
   }
+  if (templateData.next_assignee_id !== undefined) {
+    updateData.next_assignee_id = templateData.next_assignee_id;
+  }
 
   // Update the template
   const { data: updatedTemplate, error: updateError } = await supabase
     .from('chore_templates')
     .update(updateData)
     .eq('id', templateData.id)
-    .eq('created_by', user.id) // Ensure user can only update their own templates
+    .eq('household_id', profile.household_id) // Allow updating any template in the household
     .select()
     .single();
 
@@ -205,12 +226,27 @@ export async function deleteChoreTemplate(templateId: string): Promise<void> {
     throw new Error('Template ID is required for deletion');
   }
 
+  // Get user's profile to access household_id
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('household_id')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('Failed to fetch user profile');
+  }
+
+  if (!profile.household_id) {
+    throw new Error('User does not belong to a household');
+  }
+
   // Soft delete by setting is_active to false
   const { error: deleteError } = await supabase
     .from('chore_templates')
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq('id', templateId)
-    .eq('created_by', user.id); // Ensure user can only delete their own templates
+    .eq('household_id', profile.household_id); // Allow deleting any template in the household
 
   if (deleteError) {
     console.error('Error deleting chore template:', deleteError);
@@ -459,6 +495,17 @@ export async function getNextAssignedUser(
       return null;
     }
 
+    // Check for manual override first
+    if (template.next_assignee_id) {
+       const overrideUser = availableUsers.find((u: { id: string }) => u.id === template.next_assignee_id);
+       if (overrideUser) {
+         return {
+           userId: overrideUser.id,
+           userName: overrideUser.full_name || 'Manual Override',
+         };
+       }
+    }
+
     // Get assignment tracking record for this template
     const { data: assignmentTracker, error: trackerError } = await supabase
       .from('template_assignment_tracker')
@@ -654,6 +701,11 @@ export async function manuallyTriggerChoreCreation(
       name: template.name,
     };
 
+    // Apply next assignee override if set
+    if (template.next_assignee_id) {
+      choreData.assigned_to = template.next_assignee_id;
+    }
+
     // Smart due date logic: check last created chore from this template
     const TIMEZONE = 'Asia/Ho_Chi_Minh';
 
@@ -733,6 +785,16 @@ export async function manuallyTriggerChoreCreation(
         .update({
           last_created_at: new Date().toISOString(),
           next_creation_date: nextCreationDate.toISOString(),
+          next_assignee_id: null, // Clear the override after use
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', templateId);
+    } else if (template.next_assignee_id) {
+       // Also clear override for non-recurring templates (or separate logic if needed, but safe here)
+       await supabase
+        .from('chore_templates')
+        .update({
+          next_assignee_id: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', templateId);

@@ -1,15 +1,16 @@
 // hooks/useExpenses.ts - Refactored with best practices
 import {
-    addExpenseAction,
-    deleteExpenseAction,
-    editExpenseAction,
-    settleExpenseAction,
+  addExpenseAction,
+  deleteExpenseAction,
+  editExpenseAction,
+  settleBalanceAction,
+  settleExpenseAction,
 } from '@/lib/actions/expense';
 import { queryKeys } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import type {
-    ExpenseSplit,
-    ExpenseWithDetails
+  ExpenseSplit,
+  ExpenseWithDetails
 } from '@/lib/supabase/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
@@ -262,6 +263,34 @@ export function useExpenses() {
     [currentUser, invalidateRelatedQueries]
   );
 
+  // Settle balance
+  const settleBalance = useCallback(
+    async (splitIds: string[]) => {
+      if (!currentUser) throw new Error('No current user');
+
+      setIsSettlingExpense(true);
+
+      try {
+        const result = await settleBalanceAction(splitIds);
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to settle balance');
+        }
+
+        await invalidateRelatedQueries();
+        toast?.success?.('Balance settled successfully');
+      } catch (error) {
+        toast?.error?.(
+          error instanceof Error ? error.message : 'Failed to settle balance'
+        );
+        throw error;
+      } finally {
+        setIsSettlingExpense(false);
+      }
+    },
+    [currentUser, invalidateRelatedQueries]
+  );
+
   // Calculate stats from current data
   const stats = {
     totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
@@ -286,6 +315,7 @@ export function useExpenses() {
     editExpense,
     deleteExpense,
     settleExpense,
+    settleBalance,
     refreshData: invalidateRelatedQueries,
     // Loading states for individual operations
     isAddingExpense,
