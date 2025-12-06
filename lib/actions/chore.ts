@@ -253,7 +253,7 @@ export async function deleteChore(choreId: string) {
     // Check if chore exists and user has permission
     const { data: existingChore, error: fetchError } = await supabase
       .from('chores')
-      .select('household_id, template_id, due_date')
+      .select('household_id, template_id, due_date, assigned_to, status')
       .eq('id', choreId)
       .single();
 
@@ -281,10 +281,21 @@ export async function deleteChore(choreId: string) {
 
       if (latestChore && latestChore.id === choreId) {
         // We are deleting the latest chore.
-        // We should reset the template's next_creation_date to this chore's due_date
-        // so it gets recreated (or the schedule resumes from here)
-        if (existingChore.due_date) {
-           await supabase
+        
+        // 1. If the chore was NOT completed, we should ensure the next one goes to the SAME person
+        // This prevents people leveraged deletion to skip their turn
+        if (existingChore.status !== 'completed' && existingChore.assigned_to) {
+             await supabase
+            .from('chore_templates')
+            .update({
+              next_creation_date: existingChore.due_date,
+              next_assignee_id: existingChore.assigned_to, // Force assignment back to this user
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingChore.template_id);
+        } else if (existingChore.due_date) {
+            // 2. Otherwise just reset the date (if completed, or no assignee)
+            await supabase
             .from('chore_templates')
             .update({
               next_creation_date: existingChore.due_date,

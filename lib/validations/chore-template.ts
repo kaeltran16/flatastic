@@ -1,4 +1,5 @@
 // lib/validations/chore-template.ts
+import { TZDate } from '@date-fns/tz';
 import { z } from 'zod';
 
 // Schema for creating a chore template
@@ -147,6 +148,10 @@ export type RecurringTemplateQuery = z.infer<
   typeof RecurringTemplateQuerySchema
 >;
 
+
+
+// ... (existing code)
+
 // Helper function to calculate next creation date in GMT+7 with 23:59 deadline
 export function calculateNextCreationDate(
   currentScheduledDate: string | Date,
@@ -157,7 +162,7 @@ export function calculateNextCreationDate(
   const TIMEZONE = 'Asia/Ho_Chi_Minh';
   
   const baseDate = new Date(currentScheduledDate);
-  const nextDate = new Date(baseDate);
+  const nextDate = new TZDate(baseDate, TIMEZONE);
 
   switch (recurring_type) {
     case 'daily':
@@ -172,7 +177,7 @@ export function calculateNextCreationDate(
   }
 
   // Set time to 23:59:59 in GMT+7
-  // This ensures chores expire at the end of the day
+  // This ensures chores expire at the end of the day in the correct timezone
   nextDate.setHours(23, 59, 59, 999);
 
   return nextDate;
