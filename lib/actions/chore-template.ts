@@ -715,6 +715,9 @@ export async function manuallyTriggerChoreCreation(
       const providedDateGMT7 = new TZDate(dueDate, TIMEZONE);
       providedDateGMT7.setHours(23, 59, 59, 999);
       choreData.due_date = providedDateGMT7.toISOString();
+    } else if (template.next_creation_date) {
+      // Use template's next_creation_date if it's set (manual override)
+      choreData.due_date = template.next_creation_date;
     } else if (template.is_recurring && template.recurring_type && template.recurring_interval) {
       // For recurring templates, calculate based on last chore's due date + interval
       const { data: lastChore } = await supabase

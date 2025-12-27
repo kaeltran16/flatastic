@@ -876,12 +876,17 @@ export default function AdminDashboardPage() {
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           template={selectedTemplate}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
-            queryClient.invalidateQueries({ queryKey: ['household-stats'] });
-            // Invalidate all next-assigned-user and next-due-date queries to update specific template cards
-            queryClient.invalidateQueries({ queryKey: ['next-assigned-user'] });
-            queryClient.invalidateQueries({ queryKey: ['next-due-date'] });
+          householdId={profile?.household_id}
+          onSuccess={async () => {
+            // Invalidate all relevant queries
+            await queryClient.invalidateQueries({ queryKey: ['recurring-templates'] });
+            await queryClient.invalidateQueries({ queryKey: ['household-stats'] });
+            await queryClient.invalidateQueries({ queryKey: ['next-assigned-user'] });
+            await queryClient.invalidateQueries({ queryKey: ['next-due-date'] });
+
+            // Force refetch to ensure UI updates immediately
+            await queryClient.refetchQueries({ queryKey: ['recurring-templates', profile?.household_id] });
+
             setIsDialogOpen(false);
             setSelectedTemplate(null);
           }}

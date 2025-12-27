@@ -1,5 +1,6 @@
 'use client';
 
+import { TZDate } from '@date-fns/tz';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ interface RecurringChoreDialogProps {
   onOpenChange: (open: boolean) => void;
   template?: ChoreTemplate | null;
   onSuccess: () => void;
+  householdId?: string | null;
 }
 
 export function RecurringChoreDialog({
@@ -44,6 +46,7 @@ export function RecurringChoreDialog({
   onOpenChange,
   template,
   onSuccess,
+  householdId,
 }: RecurringChoreDialogProps) {
   const { profile } = useProfile();
   const { members } = useHouseholdMembers(profile?.household_id);
@@ -98,11 +101,31 @@ export function RecurringChoreDialog({
         throw new Error('No household found');
       }
 
+      // Format dates to end of day in GMT+7 (Asia/Ho_Chi_Minh)
+      const TIMEZONE = 'Asia/Ho_Chi_Minh';
+
+      let next_creation_date: string | undefined = undefined;
+      if (data.next_creation_date) {
+        // Parse the date string and create TZDate in GMT+7
+        const date = new TZDate(data.next_creation_date, TIMEZONE);
+        // Set to 23:59:59 in GMT+7
+        date.setHours(23, 59, 59, 999);
+        next_creation_date = date.toISOString();
+      }
+
+      let recurring_start_date: string | undefined = undefined;
+      if (data.recurring_start_date) {
+        const date = new TZDate(data.recurring_start_date, TIMEZONE);
+        // Set to 23:59:59 in GMT+7
+        date.setHours(23, 59, 59, 999);
+        recurring_start_date = date.toISOString();
+      }
+
       const payload: any = {
         ...data,
         next_assignee_id: data.next_assignee_id === 'auto' ? null : data.next_assignee_id,
-        // Only send next_creation_date if it's set and valid
-        next_creation_date: data.next_creation_date ? new Date(data.next_creation_date).toISOString() : undefined,
+        next_creation_date,
+        recurring_start_date,
       };
 
       if (template) {

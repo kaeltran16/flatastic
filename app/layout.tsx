@@ -71,7 +71,7 @@ export default function RootLayout({
             </PullToRefresh>
             <FAB />
             <BottomNavbar />
-            <Toaster />
+            <Toaster position="top-center" />
             <Analytics />
             <SpeedInsights />
           </QueryProvider>
