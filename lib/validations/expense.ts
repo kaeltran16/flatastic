@@ -1,10 +1,10 @@
 // lib/validations/expense.ts
 import {
-  Expense,
-  ExpenseCategory,
-  ExpenseInsert,
-  ExpenseUpdate,
-  SplitType,
+    Expense,
+    ExpenseCategory,
+    ExpenseInsert,
+    ExpenseUpdate,
+    SplitType,
 } from '@/lib/supabase/schema.alias';
 import { z } from 'zod';
 
@@ -19,12 +19,18 @@ export const ExpenseCategoryEnum = z.enum([
   'other',
 ]);
 
-export const SplitTypeEnum = z.enum(['equal', 'custom']);
+export const SplitTypeEnum = z.enum(['equal', 'custom', 'percentage']);
 
 // Custom split schema
 export const CustomSplitSchema = z.object({
   user_id: z.string().uuid('Invalid user ID'),
   amount: z.number().min(0.01, 'Amount must be greater than 0'),
+});
+
+// Percentage split schema
+export const PercentageSplitSchema = z.object({
+  user_id: z.string().uuid('Invalid user ID'),
+  percentage: z.number().min(0.01, 'Percentage must be greater than 0').max(100, 'Percentage cannot exceed 100'),
 });
 
 // Schema for transforming Supabase data to app data
@@ -72,6 +78,7 @@ export const CreateExpenseSchema = z
     date: z.string(),
     split_type: SplitTypeEnum.default('equal'),
     custom_splits: z.array(CustomSplitSchema).optional(),
+    percentage_splits: z.array(PercentageSplitSchema).optional(),
     selected_users: z.array(z.string().uuid()).optional(),
     household_id: z.string().uuid(),
   })
@@ -110,6 +117,42 @@ export const CreateExpenseSchema = z
       message: 'Custom split amounts must equal the total expense amount',
       path: ['custom_splits'],
     }
+  )
+  .refine(
+    (data) => {
+      // If split_type is percentage, percentage_splits and selected_users are required
+      if (data.split_type === 'percentage') {
+        return (
+          data.percentage_splits &&
+          data.percentage_splits.length > 0 &&
+          data.selected_users &&
+          data.selected_users.length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message:
+        'Percentage splits and selected users are required for percentage split type',
+      path: ['percentage_splits'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If split_type is percentage, verify percentages add up to 100
+      if (data.split_type === 'percentage' && data.percentage_splits) {
+        const totalPercentage = data.percentage_splits.reduce(
+          (sum, split) => sum + split.percentage,
+          0
+        );
+        return Math.abs(totalPercentage - 100) < 0.01;
+      }
+      return true;
+    },
+    {
+      message: 'Percentage splits must add up to 100%',
+      path: ['percentage_splits'],
+    }
   );
 
 export const UpdateExpenseSchema = z
@@ -132,6 +175,7 @@ export const UpdateExpenseSchema = z
       .optional(),
     split_type: SplitTypeEnum.optional(),
     custom_splits: z.array(CustomSplitSchema).optional(),
+    percentage_splits: z.array(PercentageSplitSchema).optional(),
     selected_users: z.array(z.string().uuid()).optional(),
   })
   .refine(
@@ -169,12 +213,49 @@ export const UpdateExpenseSchema = z
       message: 'Custom split amounts must equal the total expense amount',
       path: ['custom_splits'],
     }
+  )
+  .refine(
+    (data) => {
+      // If split_type is percentage, percentage_splits and selected_users are required
+      if (data.split_type === 'percentage') {
+        return (
+          data.percentage_splits &&
+          data.percentage_splits.length > 0 &&
+          data.selected_users &&
+          data.selected_users.length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message:
+        'Percentage splits and selected users are required for percentage split type',
+      path: ['percentage_splits'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If split_type is percentage, verify percentages add up to 100
+      if (data.split_type === 'percentage' && data.percentage_splits) {
+        const totalPercentage = data.percentage_splits.reduce(
+          (sum, split) => sum + split.percentage,
+          0
+        );
+        return Math.abs(totalPercentage - 100) < 0.01;
+      }
+      return true;
+    },
+    {
+      message: 'Percentage splits must add up to 100%',
+      path: ['percentage_splits'],
+    }
   );
 
 // Export form types
 export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
 export type UpdateExpenseInput = z.infer<typeof UpdateExpenseSchema>;
 export type CustomSplit = z.infer<typeof CustomSplitSchema>;
+export type PercentageSplit = z.infer<typeof PercentageSplitSchema>;
 
 // Utility functions for data transformation
 export const transformSupabaseExpense = (supabaseExpense: Expense): Expense => {

@@ -42,7 +42,7 @@ export type ExpenseCategory =
   | 'transportation'
   | 'entertainment'
   | 'other';
-export type SplitType = 'equal' | 'custom';
+export type SplitType = 'equal' | 'custom' | 'percentage';
 export type RecurringType = 'daily' | 'weekly' | 'monthly' | 'none';
 export type NotificationType =
   | 'chore_reminder'

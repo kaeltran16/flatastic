@@ -92,6 +92,36 @@ export async function addExpenseAction(formData: ExpenseFormData): Promise<
       }
     }
 
+    // Validate percentage splits if provided
+    if (formData.split_type === 'percentage') {
+      if (!formData.percentage_splits?.length) {
+        return {
+          success: false,
+          error: 'Percentage splits are required for percentage split type',
+        };
+      }
+
+      const totalPercentage = formData.percentage_splits.reduce(
+        (sum, split) => sum + split.percentage,
+        0
+      );
+      if (Math.abs(totalPercentage - 100) > 0.01) {
+        return {
+          success: false,
+          error: 'Percentages must add up to 100%',
+        };
+      }
+
+      // Validate that all split users exist in household
+      const memberIds = new Set(householdMembers.map((m) => m.id));
+      const invalidUsers = formData.percentage_splits.filter(
+        (split) => !memberIds.has(split.user_id)
+      );
+      if (invalidUsers.length > 0) {
+        return { success: false, error: 'Invalid users in percentage splits' };
+      }
+    }
+
     // Create expense
     const { data: expense, error: expenseError } = await supabase
       .from('expenses')
@@ -129,6 +159,13 @@ export async function addExpenseAction(formData: ExpenseFormData): Promise<
         expense_id: expense.id,
         user_id: split.user_id,
         amount_owed: split.amount,
+        is_settled: split.user_id === user.id,
+      }));
+    } else if (formData.split_type === 'percentage') {
+      splits = formData.percentage_splits!.map((split) => ({
+        expense_id: expense.id,
+        user_id: split.user_id,
+        amount_owed: (split.percentage / 100) * formData.amount,
         is_settled: split.user_id === user.id,
       }));
     }
@@ -246,6 +283,27 @@ export async function editExpenseAction(
       }
     }
 
+    // Validate percentage splits if provided
+    if (formData.split_type === 'percentage') {
+      if (!formData.percentage_splits?.length) {
+        return {
+          success: false,
+          error: 'Percentage splits are required for percentage split type',
+        };
+      }
+
+      const totalPercentage = formData.percentage_splits.reduce(
+        (sum, split) => sum + split.percentage,
+        0
+      );
+      if (Math.abs(totalPercentage - 100) > 0.01) {
+        return {
+          success: false,
+          error: 'Percentages must add up to 100%',
+        };
+      }
+    }
+
     // Update expense
     const { data: updatedExpense, error: updateError } = await supabase
       .from('expenses')
@@ -296,6 +354,13 @@ export async function editExpenseAction(
         expense_id: expenseId,
         user_id: split.user_id,
         amount_owed: split.amount,
+        is_settled: split.user_id === user.id,
+      }));
+    } else if (formData.split_type === 'percentage') {
+      splits = formData.percentage_splits!.map((split) => ({
+        expense_id: expenseId,
+        user_id: split.user_id,
+        amount_owed: (split.percentage / 100) * formData.amount,
         is_settled: split.user_id === user.id,
       }));
     }

@@ -7,39 +7,39 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import { ExpenseFormData } from '@/hooks/use-expense';
 import { Profile } from '@/lib/supabase/schema.alias';
 import { ExpenseWithDetails } from '@/lib/supabase/types';
 import { cn } from '@/lib/utils';
 import {
-  CreateExpenseSchema,
-  UpdateExpenseSchema,
-  type CreateExpenseInput,
-  type CustomSplit,
-  type UpdateExpenseInput,
+    CreateExpenseSchema,
+    UpdateExpenseSchema,
+    type CreateExpenseInput,
+    type CustomSplit,
+    type UpdateExpenseInput,
 } from '@/lib/validations/expense';
 import { formatDate } from '@/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertCircle,
-  CalendarDays,
-  DollarSign,
-  Edit,
-  Loader2,
-  Plus,
-  Save,
-  Users,
+    AlertCircle,
+    CalendarDays,
+    DollarSign,
+    Edit,
+    Loader2,
+    Plus,
+    Save,
+    Users,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
@@ -95,6 +95,9 @@ export default function ExpenseForm({
   const [customSplits, setCustomSplits] = useState<{
     [userId: string]: string;
   }>({});
+  const [percentageSplits, setPercentageSplits] = useState<{
+    [userId: string]: string;
+  }>({});
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     initialData?.date ? new Date(initialData.date) : new Date()
@@ -142,6 +145,7 @@ export default function ExpenseForm({
   const splitType = watch('split_type');
   const amount = watch('amount');
   const showCustomSplit = splitType === 'custom';
+  const showPercentageSplit = splitType === 'percentage';
 
   // Initialize custom splits from initial data
   useEffect(() => {
@@ -164,18 +168,30 @@ export default function ExpenseForm({
     setValue('date', date ? date.toISOString() : '');
   };
 
-  // Reset custom splits when split type changes
+  // Reset splits when split type changes
   useEffect(() => {
     if (splitType === 'equal') {
       setCustomSplits({});
+      setPercentageSplits({});
       setSelectedUsers(new Set());
       setValue('custom_splits', undefined);
+      setValue('percentage_splits', undefined);
       setValue('selected_users', undefined);
     } else if (splitType === 'custom' && currentUserId) {
       // If switching to custom and no users selected, initialize with current user
+      setPercentageSplits({});
+      setValue('percentage_splits', undefined);
       if (selectedUsers.size === 0) {
         setSelectedUsers(new Set([currentUserId]));
         setCustomSplits({ [currentUserId]: '' });
+      }
+    } else if (splitType === 'percentage' && currentUserId) {
+      // If switching to percentage and no users selected, initialize with current user
+      setCustomSplits({});
+      setValue('custom_splits', undefined);
+      if (selectedUsers.size === 0) {
+        setSelectedUsers(new Set([currentUserId]));
+        setPercentageSplits({ [currentUserId]: '' });
       }
     }
   }, [splitType, currentUserId, setValue]);
@@ -250,28 +266,75 @@ export default function ExpenseForm({
     clearErrors,
   ]);
 
+  // Update form values when percentage splits change
+  useEffect(() => {
+    if (splitType === 'percentage') {
+      const splits = Array.from(selectedUsers).map((userId) => ({
+        user_id: userId,
+        percentage: parseFloat(percentageSplits[userId]) || 0,
+      }));
+
+      setValue('percentage_splits', splits);
+      setValue('selected_users', Array.from(selectedUsers));
+
+      // Validate percentage splits
+      if (selectedUsers.size > 0) {
+        const totalPercentage = splits.reduce((sum, split) => sum + split.percentage, 0);
+
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+          setError('percentage_splits', {
+            type: 'manual',
+            message: `Percentages (${totalPercentage.toFixed(1)}%) must add up to 100%`,
+          });
+        } else {
+          clearErrors('percentage_splits');
+        }
+      }
+    }
+  }, [
+    percentageSplits,
+    selectedUsers,
+    splitType,
+    setValue,
+    setError,
+    clearErrors,
+  ]);
+
   const handleUserSelection = (userId: string, checked: boolean) => {
     const newSelectedUsers = new Set(selectedUsers);
     const newCustomSplits = { ...customSplits };
+    const newPercentageSplits = { ...percentageSplits };
 
     if (checked) {
       newSelectedUsers.add(userId);
       if (!newCustomSplits[userId]) {
         newCustomSplits[userId] = '';
       }
+      if (!newPercentageSplits[userId]) {
+        newPercentageSplits[userId] = '';
+      }
     } else {
       newSelectedUsers.delete(userId);
       delete newCustomSplits[userId];
+      delete newPercentageSplits[userId];
     }
 
     setSelectedUsers(newSelectedUsers);
     setCustomSplits(newCustomSplits);
+    setPercentageSplits(newPercentageSplits);
   };
 
   const handleCustomSplitChange = (userId: string, splitAmount: string) => {
     setCustomSplits((prev) => ({
       ...prev,
       [userId]: splitAmount,
+    }));
+  };
+
+  const handlePercentageSplitChange = (userId: string, percentage: string) => {
+    setPercentageSplits((prev) => ({
+      ...prev,
+      [userId]: percentage,
     }));
   };
 
@@ -288,6 +351,7 @@ export default function ExpenseForm({
         date: data.date || '',
         split_type: data.split_type || 'equal',
         custom_splits: data.custom_splits,
+        percentage_splits: data.percentage_splits,
         selected_users: data.selected_users,
       };
 
@@ -297,6 +361,7 @@ export default function ExpenseForm({
       if (mode === 'create') {
         reset();
         setCustomSplits({});
+        setPercentageSplits({});
         setSelectedUsers(new Set());
         setSelectedDate(new Date());
       }
@@ -518,6 +583,12 @@ export default function ExpenseForm({
                 >
                   Custom Split
                 </SelectItem>
+                <SelectItem
+                  value="percentage"
+                  className="py-3 sm:py-2 text-base sm:text-sm"
+                >
+                  Split by Percentage
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.split_type && (
@@ -633,6 +704,137 @@ export default function ExpenseForm({
                 {errors.custom_splits && (
                   <p className="text-sm text-red-500">
                     {errors.custom_splits.message}
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Percentage Split Section */}
+          <AnimatePresence>
+            {showPercentageSplit && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ delay: 0.3 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <Label className="text-sm font-medium">
+                    Select Users and Percentages
+                  </Label>
+                </div>
+
+                <Card>
+                  <CardContent className="p-4 space-y-3">
+                    {householdMembers.map((member) => {
+                      const percentage = parseFloat(percentageSplits[member.id]) || 0;
+                      const calculatedAmount = totalAmount > 0 ? (percentage / 100) * totalAmount : 0;
+                      return (
+                        <div key={member.id} className="flex items-center gap-3">
+                          <Checkbox
+                            id={`user-pct-${member.id}`}
+                            checked={selectedUsers.has(member.id)}
+                            onCheckedChange={(checked) =>
+                              handleUserSelection(member.id, checked as boolean)
+                            }
+                          />
+                          <Label
+                            htmlFor={`user-pct-${member.id}`}
+                            className="flex-1 text-sm"
+                          >
+                            {member.full_name}
+                            {member.id === currentUserId && ' (You)'}
+                          </Label>
+                          {selectedUsers.has(member.id) && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  min="0"
+                                  max="100"
+                                  type="number"
+                                  inputMode="decimal"
+                                  placeholder="0"
+                                  value={percentageSplits[member.id] || ''}
+                                  onChange={(e) =>
+                                    handlePercentageSplitChange(
+                                      member.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-16 h-8 text-sm"
+                                />
+                                <span className="text-sm text-gray-500">%</span>
+                              </div>
+                              {totalAmount > 0 && percentage > 0 && (
+                                <span className="text-xs text-gray-400">
+                                  (${calculatedAmount.toFixed(2)})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+
+                {/* Percentage Summary */}
+                {selectedUsers.size > 0 && (
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="space-y-1 text-sm">
+                        {totalAmount > 0 && (
+                          <div className="flex justify-between">
+                            <span>Total Expense:</span>
+                            <span className="font-medium">
+                              ${totalAmount.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Total Percentage:</span>
+                          <span
+                            className={`font-medium ${
+                              Math.abs(
+                                Object.values(percentageSplits).reduce(
+                                  (sum, p) => sum + (parseFloat(p) || 0),
+                                  0
+                                ) - 100
+                              ) < 0.01
+                                ? 'text-green-600'
+                                : 'text-orange-600'
+                            }`}
+                          >
+                            {Object.values(percentageSplits)
+                              .reduce((sum, p) => sum + (parseFloat(p) || 0), 0)
+                              .toFixed(1)}
+                            %
+                          </span>
+                        </div>
+                        {Math.abs(
+                          Object.values(percentageSplits).reduce(
+                            (sum, p) => sum + (parseFloat(p) || 0),
+                            0
+                          ) - 100
+                        ) > 0.01 && (
+                          <div className="flex items-center gap-1 text-xs text-orange-600 mt-2">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>
+                              Percentages must add up to 100%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {errors.percentage_splits && (
+                  <p className="text-sm text-red-500">
+                    {errors.percentage_splits.message}
                   </p>
                 )}
               </motion.div>

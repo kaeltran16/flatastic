@@ -1,16 +1,16 @@
 // hooks/useExpenses.ts - Refactored with best practices
 import {
-  addExpenseAction,
-  deleteExpenseAction,
-  editExpenseAction,
-  settleBalanceAction,
-  settleExpenseAction,
+    addExpenseAction,
+    deleteExpenseAction,
+    editExpenseAction,
+    settleBalanceAction,
+    settleExpenseAction,
 } from '@/lib/actions/expense';
 import { queryKeys } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import type {
-  ExpenseSplit,
-  ExpenseWithDetails
+    ExpenseSplit,
+    ExpenseWithDetails
 } from '@/lib/supabase/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
@@ -23,13 +23,19 @@ export interface CustomSplit {
   amount: number;
 }
 
+export interface PercentageSplit {
+  user_id: string;
+  percentage: number;
+}
+
 export interface ExpenseFormData {
   description: string;
   amount: number;
   category: string;
   date: string;
-  split_type: 'equal' | 'custom';
+  split_type: 'equal' | 'custom' | 'percentage';
   custom_splits?: CustomSplit[];
+  percentage_splits?: PercentageSplit[];
   selected_users?: string[];
 }
 
