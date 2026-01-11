@@ -204,12 +204,23 @@ export default function AdminDashboardPage() {
       isRecurring: boolean;
     }) => {
       const supabase = createClient();
+      const now = new Date();
+
+      // When enabling recurring, set next_creation_date to now so it gets picked up
+      const updateData: Record<string, unknown> = {
+        is_recurring: !isRecurring,
+        updated_at: now.toISOString(),
+      };
+
+      // If enabling recurring (isRecurring was false, now setting to true),
+      // set next_creation_date to trigger immediate pickup by webhook
+      if (!isRecurring) {
+        updateData.next_creation_date = now.toISOString();
+      }
+
       const { error } = await supabase
         .from('chore_templates')
-        .update({
-          is_recurring: !isRecurring,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', templateId);
 
       if (error) throw error;

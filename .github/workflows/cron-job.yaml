@@ -1,8 +1,11 @@
 name: Call API routinely
 on:
   schedule:
-    - cron: '0 13 * * *'
-    - cron: '0 15 * * *'
+    # Run at 00:05 GMT+7 (17:05 UTC) - after end of day in Vietnam timezone
+    # This ensures templates due "today" (23:59:59 GMT+7) are picked up
+    - cron: '5 17 * * *'
+    # Run again at 08:00 GMT+7 (01:00 UTC) as a morning check
+    - cron: '0 1 * * *'
 
   workflow_dispatch:
 
