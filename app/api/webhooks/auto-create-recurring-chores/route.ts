@@ -152,12 +152,19 @@ export async function GET(request: Request) {
           const scheduledDate = template.next_creation_date
             ? new Date(template.next_creation_date)
             : now;
-          
+
           // Convert to GMT+7 timezone and set to end of day (23:59:59)
           const scheduledDateGMT7 = new TZDate(scheduledDate, TIMEZONE);
           dueDateGMT7 = endOfDay(scheduledDateGMT7) as TZDate;
         }
-        
+
+        // Ensure due date is not in the past - if it is, use end of today
+        const nowGMT7 = new TZDate(now, TIMEZONE);
+        const endOfTodayGMT7 = endOfDay(nowGMT7) as TZDate;
+        if (dueDateGMT7 < nowGMT7) {
+          dueDateGMT7 = endOfTodayGMT7;
+        }
+
         const dueDateISO = dueDateGMT7.toISOString();
 
         // Create the chore using the existing auto-create function
