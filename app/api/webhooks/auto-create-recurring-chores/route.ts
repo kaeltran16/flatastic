@@ -49,6 +49,16 @@ export async function GET(request: Request) {
     const now = new Date();
     const results: ChoreCreationResult[] = [];
 
+    console.log('[DEBUG] Looking for templates at:', now.toISOString());
+
+    // First, let's see ALL recurring templates for debugging
+    const { data: allTemplates } = await supabase
+      .from('chore_templates')
+      .select('id, name, is_active, is_recurring, household_id, next_creation_date')
+      .eq('is_recurring', true);
+
+    console.log('[DEBUG] All recurring templates in DB:', JSON.stringify(allTemplates, null, 2));
+
     // Find all active recurring templates that are due for chore creation
     const { data: recurringTemplates, error: templatesError } = await supabase
       .from('chore_templates')
@@ -84,12 +94,25 @@ export async function GET(request: Request) {
       );
     }
 
+    console.log('[DEBUG] Templates matching query:', JSON.stringify(recurringTemplates, null, 2));
+
     if (!recurringTemplates || recurringTemplates.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'No recurring templates due for chore creation',
         created_count: 0,
         results: [],
+        debug: {
+          now: now.toISOString(),
+          allTemplates: allTemplates?.map(t => ({
+            id: t.id,
+            name: t.name,
+            is_active: t.is_active,
+            is_recurring: t.is_recurring,
+            has_household: !!t.household_id,
+            next_creation_date: t.next_creation_date,
+          })),
+        },
       });
     }
 
