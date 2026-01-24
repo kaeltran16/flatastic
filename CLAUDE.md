@@ -64,6 +64,8 @@ export async function createResource(data: FormData) {
 - **`lib/actions/`** - Server Actions (chore, expense, household, user, notification)
 - **`lib/validations/`** - Zod schemas for form validation
 - **`lib/supabase/schema.alias.ts`** - Type aliases (Chore, Expense, Profile, etc.)
+- **`lib/services/`** - Shared services (LLM service for OpenRouter integration)
+- **`lib/scraping/`** - Web scraping utilities (water outage notifications)
 - **`hooks/`** - Custom React hooks wrapping server actions
 - **`components/ui/`** - shadcn/ui components (47 components)
 - **`app/api/webhooks/`** - Webhook endpoints for cron jobs
@@ -87,8 +89,30 @@ GitHub Actions runs cron jobs at 1:00 PM and 3:00 PM UTC daily (`.github/workflo
 - `update-overdue-chore-status` - Marks overdue chores
 - `chore-reminder` - Sends expiration notifications
 - `auto-create-recurring-chores` - Creates recurring chore instances
+- `water-outage-check` - Scrapes water outage schedules for Binh Thanh district
 
 Webhooks require `x-webhook-secret` header matching `SUPABASE_WEBHOOK_SECRET`.
+
+### LLM Service
+
+Centralized LLM integration via OpenRouter (`lib/services/llm.ts`):
+
+```typescript
+import { callLLM, parseWithLLM, askLLM } from '@/lib/services/llm';
+
+// Parse structured data from text
+const data = await parseWithLLM<MyType>(text, instructions, { model: 'anthropic/claude-3.5-sonnet' });
+
+// Simple text generation
+const response = await askLLM(question, context);
+```
+
+Used for robust web scraping (water outage notifications) where LLM parses article content instead of brittle HTML selectors.
+
+**Model Configuration:**
+- Default model: Set via `OPENROUTER_DEFAULT_MODEL` (default: `anthropic/claude-3.5-sonnet`)
+- Scraper model: Set via `OPENROUTER_SCRAPER_MODEL` (optional, falls back to default)
+- Any OpenRouter-supported model can be used (GPT-4, Gemini, etc.)
 
 ## Environment Variables
 
@@ -100,6 +124,9 @@ SUPABASE_WEBHOOK_SECRET                       # Webhook auth
 NEXT_PUBLIC_VAPID_PUBLIC_KEY                  # Web Push
 VAPID_PRIVATE_KEY
 NEXT_PUBLIC_VAPID_EMAIL
+OPENROUTER_API_KEY                            # For LLM service (web scraping, etc.)
+OPENROUTER_DEFAULT_MODEL                      # Default LLM model (default: anthropic/claude-3.5-sonnet)
+OPENROUTER_SCRAPER_MODEL                      # Model for web scraping (optional, falls back to default)
 ```
 
 ## Key Patterns

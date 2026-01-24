@@ -172,11 +172,10 @@ export async function GET(request: Request) {
           template_id: template.id,
           household_id: template.household_id,
           due_date: dueDateISO,
-          recurring_type: template.recurring_type,
-          recurring_interval: template.recurring_interval,
-          name: template.name,
-          description: template.description,
-          created_by: '', // Will be set to household admin in the function
+          recurring: {
+            type: template.recurring_type,
+            interval: template.recurring_interval,
+          },
           assigned_to: template.next_assignee_id || undefined, // Use override if present
         });
 

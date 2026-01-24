@@ -129,7 +129,9 @@ export async function getNextUserInRotation(
 /**
  * Server action to automatically create a chore from a template with sequential assignment
  */
-export async function autoCreateChoreFromTemplate(request: ChoreInsert) {
+export async function autoCreateChoreFromTemplate(
+  request: z.infer<typeof AutoCreateChoreSchema>
+) {
   try {
     const supabase = await createSystemClient();
     // Validate input

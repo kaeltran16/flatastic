@@ -46,8 +46,10 @@ export type SplitType = 'equal' | 'custom' | 'percentage';
 export type RecurringType = 'daily' | 'weekly' | 'monthly' | 'none';
 export type NotificationType =
   | 'chore_reminder'
+  | 'chore_expiring'
   | 'expense_added'
   | 'payment_due'
+  | 'water_outage'
   | 'system';
 
 export type ChoreWithProfile = Chore & {

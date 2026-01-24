@@ -1,0 +1,27 @@
+
+> @ build C:\Users\cktra\Projects\flatastic
+> next build
+
+   ▲ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · clientTraceMetadata
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 9.8s
+   Running TypeScript ...
+Failed to compile.
+
+./app/api/webhooks/auto-create-recurring-chores/route.ts:175:11
+Type error: Object literal may only specify known properties, and 'recurring' does not exist in type '{ assigned_to?: string | null | undefined; created_at?: string | null | undefined; created_by: string; description?: string | null | undefined; due_date?: string | null | undefined; ... 7 more ...; updated_at?: string | ... 1 more ... | undefined; }'.
+
+[0m [90m 173 |[39m           household_id[33m:[39m template[33m.[39mhousehold_id[33m,[39m
+ [90m 174 |[39m           due_date[33m:[39m dueDateISO[33m,[39m
+[31m[1m>[22m[39m[90m 175 |[39m           recurring[33m:[39m {
+ [90m     |[39m           [31m[1m^[22m[39m
+ [90m 176 |[39m             type[33m:[39m template[33m.[39mrecurring_type[33m,[39m
+ [90m 177 |[39m             interval[33m:[39m template[33m.[39mrecurring_interval[33m,[39m
+ [90m 178 |[39m           }[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.
