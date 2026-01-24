@@ -88,10 +88,17 @@ Extended types for joins:
 GitHub Actions runs cron jobs at 1:00 PM and 3:00 PM UTC daily (`.github/workflows/cron-job.yaml`):
 - `update-overdue-chore-status` - Marks overdue chores
 - `chore-reminder` - Sends expiration notifications
-- `auto-create-recurring-chores` - Creates recurring chore instances
+- `auto-create-recurring-chores` - Creates recurring chore instances (supports `?force=true` to bypass date check)
 - `water-outage-check` - Scrapes water outage schedules for Binh Thanh district
 
 Webhooks require `x-webhook-secret` header matching `SUPABASE_WEBHOOK_SECRET`.
+
+**Force Mode (auto-create-recurring-chores):**
+Add `?force=true` query parameter to create chores from all active templates regardless of `next_creation_date`. Useful for testing.
+```bash
+curl -X GET "https://yourapp.vercel.app/api/webhooks/auto-create-recurring-chores?force=true" \
+  -H "x-webhook-secret: your-secret"
+```
 
 ### LLM Service
 

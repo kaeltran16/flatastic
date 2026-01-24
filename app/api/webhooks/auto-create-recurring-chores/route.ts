@@ -45,11 +45,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check for force parameter to bypass date check
+    const url = new URL(request.url);
+    const forceMode = url.searchParams.get('force') === 'true';
+
     const supabase = await createSystemClient();
     const now = new Date();
     const results: ChoreCreationResult[] = [];
 
     console.log('[DEBUG] Looking for templates at:', now.toISOString());
+    console.log('[DEBUG] Force mode:', forceMode);
 
     // First, let's see ALL recurring templates for debugging
     const { data: allTemplates } = await supabase
@@ -60,7 +65,7 @@ export async function GET(request: Request) {
     console.log('[DEBUG] All recurring templates in DB:', JSON.stringify(allTemplates, null, 2));
 
     // Find all active recurring templates that are due for chore creation
-    const { data: recurringTemplates, error: templatesError } = await supabase
+    let query = supabase
       .from('chore_templates')
       .select(
         `
@@ -79,8 +84,14 @@ export async function GET(request: Request) {
       )
       .eq('is_active', true)
       .eq('is_recurring', true)
-      .not('household_id', 'is', null) // Only household-specific templates
-      .or(`next_creation_date.is.null,next_creation_date.lte.${now.toISOString()}`);
+      .not('household_id', 'is', null); // Only household-specific templates
+
+    // Only filter by date if not in force mode
+    if (!forceMode) {
+      query = query.or(`next_creation_date.is.null,next_creation_date.lte.${now.toISOString()}`);
+    }
+
+    const { data: recurringTemplates, error: templatesError } = await query;
 
     if (templatesError) {
       console.error('Error fetching recurring templates:', templatesError);
@@ -99,11 +110,14 @@ export async function GET(request: Request) {
     if (!recurringTemplates || recurringTemplates.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No recurring templates due for chore creation',
+        message: forceMode
+          ? 'No recurring templates found (force mode)'
+          : 'No recurring templates due for chore creation',
         created_count: 0,
         results: [],
         debug: {
           now: now.toISOString(),
+          forceMode,
           allTemplates: allTemplates?.map(t => ({
             id: t.id,
             name: t.name,
@@ -268,11 +282,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${recurringTemplates.length} templates`,
+      message: forceMode
+        ? `Processed ${recurringTemplates.length} templates (force mode)`
+        : `Processed ${recurringTemplates.length} templates`,
       created_count: successCount,
       failed_count: failureCount,
       results,
       timestamp: now.toISOString(),
+      forceMode,
     });
   } catch (error) {
     console.error('Auto-create recurring chores error:', error);
