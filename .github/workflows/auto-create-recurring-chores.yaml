@@ -1,0 +1,16 @@
+name: Auto-create recurring chores
+on:
+  schedule:
+    # Run at 10:00 GMT+7 (03:00 UTC)
+    - cron: '0 3 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  create-recurring-chores:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call auto-create-recurring-chores
+        run: |
+          curl -X GET https://flatastic02.vercel.app/api/webhooks/auto-create-recurring-chores \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"

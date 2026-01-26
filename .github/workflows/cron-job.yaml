@@ -1,10 +1,9 @@
 name: Call API routinely
 on:
   schedule:
-    # Run at 00:05 GMT+7 (17:05 UTC) - after end of day in Vietnam timezone
-    # This ensures templates due "today" (23:59:59 GMT+7) are picked up
+    # Run at 00:05 GMT+7 (17:05 UTC)
     - cron: '5 17 * * *'
-    # Run again at 08:00 GMT+7 (01:00 UTC) as a morning check
+    # Run at 08:00 GMT+7 (01:00 UTC)
     - cron: '0 1 * * *'
 
   workflow_dispatch:
@@ -21,11 +20,6 @@ jobs:
       - name: Call chore-reminder
         run: |
           curl -X GET https://flatastic02.vercel.app/api/webhooks/chore-reminder \
-            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
-
-      - name: Call auto-create-recurring-chores
-        run: |
-          curl -X GET https://flatastic02.vercel.app/api/webhooks/auto-create-recurring-chores \
             -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
 
       - name: Call water-outage-check

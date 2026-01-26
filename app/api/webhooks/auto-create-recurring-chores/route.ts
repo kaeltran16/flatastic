@@ -53,7 +53,15 @@ export async function GET(request: Request) {
     const now = new Date();
     const results: ChoreCreationResult[] = [];
 
+    // Use end of today in Vietnam timezone for comparison
+    // This way, if next_creation_date is "today" (any time), the chore will be created
+    const TIMEZONE = 'Asia/Ho_Chi_Minh';
+    const nowGMT7 = new TZDate(now, TIMEZONE);
+    const endOfTodayGMT7 = endOfDay(nowGMT7) as TZDate;
+    const comparisonDate = endOfTodayGMT7.toISOString();
+
     console.log('[DEBUG] Looking for templates at:', now.toISOString());
+    console.log('[DEBUG] End of today (GMT+7) for comparison:', comparisonDate);
     console.log('[DEBUG] Force mode:', forceMode);
 
     // First, let's see ALL recurring templates for debugging
@@ -87,8 +95,9 @@ export async function GET(request: Request) {
       .not('household_id', 'is', null); // Only household-specific templates
 
     // Only filter by date if not in force mode
+    // Compare against end of today in Vietnam timezone so chores scheduled for "today" get created
     if (!forceMode) {
-      query = query.or(`next_creation_date.is.null,next_creation_date.lte.${now.toISOString()}`);
+      query = query.or(`next_creation_date.is.null,next_creation_date.lte.${comparisonDate}`);
     }
 
     const { data: recurringTemplates, error: templatesError } = await query;
@@ -117,6 +126,7 @@ export async function GET(request: Request) {
         results: [],
         debug: {
           now: now.toISOString(),
+          comparisonDate,
           forceMode,
           allTemplates: allTemplates?.map(t => ({
             id: t.id,
@@ -170,7 +180,6 @@ export async function GET(request: Request) {
           .limit(1)
           .single();
 
-        const TIMEZONE = 'Asia/Ho_Chi_Minh';
         let dueDateGMT7: TZDate;
 
         if (lastChore && lastChore.due_date) {
@@ -196,8 +205,6 @@ export async function GET(request: Request) {
         }
 
         // Ensure due date is not in the past - if it is, use end of today
-        const nowGMT7 = new TZDate(now, TIMEZONE);
-        const endOfTodayGMT7 = endOfDay(nowGMT7) as TZDate;
         if (dueDateGMT7 < nowGMT7) {
           dueDateGMT7 = endOfTodayGMT7;
         }
