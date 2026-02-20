@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import ActivityFeed from '@/components/admin-dashboard/activity-feed';
 import { AdminChoreTab } from '@/components/admin-dashboard/admin-chore-tab';
 import { AdminExpenseTab } from '@/components/admin-dashboard/admin-expense-tab';
 import { AdminPenaltyTab } from '@/components/admin-dashboard/admin-penalty-tab';
@@ -799,71 +800,9 @@ export default function AdminDashboardPage() {
             </div>
           </TabsContent>
 
-          {/* Recent Activity Tab */}
+          {/* Activity Tab */}
           <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Chore Creations</CardTitle>
-                <CardDescription>
-                  Chores created from recurring templates (last 10)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {recentChoresLoading ? (
-                  <div className="text-center py-8">Loading activity...</div>
-                ) : recentChores.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BarChart3 className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>No recent activity</p>
-                    <p className="text-sm mt-2">
-                      Chores will appear here when created from templates
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentChores.map((chore) => (
-                      <div
-                        key={chore.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium">{chore.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            From template: {chore.template_name} • Assigned to:{' '}
-                            {chore.assignee_name}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {new Intl.DateTimeFormat('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            }).format(new Date(chore.created_at))}
-                          </div>
-                        </div>
-                        <Badge
-                          variant={
-                            chore.status === 'completed'
-                              ? 'default'
-                              : chore.status === 'overdue'
-                              ? 'destructive'
-                              : 'secondary'
-                          }
-                        >
-                          {chore.status === 'completed' && (
-                            <CheckCircle2 className="mr-1 h-3 w-3" />
-                          )}
-                          {chore.status === 'overdue' && (
-                            <AlertCircle className="mr-1 h-3 w-3" />
-                          )}
-                          {chore.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ActivityFeed householdId={profile!.household_id!} />
           </TabsContent>
 
           {/* Chore Management Tab */}

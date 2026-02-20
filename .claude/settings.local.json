@@ -4,7 +4,8 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm build:*)",
       "Bash(pnpm run dev:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

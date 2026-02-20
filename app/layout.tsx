@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import QueryProvider from '@/lib/query-provider';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -25,6 +25,13 @@ const geistMono = Geist_Mono({
 const APP_NAME = 'Flatastic';
 const APP_DEFAULT_TITLE = 'Flatastic';
 const APP_DESCRIPTION = 'Flatastic';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
