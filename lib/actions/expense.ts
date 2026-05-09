@@ -147,13 +147,19 @@ export async function addExpenseAction(formData: ExpenseFormData): Promise<
     // Create splits
     let splits: any[] = [];
     if (formData.split_type === 'equal') {
-      const splitAmount = formData.amount / householdMembers.length;
-      splits = householdMembers.map((member) => ({
-        expense_id: expense.id,
-        user_id: member.id,
-        amount_owed: splitAmount,
-        is_settled: member.id === user.id,
-      }));
+      const totalCents = Math.round(formData.amount * 100);
+      const baseCents = Math.floor(totalCents / householdMembers.length);
+      const remainderCents = totalCents - baseCents * householdMembers.length;
+      splits = householdMembers.map((member) => {
+        const isPayer = member.id === user.id;
+        const cents = baseCents + (isPayer ? remainderCents : 0);
+        return {
+          expense_id: expense.id,
+          user_id: member.id,
+          amount_owed: cents / 100,
+          is_settled: isPayer,
+        };
+      });
     } else if (formData.split_type === 'custom') {
       splits = formData.custom_splits!.map((split) => ({
         expense_id: expense.id,
@@ -281,6 +287,14 @@ export async function editExpenseAction(
           error: 'Split amounts must add up to the total expense amount',
         };
       }
+
+      const memberIds = new Set(householdMembers.map((m) => m.id));
+      const invalidUsers = formData.custom_splits.filter(
+        (split) => !memberIds.has(split.user_id)
+      );
+      if (invalidUsers.length > 0) {
+        return { success: false, error: 'Invalid users in splits' };
+      }
     }
 
     // Validate percentage splits if provided
@@ -301,6 +315,14 @@ export async function editExpenseAction(
           success: false,
           error: 'Percentages must add up to 100%',
         };
+      }
+
+      const memberIds = new Set(householdMembers.map((m) => m.id));
+      const invalidUsers = formData.percentage_splits.filter(
+        (split) => !memberIds.has(split.user_id)
+      );
+      if (invalidUsers.length > 0) {
+        return { success: false, error: 'Invalid users in percentage splits' };
       }
     }
 
@@ -326,6 +348,17 @@ export async function editExpenseAction(
       };
     }
 
+    // Capture existing splits so we can restore them if the rebuild fails
+    const oldSplitsBackup = (existingExpense.expense_splits ?? []).map(
+      (split: any) => ({
+        id: split.id,
+        expense_id: split.expense_id,
+        user_id: split.user_id,
+        amount_owed: split.amount_owed,
+        is_settled: split.is_settled,
+      })
+    );
+
     // Delete existing splits
     const { error: deleteSplitsError } = await supabase
       .from('expense_splits')
@@ -342,13 +375,19 @@ export async function editExpenseAction(
     // Create new splits
     let splits: any[] = [];
     if (formData.split_type === 'equal') {
-      const splitAmount = formData.amount / householdMembers.length;
-      splits = householdMembers.map((member) => ({
-        expense_id: expenseId,
-        user_id: member.id,
-        amount_owed: splitAmount,
-        is_settled: member.id === user.id,
-      }));
+      const totalCents = Math.round(formData.amount * 100);
+      const baseCents = Math.floor(totalCents / householdMembers.length);
+      const remainderCents = totalCents - baseCents * householdMembers.length;
+      splits = householdMembers.map((member) => {
+        const isPayer = member.id === user.id;
+        const cents = baseCents + (isPayer ? remainderCents : 0);
+        return {
+          expense_id: expenseId,
+          user_id: member.id,
+          amount_owed: cents / 100,
+          is_settled: isPayer,
+        };
+      });
     } else if (formData.split_type === 'custom') {
       splits = formData.custom_splits!.map((split) => ({
         expense_id: expenseId,
@@ -371,6 +410,10 @@ export async function editExpenseAction(
       .select();
 
     if (newSplitsError) {
+      // Restore the old splits so the expense isn't left orphaned
+      if (oldSplitsBackup.length > 0) {
+        await supabase.from('expense_splits').insert(oldSplitsBackup);
+      }
       return {
         success: false,
         error: `Failed to create new splits: ${newSplitsError.message}`,
