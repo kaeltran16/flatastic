@@ -190,6 +190,25 @@ export function useUpdateChore() {
   });
 }
 
+// Snapshot every cached chore-list query and apply `mutator` to each one.
+// Returns a rollback function that restores the snapshots on error.
+function patchChoreLists(
+  queryClient: ReturnType<typeof useQueryClient>,
+  mutator: (chores: ChoreWithProfile[]) => ChoreWithProfile[]
+) {
+  const snapshots: [readonly unknown[], ChoreWithProfile[] | undefined][] = [];
+  const entries = queryClient.getQueriesData<ChoreWithProfile[]>({
+    queryKey: choreKeys.lists(),
+  });
+  for (const [key, data] of entries) {
+    snapshots.push([key, data]);
+    if (data) queryClient.setQueryData(key, mutator(data));
+  }
+  return () => {
+    for (const [key, data] of snapshots) queryClient.setQueryData(key, data);
+  };
+}
+
 // Delete chore mutation
 export function useDeleteChore() {
   const queryClient = useQueryClient();
@@ -202,12 +221,22 @@ export function useDeleteChore() {
       }
       return result;
     },
+    onMutate: async (choreId: string) => {
+      await queryClient.cancelQueries({ queryKey: choreKeys.lists() });
+      const rollback = patchChoreLists(queryClient, (chores) =>
+        chores.filter((c) => c.id !== choreId)
+      );
+      return { rollback };
+    },
+    onError: (error, _vars, context) => {
+      context?.rollback?.();
+      toast.error(error.message || 'Failed to delete chore');
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: choreKeys.lists() });
       toast.success('Chore deleted successfully');
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to delete chore');
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: choreKeys.lists() });
     },
   });
 }
@@ -224,12 +253,27 @@ export function useMarkChoreComplete() {
       }
       return result.data;
     },
+    onMutate: async (choreId: string) => {
+      await queryClient.cancelQueries({ queryKey: choreKeys.lists() });
+      const completedAt = new Date().toISOString();
+      const rollback = patchChoreLists(queryClient, (chores) =>
+        chores.map((c) =>
+          c.id === choreId
+            ? { ...c, status: 'completed' as ChoreStatus, completed_at: completedAt }
+            : c
+        )
+      );
+      return { rollback };
+    },
+    onError: (error, _vars, context) => {
+      context?.rollback?.();
+      toast.error(error.message || 'Failed to mark chore complete');
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: choreKeys.lists() });
       toast.success('Chore marked as complete');
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to mark chore complete');
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: choreKeys.lists() });
     },
   });
 }

@@ -1,4 +1,5 @@
 // hooks/useSettlements.ts
+import { settlePaymentAction } from '@/lib/actions/expense';
 import { createClient } from '@/lib/supabase/client';
 import { Profile } from '@/lib/supabase/schema.alias';
 import {
@@ -252,95 +253,72 @@ export function useSettlements() {
     amount: number,
     note?: string
   ) => {
-    if (amount <= 0 || amount > balance.amount) {
+    if (amount <= 0 || amount > balance.amount + 0.01) {
       throw new Error('Invalid payment amount');
     }
 
-    // Use a transaction-like approach with error handling
-    const updates: {
-      id: string;
-      operation: 'settle' | 'update';
-      newAmount?: number;
-    }[] = [];
+    // Snapshot for rollback if the server rejects.
+    const prevBalances = balances;
+    const prevSettlements = completedSettlements;
+    const fullySettled = amount >= balance.amount - 0.01;
+    const optimisticId = `optimistic-${Date.now()}`;
 
-    try {
-      // Sort splits by amount owed (descending) to settle larger amounts first
-      const sortedSplits = [...balance.related_splits].sort(
-        (a, b) => b.amount_owed - a.amount_owed
-      );
-
-      let remainingAmount = amount;
-
-      // Determine which splits to update or settle
-      for (const split of sortedSplits) {
-        if (remainingAmount <= 0) break;
-
-        if (remainingAmount >= split.amount_owed) {
-          // Fully settle this split
-          remainingAmount -= split.amount_owed;
-          updates.push({
-            id: split.id,
-            operation: 'settle',
-          });
-        } else {
-          // Partially settle this split
-          updates.push({
-            id: split.id,
-            operation: 'update',
-            newAmount: split.amount_owed - remainingAmount,
-          });
-          remainingAmount = 0;
-        }
-      }
-
-      // Execute all updates
-      for (const update of updates) {
-        if (update.operation === 'settle') {
-          const { error } = await supabase
-            .from('expense_splits')
-            .update({ is_settled: true })
-            .eq('id', update.id);
-
-          if (error) throw error;
-        } else if (
-          update.operation === 'update' &&
-          update.newAmount !== undefined
+    setBalances((prev) =>
+      prev.flatMap((b) => {
+        if (
+          b.fromUser.id !== balance.fromUser.id ||
+          b.toUser.id !== balance.toUser.id
         ) {
-          const { error } = await supabase
-            .from('expense_splits')
-            .update({ amount_owed: update.newAmount })
-            .eq('id', update.id);
-
-          if (error) throw error;
+          return [b];
         }
-      }
+        if (fullySettled) return [];
+        return [{ ...b, amount: Math.round((b.amount - amount) * 100) / 100 }];
+      })
+    );
 
-      // Create a payment record for history tracking
-      const { error: noteError } = await supabase.from('payment_notes').insert({
+    const nowIso = new Date().toISOString();
+    setCompletedSettlements((prev) => [
+      {
+        id: optimisticId,
+        fromUser: balance.fromUser,
+        toUser: balance.toUser,
+        amount,
+        description: note || '',
+        status: 'completed',
+        date: nowIso,
+        note: note || '',
+        // payment_notes row shape — kept loose since Settlement extends it
         from_user_id: balance.fromUser.id,
         to_user_id: balance.toUser.id,
-        amount: amount,
+        created_at: nowIso,
+        updated_at: nowIso,
+        settled_at: nowIso,
+      } as Settlement,
+      ...prev,
+    ]);
+
+    try {
+      const result = await settlePaymentAction({
+        fromUserId: balance.fromUser.id,
+        toUserId: balance.toUser.id,
+        amount,
         note: note || '',
-        created_at: new Date().toISOString(),
       });
 
-      // Don't throw on note errors, just log them
-      if (noteError) {
-        console.warn('Failed to save payment note:', noteError);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to settle payment');
       }
-
-      // Wait a bit to ensure database consistency, then refresh
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await loadData();
-    } catch (error) {
-      // If any update fails, we should ideally rollback, but Supabase doesn't have transactions
-      // In a real app, you'd want to implement a rollback mechanism or use a backend with transactions
-      console.error('Settlement failed:', error);
-
-      // Refresh data to get current state
-      await loadData();
-      throw error;
+    } catch (err) {
+      // Roll back optimistic update so UI matches server truth.
+      setBalances(prevBalances);
+      setCompletedSettlements(prevSettlements);
+      throw err;
     }
+
+    // Reconcile in the background; don't block the caller — the UI is already
+    // showing the optimistic result. If the reconciled snapshot disagrees, it
+    // will quietly correct itself.
+    loadData();
   };
 
   useEffect(() => {

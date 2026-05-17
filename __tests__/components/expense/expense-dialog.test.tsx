@@ -10,48 +10,48 @@ jest.mock('@/hooks/use-profile');
 
 const mockMembers = [
   { 
-    id: 'user-1', 
+    id: '00000000-0000-0000-0000-000000000001', 
     full_name: 'Test User', 
     email: 'test@example.com',
     avatar_url: null,
     created_at: '2024-01-01T00:00:00Z',
-    household_id: 'household-1',
+    household_id: '00000000-0000-0000-0000-000000000010',
     payment_link: null,
     updated_at: '2024-01-01T00:00:00Z'
   },
   { 
-    id: 'user-2', 
+    id: '00000000-0000-0000-0000-000000000002', 
     full_name: 'User Two', 
     email: 'user2@example.com',
     avatar_url: null,
     created_at: '2024-01-01T00:00:00Z',
-    household_id: 'household-1',
+    household_id: '00000000-0000-0000-0000-000000000010',
     payment_link: null,
     updated_at: '2024-01-01T00:00:00Z'
   },
   { 
-    id: 'user-3', 
+    id: '00000000-0000-0000-0000-000000000003', 
     full_name: 'User Three', 
     email: 'user3@example.com',
     avatar_url: null,
     created_at: '2024-01-01T00:00:00Z',
-    household_id: 'household-1',
+    household_id: '00000000-0000-0000-0000-000000000010',
     payment_link: null,
     updated_at: '2024-01-01T00:00:00Z'
   },
 ];
 
 const mockCurrentUser = {
-  id: 'user-1',
-  household_id: 'household-1',
+  id: '00000000-0000-0000-0000-000000000001',
+  household_id: '00000000-0000-0000-0000-000000000010',
   email: 'test@example.com',
   full_name: 'Test User',
 };
 
 const defaultProps = {
   mode: 'create' as const,
-  householdId: 'household-1',
-  currentUserId: 'user-1',
+  householdId: '00000000-0000-0000-0000-000000000010',
+  currentUserId: '00000000-0000-0000-0000-000000000001',
   householdMembers: mockMembers,
   onSubmit: jest.fn(),
   isLoading: false,
@@ -77,17 +77,17 @@ describe('ExpenseDialog Component', () => {
         ...defaultProps,
         mode: 'edit' as const,
         expense: {
-          id: 'expense-1',
+          id: '00000000-0000-0000-0000-000000000100',
           description: 'Test Expense',
           amount: 100,
           category: 'Food',
           date: '2024-01-01',
-          paid_by: 'user-1',
-          household_id: 'household-1',
+          paid_by: '00000000-0000-0000-0000-000000000001',
+          household_id: '00000000-0000-0000-0000-000000000010',
           split_type: 'equal' as const,
           splits: [
-            { user_id: 'user-1', amount_owed: 50, is_settled: false },
-            { user_id: 'user-2', amount_owed: 50, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000001', amount_owed: 50, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000002', amount_owed: 50, is_settled: false },
           ],
           status: 'pending' as const,
           payer: mockMembers[0],
@@ -182,21 +182,22 @@ describe('ExpenseDialog Component', () => {
       });
 
       // Fill form fields
-      const descriptionInput = screen.getByPlaceholderText(/description/i);
+      const descriptionInput = screen.getByLabelText(/description/i);
       await user.type(descriptionInput, 'Test Expense');
 
-      const amountInput = screen.getByPlaceholderText(/amount/i);
+      const amountInput = screen.getByLabelText(/amount/i);
       await user.type(amountInput, '100');
 
       // Select category
-      const categorySelect = screen.getByRole('combobox');
+      // Two comboboxes exist (category, split_type); category is first in DOM.
+      const categorySelect = screen.getAllByRole('combobox')[0];
       await user.click(categorySelect);
-      const foodOption = screen.getByText('Food');
+      // Use the Radix SelectItem (role=option), not the hidden native <option>.
+      const foodOption = screen.getByRole('option', { name: 'Food' });
       await user.click(foodOption);
 
-      // Select users for equal split
-      const userCheckboxes = screen.getAllByRole('checkbox');
-      await user.click(userCheckboxes[1]); // Select user-2
+      // Equal-split mode auto-splits across all household members; no
+      // per-user checkbox UI is rendered in this branch.
 
       // Submit form
       const submitButton = screen.getByRole('button', { name: /add expense/i });
@@ -222,19 +223,18 @@ describe('ExpenseDialog Component', () => {
       });
 
       // Fill form and submit
-      const descriptionInput = screen.getByPlaceholderText(/description/i);
+      const descriptionInput = screen.getByLabelText(/description/i);
       await user.type(descriptionInput, 'Test Expense');
 
-      const amountInput = screen.getByPlaceholderText(/amount/i);
+      const amountInput = screen.getByLabelText(/amount/i);
       await user.type(amountInput, '100');
 
-      const categorySelect = screen.getByRole('combobox');
+      // Two comboboxes exist (category, split_type); category is first in DOM.
+      const categorySelect = screen.getAllByRole('combobox')[0];
       await user.click(categorySelect);
-      const foodOption = screen.getByText('Food');
+      // Use the Radix SelectItem (role=option), not the hidden native <option>.
+      const foodOption = screen.getByRole('option', { name: 'Food' });
       await user.click(foodOption);
-
-      const userCheckboxes = screen.getAllByRole('checkbox');
-      await user.click(userCheckboxes[1]);
 
       const submitButton = screen.getByRole('button', { name: /add expense/i });
       await user.click(submitButton);
@@ -255,17 +255,17 @@ describe('ExpenseDialog Component', () => {
         ...defaultProps,
         mode: 'edit' as const,
         expense: {
-          id: 'expense-1',
+          id: '00000000-0000-0000-0000-000000000100',
           description: 'Test Expense',
           amount: 100,
           category: 'Food',
           date: '2024-01-01',
-          paid_by: 'user-1',
-          household_id: 'household-1',
+          paid_by: '00000000-0000-0000-0000-000000000001',
+          household_id: '00000000-0000-0000-0000-000000000010',
           split_type: 'equal' as const,
           splits: [
-            { user_id: 'user-1', amount_owed: 50, is_settled: false },
-            { user_id: 'user-2', amount_owed: 50, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000001', amount_owed: 50, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000002', amount_owed: 50, is_settled: false },
           ],
           status: 'pending' as const,
           payer: mockMembers[0],
@@ -294,17 +294,17 @@ describe('ExpenseDialog Component', () => {
         ...defaultProps,
         mode: 'edit' as const,
         expense: {
-          id: 'expense-1',
+          id: '00000000-0000-0000-0000-000000000100',
           description: 'Test Expense',
           amount: 100,
           category: 'Food',
           date: '2024-01-01',
-          paid_by: 'user-1',
-          household_id: 'household-1',
+          paid_by: '00000000-0000-0000-0000-000000000001',
+          household_id: '00000000-0000-0000-0000-000000000010',
           split_type: 'custom' as const,
           splits: [
-            { user_id: 'user-2', amount_owed: 60, is_settled: false },
-            { user_id: 'user-3', amount_owed: 40, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000002', amount_owed: 60, is_settled: false },
+            { user_id: '00000000-0000-0000-0000-000000000003', amount_owed: 40, is_settled: false },
           ],
           status: 'pending' as const,
           payer: mockMembers[0],
@@ -342,9 +342,13 @@ describe('ExpenseDialog Component', () => {
 
       // Dialog should be open
       expect(screen.getByText('Add New Expense')).toBeInTheDocument();
-      
-      // No trigger button should be rendered in controlled mode
-      expect(screen.queryByText('Add Expense')).not.toBeInTheDocument();
+
+      // No trigger button should be rendered in controlled mode.
+      // Filter by aria-expanded to distinguish the Radix trigger from the
+      // form's submit button (which also reads "Add Expense").
+      expect(
+        screen.queryByRole('button', { name: 'Add Expense', expanded: false })
+      ).not.toBeInTheDocument();
     });
   });
 

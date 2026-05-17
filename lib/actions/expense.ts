@@ -147,13 +147,19 @@ export async function addExpenseAction(formData: ExpenseFormData): Promise<
     // Create splits
     let splits: any[] = [];
     if (formData.split_type === 'equal') {
-      const splitAmount = formData.amount / householdMembers.length;
-      splits = householdMembers.map((member) => ({
-        expense_id: expense.id,
-        user_id: member.id,
-        amount_owed: splitAmount,
-        is_settled: member.id === user.id,
-      }));
+      const totalCents = Math.round(formData.amount * 100);
+      const baseCents = Math.floor(totalCents / householdMembers.length);
+      const remainderCents = totalCents - baseCents * householdMembers.length;
+      splits = householdMembers.map((member) => {
+        const isPayer = member.id === user.id;
+        const cents = baseCents + (isPayer ? remainderCents : 0);
+        return {
+          expense_id: expense.id,
+          user_id: member.id,
+          amount_owed: cents / 100,
+          is_settled: isPayer,
+        };
+      });
     } else if (formData.split_type === 'custom') {
       splits = formData.custom_splits!.map((split) => ({
         expense_id: expense.id,
@@ -281,6 +287,14 @@ export async function editExpenseAction(
           error: 'Split amounts must add up to the total expense amount',
         };
       }
+
+      const memberIds = new Set(householdMembers.map((m) => m.id));
+      const invalidUsers = formData.custom_splits.filter(
+        (split) => !memberIds.has(split.user_id)
+      );
+      if (invalidUsers.length > 0) {
+        return { success: false, error: 'Invalid users in splits' };
+      }
     }
 
     // Validate percentage splits if provided
@@ -301,6 +315,14 @@ export async function editExpenseAction(
           success: false,
           error: 'Percentages must add up to 100%',
         };
+      }
+
+      const memberIds = new Set(householdMembers.map((m) => m.id));
+      const invalidUsers = formData.percentage_splits.filter(
+        (split) => !memberIds.has(split.user_id)
+      );
+      if (invalidUsers.length > 0) {
+        return { success: false, error: 'Invalid users in percentage splits' };
       }
     }
 
@@ -326,6 +348,17 @@ export async function editExpenseAction(
       };
     }
 
+    // Capture existing splits so we can restore them if the rebuild fails
+    const oldSplitsBackup = (existingExpense.expense_splits ?? []).map(
+      (split: any) => ({
+        id: split.id,
+        expense_id: split.expense_id,
+        user_id: split.user_id,
+        amount_owed: split.amount_owed,
+        is_settled: split.is_settled,
+      })
+    );
+
     // Delete existing splits
     const { error: deleteSplitsError } = await supabase
       .from('expense_splits')
@@ -342,13 +375,19 @@ export async function editExpenseAction(
     // Create new splits
     let splits: any[] = [];
     if (formData.split_type === 'equal') {
-      const splitAmount = formData.amount / householdMembers.length;
-      splits = householdMembers.map((member) => ({
-        expense_id: expenseId,
-        user_id: member.id,
-        amount_owed: splitAmount,
-        is_settled: member.id === user.id,
-      }));
+      const totalCents = Math.round(formData.amount * 100);
+      const baseCents = Math.floor(totalCents / householdMembers.length);
+      const remainderCents = totalCents - baseCents * householdMembers.length;
+      splits = householdMembers.map((member) => {
+        const isPayer = member.id === user.id;
+        const cents = baseCents + (isPayer ? remainderCents : 0);
+        return {
+          expense_id: expenseId,
+          user_id: member.id,
+          amount_owed: cents / 100,
+          is_settled: isPayer,
+        };
+      });
     } else if (formData.split_type === 'custom') {
       splits = formData.custom_splits!.map((split) => ({
         expense_id: expenseId,
@@ -371,6 +410,10 @@ export async function editExpenseAction(
       .select();
 
     if (newSplitsError) {
+      // Restore the old splits so the expense isn't left orphaned
+      if (oldSplitsBackup.length > 0) {
+        await supabase.from('expense_splits').insert(oldSplitsBackup);
+      }
       return {
         success: false,
         error: `Failed to create new splits: ${newSplitsError.message}`,
@@ -639,6 +682,84 @@ export async function settleBalanceAction(splitIds: string[]): Promise<ActionRes
     };
   } catch (error) {
     console.error('Settle balance error:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
+
+// Atomically settle a payment between two users via the settle_payment RPC.
+// The RPC locks affected splits, enforces direction/amount/household checks,
+// clears both directions on full payment to avoid orphan unsettled splits,
+// and inserts the payment_notes row in the same transaction.
+export async function settlePaymentAction(input: {
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+  note?: string;
+}): Promise<ActionResult<{ paymentNoteId: string; fullySettled: boolean }>> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    if (!input.fromUserId || !input.toUserId) {
+      return { success: false, error: 'Both parties are required' };
+    }
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      return { success: false, error: 'Amount must be positive' };
+    }
+
+    // Cast: schema.types.ts hasn't been regenerated yet for the new RPC.
+    // Regenerate via `supabase gen types` to drop this cast.
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>
+    )('settle_payment', {
+      p_from_user: input.fromUserId,
+      p_to_user: input.toUserId,
+      p_amount: input.amount,
+      p_note: input.note ?? '',
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const result = data as {
+      payment_note_id: string;
+      fully_settled: boolean;
+    } | null;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('household_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.household_id) {
+      revalidateTag(`expenses-${profile.household_id}`, {});
+    }
+
+    return {
+      success: true,
+      data: {
+        paymentNoteId: result?.payment_note_id ?? '',
+        fullySettled: result?.fully_settled ?? false,
+      },
+    };
+  } catch (error) {
+    console.error('Settle payment error:', error);
     return {
       success: false,
       error:

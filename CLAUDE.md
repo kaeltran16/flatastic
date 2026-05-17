@@ -8,6 +8,10 @@ Flatastic is a household management PWA built with Next.js 16, React 19, TypeScr
 
 **Production URL:** https://flatastic02.vercel.app
 
+## Git Commits
+
+Do not add Claude as co-author when committing. Do not include `Co-Authored-By: Claude` or any `Generated with Claude Code` footer in commit messages.
+
 ## Commands
 
 ```bash

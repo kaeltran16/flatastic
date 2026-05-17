@@ -81,7 +81,7 @@ async function fetchBalances(
 }
 
 // Calculate balances from splits data
-function calculateBalances(
+export function calculateBalances(
   splitsData: SplitWithExpense[],
   members: Profile[]
 ): Balance[] {

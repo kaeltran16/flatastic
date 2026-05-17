@@ -218,6 +218,13 @@ export function useExpenses() {
     async (expenseId: string) => {
       if (!currentUser?.household_id) throw new Error('No household found');
 
+      const queryKey = queryKeys.expenses.household(currentUser.household_id);
+      const snapshot =
+        queryClient.getQueryData<ExpenseWithDetails[]>(queryKey);
+      queryClient.setQueryData<ExpenseWithDetails[]>(queryKey, (prev) =>
+        (prev ?? []).filter((e) => e.id !== expenseId)
+      );
+
       setIsDeletingExpense(true);
 
       try {
@@ -227,9 +234,11 @@ export function useExpenses() {
           throw new Error(result.error || 'Failed to delete expense');
         }
 
-        await invalidateRelatedQueries();
         toast?.success?.('Expense deleted successfully');
+        // Reconcile in background; don't block UI on the refetch round-trip.
+        invalidateRelatedQueries();
       } catch (error) {
+        queryClient.setQueryData(queryKey, snapshot);
         toast?.error?.(
           error instanceof Error ? error.message : 'Failed to delete expense'
         );
@@ -238,13 +247,35 @@ export function useExpenses() {
         setIsDeletingExpense(false);
       }
     },
-    [currentUser, invalidateRelatedQueries]
+    [currentUser, invalidateRelatedQueries, queryClient]
   );
 
   // Settle expense
   const settleExpense = useCallback(
     async (expense: ExpenseWithDetails) => {
       if (!currentUser) throw new Error('No current user');
+      if (!currentUser.household_id) throw new Error('No household found');
+
+      const queryKey = queryKeys.expenses.household(currentUser.household_id);
+      const snapshot =
+        queryClient.getQueryData<ExpenseWithDetails[]>(queryKey);
+      const isPayer = expense.paid_by === currentUser.id;
+      queryClient.setQueryData<ExpenseWithDetails[]>(queryKey, (prev) =>
+        (prev ?? []).map((e) => {
+          if (e.id !== expense.id) return e;
+          const splits = e.splits.map((s) =>
+            isPayer || s.user_id === currentUser.id
+              ? { ...s, is_settled: true }
+              : s
+          );
+          const allSettled = splits.every((s) => s.is_settled);
+          return {
+            ...e,
+            splits,
+            status: allSettled ? 'settled' : 'pending',
+          };
+        })
+      );
 
       setIsSettlingExpense(true);
 
@@ -255,9 +286,10 @@ export function useExpenses() {
           throw new Error(result.error || 'Failed to settle expense');
         }
 
-        await invalidateRelatedQueries();
         toast?.success?.('Expense settled successfully');
+        invalidateRelatedQueries();
       } catch (error) {
+        queryClient.setQueryData(queryKey, snapshot);
         toast?.error?.(
           error instanceof Error ? error.message : 'Failed to settle expense'
         );
@@ -266,7 +298,7 @@ export function useExpenses() {
         setIsSettlingExpense(false);
       }
     },
-    [currentUser, invalidateRelatedQueries]
+    [currentUser, invalidateRelatedQueries, queryClient]
   );
 
   // Settle balance

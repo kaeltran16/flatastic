@@ -126,10 +126,16 @@ export default function ExpensesPage() {
       (expense) => expense.status === 'pending'
     );
 
+    const filteredTotal = filteredExpenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
+
     return {
       totalExpenses,
       yourTotalShare,
       pendingExpenses,
+      filteredTotal,
     };
   }, [filteredExpenses, currentUser?.id]);
 
@@ -396,9 +402,9 @@ export default function ExpensesPage() {
                 <span className="font-medium text-foreground">{filteredExpenses.length}</span>
                 {' '}of {expenses?.length || 0} expenses
               </span>
-              {filteredStats.totalExpenses > 0 && (
+              {filteredStats.filteredTotal > 0 && (
                 <span className="font-medium">
-                  Total: <span className="text-foreground">${filteredStats.totalExpenses.toFixed(2)}</span>
+                  Total: <span className="text-foreground">${filteredStats.filteredTotal.toFixed(2)}</span>
                 </span>
               )}
             </motion.div>

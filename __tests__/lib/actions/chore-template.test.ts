@@ -118,14 +118,30 @@ describe('Chore Template Actions', () => {
 
   describe('deleteChoreTemplate', () => {
     it('should soft delete a chore template', async () => {
-      mockSupabase.update.mockReturnThis(); // for update call
-      
-      // The delete function doesn't return data, just checks for error
-      mockSupabase.eq.mockReturnThis();
+      // Profile lookup: .single() resolves with the profile.
+      mockSupabase.single.mockResolvedValueOnce({ data: mockProfile, error: null });
+
+      // Update chain: from('chore_templates').update(...).eq(...).eq(...)
+      // The final awaited value comes from the second eq() call. Override
+      // from() so the chore_templates chain returns { error: null } when
+      // the second eq() is awaited.
+      const updateMock = jest.fn().mockReturnThis();
+      const firstEq = jest.fn().mockReturnThis();
+      const secondEq = jest.fn().mockResolvedValue({ error: null });
+      const choreTemplatesBuilder = {
+        update: updateMock,
+        eq: jest.fn()
+          .mockImplementationOnce(firstEq)
+          .mockImplementationOnce(secondEq),
+      };
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'chore_templates') return choreTemplatesBuilder;
+        return mockSupabase;
+      });
 
       await deleteChoreTemplate('template-123');
 
-      expect(mockSupabase.update).toHaveBeenCalledWith(expect.objectContaining({
+      expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
         is_active: false,
       }));
       expect(revalidatePath).toHaveBeenCalledWith('/chores');
