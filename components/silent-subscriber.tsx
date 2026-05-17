@@ -86,8 +86,7 @@ export function SilentSubscriber({
       // Send subscription to server
       const result = await subscribeUser(
         JSON.parse(JSON.stringify(subscription)),
-        navigator.userAgent,
-        userId
+        navigator.userAgent
       );
 
       if (result.success) {

@@ -324,8 +324,7 @@ export function PushNotificationManager() {
 
       const result = await subscribeUser(
         serializedSub,
-        navigator.userAgent,
-        profile?.id
+        navigator.userAgent
       );
       const endTime = Date.now();
 

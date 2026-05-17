@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { PushSubscriptionSchema } from '@/lib/validations/push-subscription';
 import webpush, { PushSubscription } from 'web-push';
 
 webpush.setVapidDetails(
@@ -11,20 +12,32 @@ webpush.setVapidDetails(
 
 export async function subscribeUser(
   sub: PushSubscription,
-  userAgent?: string,
-  userId?: string
+  userAgent?: string
 ) {
+  const parsed = PushSubscriptionSchema.safeParse(sub);
+  if (!parsed.success) {
+    return { success: false, error: 'invalid subscription payload' };
+  }
+
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'unauthenticated' };
+  }
+
   try {
     const { data, error } = await supabase
       .from('push_subscriptions')
       .upsert(
         {
-          endpoint: sub.endpoint,
-          p256dh: sub.keys.p256dh,
-          auth: sub.keys.auth,
+          endpoint: parsed.data.endpoint,
+          p256dh: parsed.data.keys.p256dh,
+          auth: parsed.data.keys.auth,
           user_agent: userAgent || 'Unknown',
-          user_id: userId, // Add user_id to link subscription to user
+          user_id: user.id,
           updated_at: new Date().toISOString(),
         },
         {
