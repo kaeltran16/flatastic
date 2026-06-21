@@ -41,7 +41,7 @@ export default function ExpensesPage() {
     editExpense,
     deleteExpense,
     settleExpense,
-    settleBalance,
+    settlePayment,
   } = useExpenses();
 
   const { members: householdMembers } = useHouseholdMembers(
@@ -367,7 +367,7 @@ export default function ExpensesPage() {
               currentUserId={currentUser?.id}
               selectedBalanceUserId={balanceFilterUserId}
               onBalanceSelect={setBalanceFilterUserId}
-              onSettleBalance={settleBalance}
+              onSettlePayment={settlePayment}
             />
           </motion.div>
 

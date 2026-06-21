@@ -1,7 +1,6 @@
 'use client';
 import ChoreDialog from '@/components/chore/chore-dialog';
 import ExpenseDialog from '@/components/expense/expense-dialog';
-import SettlementDialog from '@/components/payment/settlement-dialog';
 import { Button } from '@/components/ui/button';
 import { useCreateChore } from '@/hooks/use-chore';
 import { useExpenses } from '@/hooks/use-expense';
@@ -9,7 +8,7 @@ import { useHouseholdMembers } from '@/hooks/use-household-member';
 import { useProfile } from '@/hooks/use-profile';
 import { Plus, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FABMenu } from './fab-menu';
 
@@ -19,9 +18,9 @@ export function FAB() {
   const [isOpen, setIsOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
   const [choreDialogOpen, setChoreDialogOpen] = useState(false);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const pathname = usePathname();
+  const router = useRouter();
   const { profile } = useProfile();
   const { members = [] } = useHouseholdMembers(profile?.household_id);
   const { addExpense, isAddingExpense } = useExpenses();
@@ -53,7 +52,9 @@ export function FAB() {
         setChoreDialogOpen(true);
         break;
       case 'payment':
-        setPaymentDialogOpen(true);
+        // Settlement needs a selected balance; the /payments page owns that
+        // flow (pick a balance, then settle via the RPC).
+        router.push('/payments');
         break;
     }
   };
@@ -161,16 +162,6 @@ export function FAB() {
           onOpenChange={setChoreDialogOpen}
         />
       )}
-
-      <SettlementDialog
-        open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
-        selectedBalance={null}
-        currentUserId={profile.id}
-        onSettle={async () => {
-          // This will be handled by the dialog itself
-        }}
-      />
     </>
   );
 }

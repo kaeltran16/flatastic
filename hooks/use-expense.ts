@@ -3,8 +3,8 @@ import {
     addExpenseAction,
     deleteExpenseAction,
     editExpenseAction,
-    settleBalanceAction,
     settleExpenseAction,
+    settlePaymentAction,
 } from '@/lib/actions/expense';
 import { queryKeys } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
@@ -301,27 +301,39 @@ export function useExpenses() {
     [currentUser, invalidateRelatedQueries, queryClient]
   );
 
-  // Settle balance
-  const settleBalance = useCallback(
-    async (splitIds: string[]) => {
+  // Settle a net balance between two users via the atomic settle_payment RPC.
+  // Routes through the same SECURITY DEFINER path as /payments so both
+  // directions of a mutual debt are cleared (a plain client update can only
+  // touch the caller's own splits under RLS, which orphans the reverse split).
+  // Toasts are owned by the dialog; here we only reconcile and surface errors.
+  const settlePayment = useCallback(
+    async (
+      fromUserId: string,
+      toUserId: string,
+      amount: number,
+      note?: string
+    ) => {
       if (!currentUser) throw new Error('No current user');
 
       setIsSettlingExpense(true);
 
       try {
-        const result = await settleBalanceAction(splitIds);
+        const result = await settlePaymentAction({
+          fromUserId,
+          toUserId,
+          amount,
+          note,
+        });
 
         if (!result.success) {
-          throw new Error(result.error || 'Failed to settle balance');
+          throw new Error(result.error || 'Failed to settle payment');
         }
 
         await invalidateRelatedQueries();
-        toast?.success?.('Balance settled successfully');
       } catch (error) {
-        toast?.error?.(
-          error instanceof Error ? error.message : 'Failed to settle balance'
-        );
-        throw error;
+        throw error instanceof Error
+          ? error
+          : new Error('Failed to settle payment');
       } finally {
         setIsSettlingExpense(false);
       }
@@ -353,7 +365,7 @@ export function useExpenses() {
     editExpense,
     deleteExpense,
     settleExpense,
-    settleBalance,
+    settlePayment,
     refreshData: invalidateRelatedQueries,
     // Loading states for individual operations
     isAddingExpense,

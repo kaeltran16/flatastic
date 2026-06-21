@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Balance } from '@/lib/supabase/types';
 import { CreditCard, ExternalLink, Smartphone, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface SettlementDialogProps {
@@ -37,8 +37,15 @@ const SettlementDialog = ({
   const [settlingPayment, setSettlingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('digital');
 
+  // re-entrancy guard: setState is async, so a fast second click can fire
+  // before `settlingPayment` flips and disables the button. A ref blocks the
+  // duplicate synchronously, preventing double-inserted payment_notes.
+  const submittingRef = useRef(false);
+
   const handleSettlePayment = async () => {
     if (!selectedBalance || !paymentAmount) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     try {
       setSettlingPayment(true);
@@ -68,6 +75,7 @@ const SettlementDialog = ({
       });
     } finally {
       setSettlingPayment(false);
+      submittingRef.current = false;
     }
   };
 
@@ -212,18 +220,15 @@ const SettlementDialog = ({
                       </TabsTrigger>
                     </TabsList>
 
-                    <AnimatePresence mode="wait">
-                      {activeTab === 'digital' && (
-                        <TabsContent
-                          key="digital"
-                          value="digital"
-                          className="space-y-4"
-                          asChild
-                        >
+                    <TabsContent
+                      value="digital"
+                      className="space-y-4"
+                      asChild
+                    >
                           <motion.div
+                            key="digital"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.3 }}
                           >
                             {/* Payment Link Button Section */}
@@ -298,19 +303,16 @@ const SettlementDialog = ({
                             </motion.div>
                           </motion.div>
                         </TabsContent>
-                      )}
 
-                      {activeTab === 'manual' && (
-                        <TabsContent
-                          key="manual"
-                          value="manual"
-                          className="space-y-4"
-                          asChild
-                        >
+                    <TabsContent
+                      value="manual"
+                      className="space-y-4"
+                      asChild
+                    >
                           <motion.div
+                            key="manual"
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
                             className="space-y-4"
                           >
@@ -393,8 +395,6 @@ const SettlementDialog = ({
                             </motion.div>
                           </motion.div>
                         </TabsContent>
-                      )}
-                    </AnimatePresence>
                   </Tabs>
                 </motion.div>
               </div>
@@ -476,6 +476,7 @@ const SettlementDialog = ({
                   >
                     <Button
                       onClick={handleSettlePayment}
+                      disabled={settlingPayment}
                       className="w-full sm:w-auto h-11 sm:h-10 min-w-[120px]"
                     >
                       Mark as Paid

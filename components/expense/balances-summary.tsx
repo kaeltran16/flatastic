@@ -14,15 +14,20 @@ interface BalancesSummaryProps {
   currentUserId: string | undefined;
   selectedBalanceUserId?: string | null;
   onBalanceSelect?: (userId: string | null) => void;
-  onSettleBalance?: (splitIds: string[]) => Promise<void>;
+  onSettlePayment?: (
+    fromUserId: string,
+    toUserId: string,
+    amount: number,
+    note?: string
+  ) => Promise<void>;
 }
 
-export function BalancesSummary({ 
-  balances, 
-  currentUserId, 
+export function BalancesSummary({
+  balances,
+  currentUserId,
   selectedBalanceUserId,
   onBalanceSelect,
-  onSettleBalance,
+  onSettlePayment,
 }: BalancesSummaryProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState<Balance | null>(null);
@@ -45,30 +50,16 @@ export function BalancesSummary({
 
   const handleSettlePayment = async (
     balance: Balance,
-    _amount: number,
-    _note: string
+    amount: number,
+    note: string
   ) => {
-    try {
-      if (onSettleBalance && balance.related_splits) {
-        // Collect all related split IDs
-        // related_splits contains ExpenseSplitWithExpense
-        // We want to settle ALL splits involved in this balance to square up.
-        // This includes splits where I owe them AND splits where they owe me.
-        
-        const splitsToSettle = balance.related_splits
-          .filter(split => !split.is_settled)
-          .map(split => split.id);
-          
-        if (splitsToSettle.length > 0) {
-            await onSettleBalance(splitsToSettle);
-        }
-      }
-    } catch (error) {
-        console.error('Failed to settle balance:', error);
-        // Toast is handled in the hook, but we could add safe guard here
-    } finally {
-        setSelectedBalance(null);
+    // Settle the net balance atomically. The RPC clears both directions of a
+    // mutual debt, so passing the two parties + net amount squares them up;
+    // we let errors propagate so the dialog surfaces them.
+    if (onSettlePayment) {
+      await onSettlePayment(balance.fromUser.id, balance.toUser.id, amount, note);
     }
+    setSelectedBalance(null);
   };
 
   const handleRowClick = (balance: Balance) => {
