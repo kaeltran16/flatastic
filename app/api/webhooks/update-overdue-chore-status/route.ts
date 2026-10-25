@@ -1,10 +1,10 @@
 import { createSystemClient } from '@/lib/supabase/system';
+import { isValidWebhookSecret } from '@/lib/utils/webhook-auth';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    const webhookSecret = request.headers.get('x-webhook-secret');
-    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

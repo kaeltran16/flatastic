@@ -1,12 +1,11 @@
 import { autoCreateChoreFromTemplate } from '@/lib/actions/chore-webhooks';
 import { createClient } from '@/lib/supabase/server';
+import { isValidWebhookSecret } from '@/lib/utils/webhook-auth';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const webhookSecret = request.headers.get('x-webhook-secret');
-
-    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const body = await request.json();

@@ -4,7 +4,7 @@ import {
   sendNotificationToUser,
 } from '@/app/pwa-nextjs/actions';
 import { createClient } from '@/lib/supabase/server';
-import crypto from 'crypto';
+import { isValidWebhookSecret } from '@/lib/utils/webhook-auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 const getDeeplinkUrl = (notificationType: string) => {
@@ -25,20 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify webhook secret to ensure request is from Supabase
-    const webhookSecret = request.headers.get('x-webhook-secret');
-
-    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Use timing-safe comparison to prevent timing attacks
-    const isValidSecret = crypto.timingSafeEqual(
-      Buffer.from(webhookSecret),
-      Buffer.from(process.env.SUPABASE_WEBHOOK_SECRET)
-    );
-
-    if (!isValidSecret) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

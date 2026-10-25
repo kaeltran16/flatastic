@@ -4,25 +4,12 @@ import {
   isOutageRelevant,
   notifyAllUsersAboutWaterOutage,
 } from '@/lib/utils/water-outage-notification';
-import crypto from 'crypto';
+import { isValidWebhookSecret } from '@/lib/utils/webhook-auth';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    // Verify webhook secret to ensure request is authorized
-    const webhookSecret = request.headers.get('x-webhook-secret');
-
-    if (!webhookSecret || !process.env.SUPABASE_WEBHOOK_SECRET) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Use timing-safe comparison to prevent timing attacks
-    const isValidSecret = crypto.timingSafeEqual(
-      Buffer.from(webhookSecret),
-      Buffer.from(process.env.SUPABASE_WEBHOOK_SECRET)
-    );
-
-    if (!isValidSecret) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

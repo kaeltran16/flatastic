@@ -1,5 +1,6 @@
 import { autoCreateChoreFromTemplate } from '@/lib/actions/chore-webhooks';
 import { createSystemClient } from '@/lib/supabase/system';
+import { isValidWebhookSecret } from '@/lib/utils/webhook-auth';
 import { calculateNextCreationDate } from '@/lib/validations/chore-template';
 import { TZDate } from '@date-fns/tz';
 import { endOfDay } from 'date-fns';
@@ -35,13 +36,7 @@ interface ChoreCreationResult {
  */
 export async function GET(request: Request) {
   try {
-    // Verify webhook secret
-    const webhookSecret = request.headers.get('x-webhook-secret');
-
-    if (
-      !webhookSecret ||
-      webhookSecret !== process.env.SUPABASE_WEBHOOK_SECRET
-    ) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -314,12 +309,7 @@ export async function GET(request: Request) {
 // Also support POST for manual triggers with specific template
 export async function POST(request: Request) {
   try {
-    const webhookSecret = request.headers.get('x-webhook-secret');
-
-    if (
-      !webhookSecret ||
-      webhookSecret !== process.env.SUPABASE_WEBHOOK_SECRET
-    ) {
+    if (!isValidWebhookSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
