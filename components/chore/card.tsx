@@ -6,14 +6,14 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChoreFormData } from '@/hooks/use-chore';
+import { ChoreFormData, useSendChoreReminder } from '@/hooks/use-chore';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import {
     formatDateRelatively,
     getChoreRecurringTypeColor,
     getChoreStatusColor,
 } from '@/utils';
-import { Calendar, CheckCircle2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Bell, Calendar, CheckCircle2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import UserAvatar from '../user-avatar';
@@ -51,6 +51,7 @@ export default function ChoreCard({
   isMarkingComplete,
 }: ChoreCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const sendReminderMutation = useSendChoreReminder();
 
   const assignedMember = chore.assigned_to
     ? householdMembers.find((member) => member.id === chore.assigned_to)
@@ -59,6 +60,7 @@ export default function ChoreCard({
   const isCompleted = chore.status === 'completed';
   const canMarkComplete = chore.status === 'pending' || chore.status === 'overdue';
   const isOverdue = chore.status === 'overdue';
+  const canSendReminder = !!assignedMember && assignedMember.id !== currentUser.id;
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);
@@ -164,6 +166,16 @@ export default function ChoreCard({
                         <Pencil className="h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
+                      {canSendReminder && (
+                        <DropdownMenuItem
+                          onClick={() => sendReminderMutation.mutate(chore.id)}
+                          disabled={sendReminderMutation.isPending}
+                          className="gap-2 text-base py-2.5"
+                        >
+                          <Bell className="h-4 w-4" />
+                          Remind {assignedMember.full_name?.split(' ')[0]}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={handleDelete} className="gap-2 text-base py-2.5 text-red-600 dark:text-red-400">
                         <Trash2 className="h-4 w-4" />
                         Delete

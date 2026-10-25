@@ -5,6 +5,7 @@ import {
     createChore,
     deleteChore,
     markChoreComplete,
+    sendChoreReminder,
     updateChore,
 } from '@/lib/actions/chore';
 import { createClient } from '@/lib/supabase/client';
@@ -274,6 +275,25 @@ export function useMarkChoreComplete() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: choreKeys.lists() });
+    },
+  });
+}
+
+// Send manual reminder to chore assignee
+export function useSendChoreReminder() {
+  return useMutation({
+    mutationFn: async (choreId: string) => {
+      const result = await sendChoreReminder(choreId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Reminder sent');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to send reminder');
     },
   });
 }

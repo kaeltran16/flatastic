@@ -6,6 +6,7 @@ import { ChoreInsert, ChoreUpdate } from '@/lib/supabase/schema.alias';
 import { createClient } from '@/lib/supabase/server';
 import { CreateChoreSchema, UpdateChoreSchema } from '@/lib/validations/chore';
 import { calculateNextCreationDate } from '@/lib/validations/chore-template';
+import { formatDateRelatively } from '@/utils';
 import { revalidatePath } from 'next/cache';
 
 // Custom error class for chore operations
@@ -402,6 +403,88 @@ export async function markChoreComplete(choreId: string) {
         error instanceof Error
           ? error.message
           : 'Failed to mark chore complete',
+      code: 'UNKNOWN_ERROR',
+    };
+  }
+}
+
+// Server action to manually remind the assignee of a chore
+export async function sendChoreReminder(choreId: string) {
+  try {
+    const { user, userProfile, supabase } =
+      await getAuthenticatedUserWithHousehold();
+
+    const { data: chore, error: fetchError } = await supabase
+      .from('chores')
+      .select('household_id, status, name, due_date, assigned_to')
+      .eq('id', choreId)
+      .single();
+
+    if (fetchError) {
+      throw new ChoreActionError('Chore not found', 'NOT_FOUND');
+    }
+
+    if (chore.household_id !== userProfile.household_id) {
+      throw new ChoreActionError(
+        'Not authorized to remind for this chore',
+        'UNAUTHORIZED'
+      );
+    }
+
+    if (chore.status === 'completed') {
+      throw new ChoreActionError(
+        'Chore is already completed',
+        'ALREADY_COMPLETED'
+      );
+    }
+
+    if (!chore.assigned_to) {
+      throw new ChoreActionError('Chore has no assignee', 'NO_ASSIGNEE');
+    }
+
+    if (chore.assigned_to === user.id) {
+      throw new ChoreActionError(
+        'You cannot send a reminder to yourself',
+        'SELF_REMINDER'
+      );
+    }
+
+    const senderName = userProfile.full_name?.split(' ')[0] || 'A housemate';
+    const duePart = chore.due_date
+      ? ` (due ${formatDateRelatively(chore.due_date)})`
+      : '';
+
+    const { error: notifError } = await supabase.rpc(
+      'create_notification_with_push',
+      {
+        p_user_id: chore.assigned_to,
+        p_household_id: chore.household_id,
+        p_title: 'Chore Reminder',
+        p_message: `${senderName} reminded you about "${chore.name}"${duePart}`,
+        p_type: 'chore_nudge',
+        p_is_urgent: false,
+      }
+    );
+
+    if (notifError) {
+      throw new ChoreActionError(
+        `Failed to send reminder: ${notifError.message}`,
+        'NOTIFICATION_ERROR'
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Send chore reminder error:', error);
+
+    if (error instanceof ChoreActionError) {
+      return { success: false, error: error.message, code: error.code };
+    }
+
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Failed to send reminder',
       code: 'UNKNOWN_ERROR',
     };
   }

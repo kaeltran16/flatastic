@@ -2,14 +2,14 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChoreFormData } from '@/hooks/use-chore';
+import { ChoreFormData, useSendChoreReminder } from '@/hooks/use-chore';
 import { Chore, Profile } from '@/lib/supabase/schema.alias';
 import {
     formatDateRelatively,
     getChoreRecurringTypeColor,
     getChoreStatusColor,
 } from '@/utils';
-import { Calendar, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Bell, Calendar, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import ChoreDialog from './chore-dialog';
@@ -47,6 +47,7 @@ export default function ChoreListItem({
 }: ChoreListItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const sendReminderMutation = useSendChoreReminder();
 
   const assignedMember = chore.assigned_to
     ? householdMembers.find((member) => member.id === chore.assigned_to)
@@ -55,6 +56,7 @@ export default function ChoreListItem({
   const isCompleted = chore.status === 'completed';
   const canMarkComplete = chore.status === 'pending' || chore.status === 'overdue';
   const isOverdue = chore.status === 'overdue';
+  const canSendReminder = !!assignedMember && assignedMember.id !== currentUser.id;
 
   const handleCheckboxChange = async (checked: boolean) => {
     if (checked && canMarkComplete && onMarkComplete) {
@@ -138,6 +140,21 @@ export default function ChoreListItem({
           {/* Quick Actions (visible on hover on desktop) */}
           {showActions && !isCompleted && (
             <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {canSendReminder && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sendReminderMutation.mutate(chore.id);
+                  }}
+                  className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-950 text-amber-600"
+                  disabled={sendReminderMutation.isPending}
+                  aria-label="Send reminder"
+                  title="Send reminder"
+                >
+                  <Bell className="h-4 w-4" />
+                </motion.button>
+              )}
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => {
@@ -188,6 +205,15 @@ export default function ChoreListItem({
               {/* Mobile Actions */}
               {showActions && !isCompleted && (
                 <div className="flex gap-2 sm:hidden pt-2">
+                  {canSendReminder && (
+                    <button
+                      onClick={() => sendReminderMutation.mutate(chore.id)}
+                      className="flex-1 px-3 py-2 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-600 text-sm font-medium"
+                      disabled={sendReminderMutation.isPending}
+                    >
+                      Remind
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsEditDialogOpen(true)}
                     className="flex-1 px-3 py-2 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 text-sm font-medium"
