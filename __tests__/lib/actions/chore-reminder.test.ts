@@ -22,7 +22,17 @@ describe('sendChoreReminder', () => {
 
   let mockSupabase: any;
 
-  function setup(chore: Record<string, unknown> | null, rpcError: unknown = null) {
+  function setup(
+    chore: Record<string, unknown> | null,
+    { rpcError = null as unknown, adminId = sender.id } = {}
+  ) {
+    const rows: Record<string, unknown> = {
+      profiles: { data: senderProfile, error: null },
+      households: { data: { admin_id: adminId }, error: null },
+      chores: chore
+        ? { data: chore, error: null }
+        : { data: null, error: { message: 'not found' } },
+    };
     mockSupabase = {
       auth: {
         getUser: jest.fn().mockResolvedValue({ data: { user: sender }, error: null }),
@@ -30,13 +40,7 @@ describe('sendChoreReminder', () => {
       from: jest.fn((table: string) => ({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue(
-          table === 'profiles'
-            ? { data: senderProfile, error: null }
-            : chore
-              ? { data: chore, error: null }
-              : { data: null, error: { message: 'not found' } }
-        ),
+        single: jest.fn().mockResolvedValue(rows[table]),
       })),
       rpc: jest.fn().mockResolvedValue({ data: 'notif-1', error: rpcError }),
     };
@@ -91,8 +95,17 @@ describe('sendChoreReminder', () => {
     expect(mockSupabase.rpc).not.toHaveBeenCalled();
   });
 
+  it('rejects when the sender is not the household admin', async () => {
+    setup(baseChore, { adminId: 'user-3' });
+
+    const result = await sendChoreReminder('chore-1');
+
+    expect(result).toMatchObject({ success: false, code: 'NOT_ADMIN' });
+    expect(mockSupabase.rpc).not.toHaveBeenCalled();
+  });
+
   it('reports a failure when the notification RPC errors', async () => {
-    setup(baseChore, { message: 'push failed' });
+    setup(baseChore, { rpcError: { message: 'push failed' } });
 
     const result = await sendChoreReminder('chore-1');
 

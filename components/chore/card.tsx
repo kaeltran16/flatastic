@@ -25,6 +25,7 @@ interface ChoreCardProps {
   currentUser: Profile;
   index: number;
   showActions?: boolean;
+  isAdmin: boolean;
   onMarkComplete?: (choreId: string) => void;
   onChoreUpdated: (updatedChore: Chore) => void;
   onChoreDeleted: (choreId: string) => void;
@@ -41,6 +42,7 @@ export default function ChoreCard({
   currentUser,
   index,
   showActions = true,
+  isAdmin,
   onMarkComplete,
   onChoreUpdated,
   onChoreDeleted,
@@ -60,7 +62,8 @@ export default function ChoreCard({
   const isCompleted = chore.status === 'completed';
   const canMarkComplete = chore.status === 'pending' || chore.status === 'overdue';
   const isOverdue = chore.status === 'overdue';
-  const canSendReminder = !!assignedMember && assignedMember.id !== currentUser.id;
+  const canSendReminder =
+    isAdmin && !!assignedMember && assignedMember.id !== currentUser.id;
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);

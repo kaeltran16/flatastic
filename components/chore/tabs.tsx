@@ -257,6 +257,7 @@ export default function ChoreTabs({
                 currentUser={currentUser}
                 index={index}
                 showActions={showActions}
+                isAdmin={household.admin_id === currentUser.id}
                 onMarkComplete={showActions ? onMarkComplete : undefined}
                 onChoreUpdated={onChoreUpdated}
                 onChoreDeleted={onChoreDeleted}

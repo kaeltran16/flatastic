@@ -414,6 +414,16 @@ export async function sendChoreReminder(choreId: string) {
     const { user, userProfile, supabase } =
       await getAuthenticatedUserWithHousehold();
 
+    const { data: household } = await supabase
+      .from('households')
+      .select('admin_id')
+      .eq('id', userProfile.household_id!)
+      .single();
+
+    if (household?.admin_id !== user.id) {
+      throw new ChoreActionError('Admin access required', 'NOT_ADMIN');
+    }
+
     const { data: chore, error: fetchError } = await supabase
       .from('chores')
       .select('household_id, status, name, due_date, assigned_to')
