@@ -89,11 +89,11 @@ Extended types for joins:
 
 ### Webhooks & Cron Jobs
 
-GitHub Actions runs cron jobs at 1:00 PM and 3:00 PM UTC daily (`.github/workflows/cron-job.yaml`):
-- `update-overdue-chore-status` - Marks overdue chores
-- `chore-reminder` - Sends expiration notifications
-- `auto-create-recurring-chores` - Creates recurring chore instances (supports `?force=true` to bypass date check)
-- `water-outage-check` - Scrapes water outage schedules for Binh Thanh district
+GitHub Actions cron jobs (`.github/workflows/`; scheduled runs often start hours late):
+- `update-overdue-chore-status` - Marks overdue chores (`cron-job.yaml`, 00:05 and 08:00 GMT+7)
+- `water-outage-check` - Scrapes water outage schedules for Binh Thanh district (`cron-job.yaml`, 00:05 and 08:00 GMT+7)
+- `chore-reminder` - Sends expiration notifications for chores due today (`chore-reminder.yaml`, 18:00 GMT+7)
+- `auto-create-recurring-chores` - Creates recurring chore instances (`auto-create-recurring-chores.yaml`, 10:00 GMT+7; supports `?force=true` to bypass date check)
 
 Webhooks require `x-webhook-secret` header matching `SUPABASE_WEBHOOK_SECRET`.
 

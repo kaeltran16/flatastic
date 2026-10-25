@@ -17,11 +17,6 @@ jobs:
           curl -X GET https://flatastic02.vercel.app/api/webhooks/update-overdue-chore-status \
             -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
 
-      - name: Call chore-reminder
-        run: |
-          curl -X GET https://flatastic02.vercel.app/api/webhooks/chore-reminder \
-            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
-
       - name: Call water-outage-check
         run: |
           curl -X GET https://flatastic02.vercel.app/api/webhooks/water-outage-check \

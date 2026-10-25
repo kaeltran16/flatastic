@@ -87,7 +87,7 @@ export async function GET(request: Request) {
       timestamp: nowISO,
       end_of_day_hcmc: endOfTodayISO,
       timezone: 'Asia/Ho_Chi_Minh',
-      scheduled_time: '8:00 PM GMT+7',
+      scheduled_time: '6:00 PM GMT+7',
     });
   } catch (error: any) {
     console.error('Error sending chore expiration reminders:', error);

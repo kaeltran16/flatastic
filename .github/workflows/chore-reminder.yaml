@@ -1,0 +1,16 @@
+name: Chore reminder
+on:
+  schedule:
+    # Run at 18:00 GMT+7 (11:00 UTC)
+    - cron: '0 11 * * *'
+
+  workflow_dispatch:
+
+jobs:
+  send-chore-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call chore-reminder
+        run: |
+          curl -X GET https://flatastic02.vercel.app/api/webhooks/chore-reminder \
+            -H "x-webhook-secret: ${{ secrets.WEBHOOK_SECRET }}"
